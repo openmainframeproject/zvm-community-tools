@@ -1,5 +1,3 @@
-
-# insert project logo - replace the below logo location with the location of your logo
 ![z/VM Community Tools Logo](https://raw.githubusercontent.com/openmainframeproject/artwork/5b27f85f886da75ddf53511eb5289c53c972415c/projects/zvm-community-tools/horizontal/color/zvm-community-tools-horizontal-color.svg)
 
 ```gfm
