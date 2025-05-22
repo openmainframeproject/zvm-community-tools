@@ -8,7 +8,7 @@
 
 # PROJECT NAME
 
-_2-3 sentence description of the project_
+z/VM Community Tools
 
 ## Install
 
