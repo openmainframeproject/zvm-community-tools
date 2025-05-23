@@ -1,0 +1,92 @@
+/*-------------------------------------------------------------------*/
+/* WHO EXEC - sort and display user IDs from CP QUERY NAMES          */
+/* Arg 1: filter (optional) show only user IDs matching this string  */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+parse upper arg filter
+if filter = "?" | filter = "-H" then do
+  say "Name:  WHO EXEC - sort output of QUERY NAMES"
+  say "Usage: WHO {FILTER}"
+  say "Where: FILTER is an optional search pattern"
+  exit 1
+end
+userIDs.0 = 0                        /* init stem variable */
+userNum = 1                          /* init counter */
+"PIPE CP QUERY NAMES | stem lines."  /* get Q NAMES output */
+if (rc <> 0) then do
+  say "ERROR: CP QUERY NAMES returned" rc
+  exit 1
+end
+do i = 1 To lines.0                 /* loop through all lines */
+  call processLine lines.i          /* process one line of output */
+end
+call sortOutput                     /* sort users */
+call printOutput                    /* show users */
+exit
+ 
+/*-------------------------------------------------------------------*/
+/* process one line of QUERY NAMES output                            */
+/*-------------------------------------------------------------------*/
+processLine: procedure expose userIDs. userNum
+  parse arg line                     /* get 4 triplets per line */
+  line = TRANSLATE(line, " ", ",")   /* remove commas */
+  line = TRANSLATE(line, " ", "-")   /* remove dashes */
+  userIDs.userNum = SUBWORD(line, 1, 2) /* first slot always there */
+  userNum = userNum + 1
+  nextUser = SUBWORD(line, 3, 2)
+  if LENGTH(nextUser) <> 0 then do   /* no more on this line */
+    userIDs.userNum = nextUser
+    userNum = userNum + 1
+  end
+  else return
+  nextUser = SUBWORD(line, 5, 2)
+  if LENGTH(nextUser) <> 0 then do
+    userIDs.userNum = nextUser
+    userNum = userNum + 1
+  end
+  else return
+  nextUser = SUBWORD(line, 7, 2)
+  if LENGTH(nextUser) <> 0 then do
+    userIDs.userNum = nextUser
+    userNum = userNum + 1
+  end
+  return
+ 
+/*-------------------------------------------------------------------*/
+sortOutput:
+/* sort userIDs stem variable alphabetically                         */
+/*-------------------------------------------------------------------*/
+  do i = 1 to userNum - 2            /* bubble sort */
+    do j = 1 to userNum - 2 - i
+      k = j + 1
+      if userIDs.j > userIDs.k then do
+        temp = userIDs.j
+        userIDs.j = userIDs.k
+        userIDs.k = temp
+      end
+    end
+  end
+return                               /* sortOutput() */
+ 
+/*-------------------------------------------------------------------*/
+printOutput:
+/* print list of user IDs                                            */
+/*-------------------------------------------------------------------*/
+  numUsers = 0
+  do i = 1 to userNum - 1
+    if LENGTH(filter) <> 0 then do
+      userID = WORD(userIDs.i, 1)    /* get user ID */
+      if POS(filter, userID) <> 0 then do /* matches filter */
+        numUsers = numUsers + 1
+        say userIDs.i
+      end
+    end
+    else                             /* no filter applied */
+      say userIDs.i
+  end
+  if numUsers = 0 then               /* no filter */
+    numUsers = userNum - 1
+  say "Total:    " numUsers
+return                               /* printOutput() */
+ 

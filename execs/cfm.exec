@@ -1,0 +1,34 @@
+/*-------------------------------------------------------------------*/
+/* CFM EXEC - Copy file changing only the file mode                  */
+/* Syntax: CFM fn1 ft1 fm1 fm2                                       */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+parse upper arg fm2 fn1 ft1 fm1 rest '(' options ')'
+if fn1 = "?" | fn1 = "" | fn1 = "-H" then
+  call help
+if fm1 = "" then do
+  say "ERROR: not enough arguments"
+  call help
+end
+if rest <> "" then do
+  say "ERROR: too many arguments"
+  call help
+end
+if options = "" then
+  "COPY" fn1 ft1 fm1 "= =" fm2
+else
+  "COPY" fn1 ft1 fm1 "= =" fm2 "(" options
+exit rc
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+say "Name:  CFM EXEC - Copy file changing only file mode"
+say "Usage: CFM fn1 ft1 fm1 fm2 ['('options')']"
+say "Where: 'fn1 ft1 fm1' is the source file:"
+say "       'fm2' is the target file mode"
+say "       'options' add to COPY command such as 'REP' or 'OLDD'"
+exit 2
+ 

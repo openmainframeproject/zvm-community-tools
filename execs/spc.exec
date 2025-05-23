@@ -1,0 +1,23 @@
+/*-------------------------------------------------------------------*/
+/* SPC EXEC - Close the console and send to rdr with unique name     */
+/* Usage: SPC                                                        */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+parse arg anything
+if anything <> "" then
+  call help
+today = date("standard")                   /* yyyymmdd */
+secs = time("seconds")                     /* max 5 chars */
+"SPOOL CONS CLOSE NAME CON"||secs today    /* file name w/timestamp */
+"SPOOL CONS START TO" userid()             /* start spooling again */
+exit                                       /* SPC EXEC */
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+say "Name:  SPC EXEC - Spool console to unique file name"
+say "Usage: SPC"
+exit 2
+ 

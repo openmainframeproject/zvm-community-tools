@@ -1,0 +1,36 @@
+/*-------------------------------------------------------------------*/
+/* CFT EXEC - Copy file changing only the file type                  */
+/* Syntax: CFT fn1 ft1 fm1 ft2                                       */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+parse upper arg ft2 fn1 ft1 fm1 rest '(' options ')'
+if fn1 = "?" | fn1 = "" | fn1 = "-H" then
+  call help
+if fm1 = "" then do
+  say "ERROR: not enough arguments"
+  call help
+end
+if rest <> "" then do
+  say "ERROR: too many arguments"
+  call help
+end
+ 
+/* do the copy with or without options */
+if options = "" then
+  "COPY" fn1 ft1 fm1 "=" ft2 "="
+else
+  "COPY" fn1 ft1 fm1 "=" ft2 "= (" options
+exit rc
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+say "Name:  CFT EXEC - Copy file changing only file type"
+say "Usage: CFT ft2 fn1 ft1 fm1 ['('options')']"
+say "Where: 'ft2' is the target file type"
+say "       'fn1 ft1 fm1' is the source file:"
+say "       'options' add to COPY command such as 'REP' or 'OLDD'"
+exit 2
+ 

@@ -1,0 +1,217 @@
+/*-------------------------------------------------------------------*/
+/* CPFORMAT EXEC - CP format one, or a range of DASD and label them  */
+/* Syntax: CFN fn1 ft1 fm1 fn2                                       */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+address COMMAND
+firstchar = "J"                      /* first character of label */
+arg dasds "AS " type .
+if dasds = "" | dasds = "?" then
+  call help
+labelPrefix = firstchar || getLabelPrefix(type)
+numDasd = parseDasd(dasds)
+answer = areYouSure(type)
+if answer = "Y" then do
+  formatted = ""
+  retVal = doFormat(labelPrefix numDasd type)
+  call doReport retVal
+end
+else
+  retVal = 2
+exit retVal
+ 
+/*--------------------------------------------------------------------*/
+help: procedure expose firstchar
+/*--------------------------------------------------------------------*/
+parse Source . . fn .
+say "Name: CPFORMAT EXEC"
+say " Format and label DASD as page, perm, spool or temp disk space"
+say " The label written to each DASD is" firstchar || "<t><xxxx> where:"
+say " <t> is type - P (page), M (perm), S (spool) or T (Temp disk)"
+say " <xxxx> is the 4 digit address"
+say "Syntax:"
+say "             <---------------< "
+say " >>--CPFORMAT--.-vdev--------.--AS---.-PERM-.---------><"
+say "               '-vdev1-vdev2-'       '-PAGE-'"
+say "                                     '-SPOL-'"
+say "                                     '-TEMP-'"
+exit 1                                     /* help() */
+ 
+/*--------------------------------------------------------------------*/
+areYouSure: procedure
+/*--------------------------------------------------------------------*/
+arg type
+say
+say "WARNING - this will destroy data!"
+say "Are you sure you want to format the DASD as" type "space (y/n)?"
+pull answer .
+return "LEFT"(answer,1)                    /* areYouSure() */
+ 
+/*--------------------------------------------------------------------*/
+getLabelPrefix:
+procedure expose firstchar
+/*| return the second character of the virtual DASD label |*/
+/*| parm 1: format type for the virtual DASD |*/
+/*--------------------------------------------------------------------*/
+arg type .
+firstchar. = 0
+firstchar.PERM = "M"
+firstchar.PAGE = "P"
+firstchar.SPOL = "S"
+firstchar.TEMP = "T"
+if firstchar.type = 0 then do              /* invalid type */
+  say "Error: "AS" required, type must be PERM, PAGE, SPOL or TEMP"
+  call help
+end
+return firstchar.type
+ 
+/*--------------------------------------------------------------------*/
+parseDASD:
+procedure expose dasdList.
+/* parse all dasd into an array verifying all are attached            */
+/* arg 1: dasds - the list of dasd passed in                          */
+/*--------------------------------------------------------------------*/
+arg dasds
+numDasd = 0
+dropheader = ""
+say "Format the following DASD:"
+do while dasds <> ""
+  parse Upper Var dasds dasd dasds
+  dashPos = "POS"("-",dasd)
+  if dashPos = 0 then do                   /* singleton DASD specified */
+    startrange = dasd
+    endrange = dasd
+  end
+  else
+    parse var dasd startrange "-" endrange
+  do i = "X2D"(startrange) To "X2D"(endrange)
+    numDasd = numDasd + 1
+    dasdList.numDasd = "D2X"(i)
+    "PIPE CP QUERY MDISK" dasdList.numDasd "LOCATION",
+      dropheader,
+     "|CONS"
+    if rc <> 0 then do
+      say "return code from QUERY MDISK =" rc
+      if rc = 40 then
+        say "DASD" dasdList.numDasd "is not attached."
+        exit 3
+      end
+    call checkReserved(dasdList.numDasd)
+    dropheader = "|DROP 1"
+  end
+end
+return numDasd                             /* parseDasd() */
+ 
+/*--------------------------------------------------------------------*/
+doFormat: procedure expose dasdList. formatted
+/* Format all DASD specified using CPFMTXA                            */
+/* arg 1: labelPrefix - the two character label prefix                */
+/* arg 2: numDasd - number of DASD in the array dasdList              */
+/* arg 3: type - the type of DASD format                              */
+/*--------------------------------------------------------------------*/
+arg labelPrefix numDasd type
+ 
+/* Save the current settings for MORE */
+parse value "DIAG"("08","CP QUERY TERM") With " MORE" morevalues ","
+"CP TERM MORE 1 1"
+ 
+/* Save system identifier and SSI name */
+"PIPE CP QUERY USERID | spec w3 | var systemID"
+"PIPE CP QUERY SSI | locate /SSI Name/ | spec W3 | var SSIname"
+if (SSIname = "SSINAME") then /* variable not set */
+  inSSI = "no"
+else
+  inSSI = "yes"
+do i = 1 to numDasd                        /* iterate through all DASD */
+  label = labelPrefix || "RIGHT"(dasdList.i,4,"0")
+  retVal = formatOne(dasdList.i type label)
+  if retVal <> 0 then do
+    say "Error from CPFMTXA on DASD" label "rc =" retVal
+    leave /* error - abort this format */
+   end
+ 
+   /* add owner info for CP owned devices */
+  if (type != "PERM") then /* CP owned => owner info is needed */
+    if (inSSI = "yes") then /* add owner info */
+      call addOwnerInfo(dasdList.i label SSIname systemID)
+    else
+      call addOwnerInfo(dasdList.i label "NOSSI" systemID)
+  formatted = formatted label
+end /* do i = */
+"CP TERM MORE" morevalues
+return retVal                              /* doFormat() */
+ 
+/*--------------------------------------------------------------------*/
+checkReserved: procedure
+/* Try copying an already formatted DASD then relabelling it |*/
+/* arg 1: dasd - the virtual address of the DASD |*/
+/*--------------------------------------------------------------------*/
+arg dasd
+ 
+/* MAINT minidisk addresses */
+resvd = "122 123 124 190 191 193 19D 19E 2CC 401 402 990 CF1 CF3 CFD"
+if "POS"(resvd,dasd) <> 0 then do          /* MAINT minidisk - ABORT! */
+  say "Minidisk" dasd "is a reserved MAINT minidisk"
+  say "This must be formatted manually using a different vaddr."
+  exit 4
+end
+return                                     /* checkReserved() */
+ 
+/*--------------------------------------------------------------------*/
+doReport:
+procedure expose dasds formatted
+/* Report on the newly labelled DASD                                  */
+/* arg 1: formatSuccess - 0=all is well, non-0= a format failed       */
+/*--------------------------------------------------------------------*/
+arg formatSuccess
+if formatSuccess <> 0 then
+  say "Error was encountered! retVal from CPFMTXA =" formatSuccess
+if formatted = "" then
+  say "No DASD were successfully formatted"
+else
+  say "DASD successfully formatted:" formatted
+"CP DETACH" dasds
+"CP ATTACH" dasds "*"
+say
+say "DASD status after:"
+"CP QUERY MDISK" dasds "LOCATION"
+return 0                                   /* doReport() */
+ 
+/*--------------------------------------------------------------------*/
+formatOne: procedure
+/* Format a DASD via DDR                                              */
+/* arg 1: disk - the vaddr to be formatted                            */
+/* arg 2: type - PERM, PAGE, SPOL or TEMP                             */
+/* arg 3: label - the six character label                             */
+/*--------------------------------------------------------------------*/
+arg disk type label
+queue "FORMAT"
+queue disk
+queue "0 END"
+queue label
+queue "YES"
+queue type "0 END"
+queue "END"
+"EXEC CPFMTXA"
+retVal = rc
+return retVal                              /* formatOne() */
+ 
+/*--------------------------------------------------------------------*/
+AddOwnerInfo:
+procedure
+/*| Tag PAGE, SPOL and TDSK volumes with SSI |*/
+/*| arg 1: disk - the vaddr to be formatted |*/
+/*| arg 2: type - PERM, PAGE, SPOL or TEMP |*/
+/*| arg 3: label - the six character label |*/
+/*--------------------------------------------------------------------*/
+arg disk label SSIname systemID
+queue "OWNER"
+queue disk
+queue label
+queue SSIname
+queue systemID
+"EXEC CPFMTXA"
+retVal = rc
+return retVal                              /* addOwnerInfo() */
+ 

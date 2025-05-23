@@ -1,0 +1,6 @@
+/*-------------------------------------------------------------------*/
+/* QA EXEC - run 'query accessed'                                    */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+'query accessed'

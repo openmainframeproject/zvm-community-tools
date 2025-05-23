@@ -1,0 +1,30 @@
+/*-------------------------------------------------------------------*/
+/* RFT EXEC - Rename file changing only the file type                */
+/* Syntax: RFN fn1 ft1 fm1 fn2                                       */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+parse upper arg ft2 fn1 ft1 fm1 rest
+if fn1 = "?" | fn1 = "" | fn1 = "-H" then
+  call help
+if fm1 = "" then do
+  say "ERROR: not enough arguments"
+  call help
+end
+if rest <> "" then do
+  say "ERROR: too many arguments"
+  call help
+end
+"RENAME" fn1 ft1 fm1 "=" ft2 "="
+exit rc
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+say "Name:  RFT EXEC - Rename file changing only file type"
+say "Usage: RFN ft2 fn1 ft1 fm1"
+say "Where: 'ft2' is the new file type"
+say "     : 'fn1 ft1 fm1' is the source file"
+exit 2
+ 

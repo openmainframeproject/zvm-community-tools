@@ -1,0 +1,50 @@
+/*-------------------------------------------------------------------*/
+/* RM EXEC - erase files while allowing wildcards                    */
+/* Arg 1: filter (optional) show only user IDs matching this string  */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+address command
+parse upper arg fn ft fm
+if fn = "" then do
+  say "ERROR: Missing fn"
+  call help
+end
+if fn = "?" | fn = "-H" then
+  call help
+if ft = "" then
+  ft = "*"
+if fm = "" then
+  fm = "*"
+if fn = "*" & ft = "*" & fm = "*" then do
+  say "Sorry, too dangerous!"
+  exit 2
+end
+"PIPE COMMAND LISTFILE" fn ft fm "| stem files."
+if files.0 = 0 then do
+  say "No files found matching" fn ft fm
+  exit 3
+end
+say "Matching files:"
+do i = 1 to files.0
+  say files.i
+end
+say "Are you sure you want to erase these files (y/n)?"
+parse upper pull answer .
+if answer = "Y" | answer = "YES" then
+  do i = 1 to files.0
+    'CMDCALL ERASE' files.i
+    if rc <> 0 then
+      say "WARNING: ERASE" files.i "returned" rc
+  end
+exit                                 /* RM EXEC */
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+say "Name: RM EXEC - erase one or more files"
+say "Usage: rm fn [ft [fm]]"
+say "Where: fn, ft or fm can be '*' for all files"
+exit                                 /* help() */
+ 

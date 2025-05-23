@@ -1,0 +1,46 @@
+/*-------------------------------------------------------------------*/
+/* MAN EXEC - Give help for requested command/subcommand             */
+/* Syntax: MAN <command>                                             */
+/*         MAN SET <subcommand>                                      */
+/*         MAN Query <subcommand>                                    */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+'ESTATE WHICH EXEC *'
+if rc <> 0 then do                   /* co-req EXEC not found */
+  say "ERROR: Co-requisite WHICH EXEC not found"
+  say "See: https://github.com/mike99mac/zvm-tools"
+  exit 1
+end
+parse upper arg arg1 arg2 rest
+if arg1 = "?" | arg1 = "-H" | arg1 = "" then
+  call help
+if rest <> "" then
+  say "WARNING: ignoring arg:" rest
+args = arg1
+if arg2 <> "" then
+  args = arg1 arg2
+'PIPE CMS WHICH' args '(H) | VAR helpCmd'
+retVal = rc
+if retVal <> 0 then do
+  say "Cannot find help for" args
+  exit retVal
+end
+if POS("is an EXEC", helpCmd) <> 0 then /* this is an EXEC */
+  say helpCmd "=>" SUBWORD(helpCmd, 1, 1) "?"
+else                                 /* run help command */
+  address cms helpCmd
+exit                                 /* MAN EXEC */
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+say "Name:  MAN EXEC - give help on command, details on QUERY and SET"
+say "Usage: MAN command"
+say "     | MAN Query subcmd"
+say "     | MAN SET   subcmd"
+say "Where: command can be CMS, CP, XEDIT, TCPIP or REXX"
+say "       subcmd  can be CMS, CP or XEDIT Query or SET subcommands"
+exit 2
+ 

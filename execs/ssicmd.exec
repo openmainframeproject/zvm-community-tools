@@ -1,0 +1,36 @@
+/*-------------------------------------------------------------------*/
+/* SSICMD EXEC - Issue a CP command on all members of an SSI cluster */
+/* Syntax: SSICMD <CP-command>                                       */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+parse upper arg cmd
+if cmd = "" | cmd = "?" | cmd = "-H" then do
+  say "Name: SSICMD EXEC - Issue a CP command on all SSI members"
+  say "Usage: SSICMD <CPcmd>"
+  exit 1
+end
+ 
+/* Determine the members of the SSI cluster */
+"PIPE CP QUERY SSI",
+"| STEM MSG.",           /* Save the response if error */
+"| XLATE",               /* Make all output upper case */
+"| FRTARGET ALL /SLOT/", /* Just look after "SLOT" */
+"| LOCATE /JOINED/",     /* JOINED members can do a command */
+"| SPEC W2",             /* Get the member names */
+"| STEM SSI."            /* Save the member names */
+ 
+/* If nonzero return code, show error message and exit */
+if rc <> 0 | ssi.0 = 0 Then do
+/*say "Error: QUERY SSI return code =" rc*/
+  say msg.1
+end
+else do                         /* send command to each SSI member */
+  do i = 1 to ssi.0
+    say ssi.i||":"
+    "CP AT" ssi.i "CMD" cmd
+    say
+  end
+end
+exit
+ 

@@ -1,0 +1,105 @@
+/*-------------------------------------------------------------------*/
+/* HEAD EXEC - output the head or tail of file(s)                    */
+/* Syntax: HEAD [-n] fn ft [fm] [(TAIL}]                             */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+numLines = 10                        /* default number of lines */
+cmd = "head"                         /* can also be "tail" */
+parse upper arg args                 /* get args in upper case */
+call parseArgs args                  /* parse arguments */
+call headsTails                      /* output head or tail */
+exit                                 /* all done */
+ 
+/*-------------------------------------------------------------------*/
+parseArgs: procedure expose cmd fn ft fm numLines
+/* Parse arguments                                                   */
+/*-------------------------------------------------------------------*/
+parse arg arg1 arg2 arg3 arg4 '(' VMarg ')'
+if VMarg <> "" then                  /* (arg passed */
+  if VMarg = "TAIL" then
+    cmd = "tail"
+  else do
+    say "ERROR: unrecognized argument:" VMarg
+    call help
+  end
+if arg1 = "?" | arg1 = "-H" | arg1 = "" then
+  call help
+if arg 2 = "" then do
+  say "ERROR: not enough arguments"
+  call help
+end
+if LEFT(arg1, 1) = "-" then do       /* -n flag supplied */
+  numLines = SUBSTR(arg1, 2)         /* skip '-' */
+  if DATATYPE(numLines, "number") = 0 then do
+    say "ERROR:" numLines "is not a number"
+    call help
+  end
+  if arg3 = "" then do
+    say "ERROR: not enough arguments"
+    call help
+  end
+  fn = arg2
+  ft = arg3
+  if arg4 = "" then
+    fm = "A"
+  else
+    fm = arg4
+end
+else do                              /* num lines flag not supplied */
+  fn = arg1
+  ft = arg2
+  if arg3 = "" then
+    fm = "A"                         /* default file mode */
+  else
+    fm = arg3
+end
+return                               /* parseArgs() */
+ 
+/*-------------------------------------------------------------------*/
+headsTails: procedure expose cmd fn ft fm numLines
+/* Show either head or tail of file(s)                               */
+/*-------------------------------------------------------------------*/
+'EXECIO * DISKR' fn ft fm '(STEM' lines. 'FINIS'
+if rc <> 0 then do
+  say "ERROR EXECIO DISKR returned" rc
+  call help
+end
+'PIPE COMMAND LISTFILE' fn ft fm '| STEM files.' /* get matching files */
+if files.0 = 0 then do               /* file not found */
+  say "File not found"
+  exit rc                            /* rc LISTFILE uses */
+end
+if cmd = "tail" then do              /* show bottom of file */
+  startLine = lines.0 - numLines
+  if startLine <= 0 then             /* invalid line */
+    startLine = 1                    /* show entire file */
+  if files.0 = 1 then                /* do not print file name */
+    "TYPE" files.1 startLine         /* show last lines */
+  else do i = 1 to files.0           /* for all files */
+    say "==>" files.i "<=="          /* show file name */
+    "TYPE" files.i startLine         /* show last lines */
+    say
+  end
+end
+else do                              /* show top of file */
+  if files.0 = 1 then                /* do not print file name */
+    "TYPE" files.1 1 numLines        /* show first lines */
+  else do i = 1 to files.0           /* for all files */
+    say "==>" files.i "<=="          /* show file name */
+    "TYPE" files.i 1 numLines        /* show first lines */
+    say                              /* leave some room */
+  end
+end
+return                               /* headsTails() */
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+say "Name:  HEAD EXEC - output the first part of files"
+say "Usage: HEAD [-n] fn ft [fm]"
+say "Where: 'fn ft' is the file name and type"
+say "     : 'fm' is the file mode (default A)"
+exit 2
+ 

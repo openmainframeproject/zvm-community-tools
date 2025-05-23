@@ -1,0 +1,114 @@
+/*-------------------------------------------------------------------*/
+/* WC EXEC - print line, word and byte counts for each file          */
+/* Usage: WC [FLAGS] fn ft fm ...                                    */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+outType = "all"                      /* output type */
+totFiles = 0                         /* num files to process */
+parse arg args                       /* get all arguments */
+call parseArgs args                  /* parse them */
+call countWords                      /* do the work */
+exit                                 /* WC EXEC */
+ 
+/*-------------------------------------------------------------------*/
+parseArgs: procedure expose files. outType allFiles. totFiles
+/* Parse input arguments                                             */
+/*-------------------------------------------------------------------*/
+  parse upper arg fn ft fm rest
+  if fn = "?" | fn = "-H" | fn = "" then /* give help */
+    call help
+  if ft == "" then do
+    say "ERROR: Not enough arguments"
+    call help
+  end
+  if fm = "" then                    /* no file mode passed */
+    fm = "A"
+  do forever                         /* check for flags */
+    if SUBSTR(fn, 1, 1) <> "-" then  /* out of flags */
+      leave
+    flag = SUBSTR(fn, 2, 1)
+    select
+      when flag = "L" then outType = "lines"
+      when flag = "W" then outType = "words"
+      when flag = "C" then outType = "chars"
+      otherwise do
+        say "ERROR: unrecognized flag:" flag
+        call help
+      end
+    end
+    fn = ft                          /* shift one arg left */
+    ft = fm
+    parse var rest fm rest
+    if fm = "" then                    /* no file mode passed */
+      fm = "A"
+  end
+  numArgs = WORDS(rest) + 3          /* remaining args */
+  if numArgs // 3 <> 0 then do       /* not multiple of 3 */
+    say "ERROR: Number of arguments not multiple of 3"
+    call help
+  end
+  numFiles = numArgs / 3
+  do i = 1 to numFiles
+    'PIPE COMMAND LISTFILE' fn ft fm '| stem files.'
+    if files.0 = 0 then              /* file not found */
+      files.i = "WC: No files found matching" fn ft fm
+    else do j = 1 to files.0
+      totFiles = totFiles + 1        /* increment counter */
+      allFiles.totFiles = files.j
+    end
+    parse var rest fn ft fm rest     /* shift 3 left */
+  end
+return                               /* parseArgs() */
+ 
+/*-------------------------------------------------------------------*/
+countWords: procedure expose outType allFiles. totFiles
+/* Parse input arguments                                             */
+/*-------------------------------------------------------------------*/
+totLines = 0
+totWords = 0
+totBytes = 0
+do i = 1 to totFiles
+  if LEFT(allFiles.i, 14) <> "No files found" then do /* file to query */
+    lines = LINES(allFiles.i)
+    words = 0
+    bytes = 0
+    do lines
+      aLine = LINEIN(allFiles.i)
+      words = words + WORDS(aLine)
+      bytes = bytes + LENGTH(aLine)
+    end
+    totLines = totLines + lines
+    totWords = totWords + words
+    totBytes = totBytes + bytes
+  end
+  select
+    when outType = "lines" then say FORMAT(lines, 8) allFiles.i
+    when outType = "words" then say FORMAT(words, 8) allFiles.i
+    when outType = "chars" then say format(bytes, 9) allFiles.i
+    otherwise
+      say FORMAT(lines, 8) FORMAT(words, 8) format(bytes, 9) allFiles.i
+  end
+end
+if totFiles > 1 then
+  select
+    when outType = "lines" then say FORMAT(totLines, 8) allFiles.i
+    when outType = "words" then say FORMAT(totWords, 8) allFiles.i
+    when outType = "chars" then say format(totBytes, 9) allFiles.i
+    otherwise
+      say FORMAT(totLines, 8) FORMAT(totWords, 8),
+        format(totBytes, 9) "total"
+  end
+return                               /* countWords() */
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Display help                                                      */
+/*-------------------------------------------------------------------*/
+  say "Name : WC EXEC - Print line, word & byte counts for each file"
+  say "Usage: WC [OPTION] [FILE] ..."
+  say "Where: OPTION can be: -l: show number of lines"
+  say "                      -w: show number of words"
+  say "                      -c: show number of characters"
+exit 1
+ 

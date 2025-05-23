@@ -1,0 +1,41 @@
+/*-------------------------------------------------------------------*/
+/* COPYDISK EXEC: copy minidisk with FLASHCOPY, if it fails, use DDR */
+/*  Arg 1: source minidisk vdev                                      */
+/*  Arg 2: target minidisk vdev                                      */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+parse upper arg source target .
+if source = "?" | source = "-H" then
+  call help
+if target = "" then do
+  say "ERROR: not enough arguments"
+  call help
+end
+address "COMMAND"
+say
+say "Copying minidisk" source "to" target "..."
+"CP FLASHCOPY" source "0 END" target "0 END"
+retVal = rc
+if (retVal <> 0) then do              /* Fallback to DDR             */
+  Say "FLASHCOPY returned" retVal "falling back to DDR ..."
+  queue "SYSPRINT CONS"               /* Don"t print to file         */
+  queue "PROMPTS OFF"                 /* Don"t ask "Are you sure?"   */
+  queue "IN" source "3390"            /* Input minidisk              */
+  queue "OUT" target "3390"           /* Output minidisk             */
+  queue "COPY ALL"                    /* Copy all contents           */
+  queue " "                           /* Empty record ends DDR       */
+  "DDR"
+  retVal = rc
+end
+say "Return value =" retVal
+exit retVal                          /* COPYDISK EXEC */
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+say "Name:  COPYDISK EXEC - copy minidisk with FLASHCOPY or DDR"
+say "Usage: COPYDISK source_vdev target_vdev"
+exit 2
+ 

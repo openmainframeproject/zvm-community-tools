@@ -1,0 +1,494 @@
+/*-------------------------------------------------------------------*/
+/* WHICH EXEC - Determine if a command is:                           */
+/*   - CP, CMS, XEDIT, TCP/IP, REXX, an EXEC or a loaded EXEC        */
+/* Usage: WHICH [Query|SET] zVM-command                              */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+/* CMS commands */
+CMScmds = "ESERV HB NOTE RT ",
+||"SYNMSGS CMSBATCH ESTATE Help NUCXDROP RTNDrop SYNonym ",
+||"COMpare ESTATEW HELPCONV NUCXLOAD RTNLoad TAPE ",
+||"CONWAIT ETRACE HI NUCXMAP RTNMap TAPEMAC ",
+||"CREATE COPYfile EXec HO OPNMSGS RTNState TAPPDS ",
+||"EDIT CP EXECDrop HT OPtion RUN TE ",
+||"FILESERV CREate EXECIO HX OSRUN SADT TELL ",
+||"OPENVM CSLGEN EXECLoad IDentify PARSECMD SAMGEN TRACECtl ",
+||"OSHELL CSLList EXECMap IMMCMD PEEK SAMPNSS TS ",
+||"PIPE CSLMAP EXECOS INclude PIPE SAVEFD TXTlib ",
+||"PSCREEN CSRBDICV EXECStat LAbeldef PIPMOD SEGGEN Type ",
+||"RSKCMDS CSRCMPEV EXECUPDT LANGGEN PRELOAD SEGment Update ",
+||"SEGMENT DEBUG EXECUTE LANGMERG PRint SENDFile USERID ",
+||"SFSADMIN DEFAULTS FETch LISTDIR PROGMAP SENTRIES VALIDATE ",
+||"DELete FILEATTR LISTDS PSCreen VMFLKED ",
+||"VSCREEN DEPRINT FIledef Listfile PSERV SETKEY VMFMAC ",
+||"WINDOW DESBUF FILEList LISTIO PUnch SETPRT VMFPLC ",
+||"Xedit DEVTYPE FILESTCK LKED Query SFSMSGS VMFPLCD ",
+||"DIRATtr FINDSTAK LOAD RDR SHRLDR VMFPLC2 ",
+||"ACcess DIRID FINIS LOADLIB RDRList SO VMFTXT ",
+||"ACCESSM0 DIRList FIXCENT LOADMod READcard SORT VMLINK ",
+||"ALIalist DISCARD FLIST MAClib RECEIVE SSERV VMSIZE ",
+||"AMserv DISK FORMAT MACLIST RELease STAG VSCreen ",
+||"ASMGEND DLBL GENCmd MAKEBUF RELOcate START WAKEUP ",
+||"Assemble DOSGEN GENDIRT MODmap Rename STATE WINdow ",
+||"ASSGN DOSLIB Genmod MOREhelp REPRINT STATEW Xedit ",
+||"AUTHlist DOSLked GENMSG MOVEfile RESERVE STDEBUG XMITMSG ",
+||"BIND DROPBUF GETFMADR NAMEFind RETURN STORMAP XRDR ",
+||"BROWSE DSERV GLobal NAMES REVoke SUBPMAP YDISK ",
+||"CATCHECK Edit GLOBALV NETDATA RO SVCTrace ZAP ",
+||"CLRSCRN ERASE GRAnt NETLCNVT RSERV ",
+||"ACCOUNT DCSSBKUP DIRMAP QSYSOWN SFPURGER SYSWATCH ",
+||"AUDITOR DCSSRSAV IMAGEMOD"
+ 
+/* CP commands */
+CPcmds = "ASSOCIAT SPXTAPE Close DETach INDicate REDEFine ",
+||"START COMMands Dial Ipl REFRESH STore STOP ",
+||"STORE COMMIT DISAble LINK RELSPACE SYNCmdrs ",
+||"CPUTIL TERMINAL CONCOPY DISASSOCi LOADBUF REPeat SYStem ",
+||"DEACTIVE TRACE COUPLE DISCARD LOADVFCB REQuest TAg ",
+||"DEFINE TRSOURCE CP DISConn LOCate RESET TERMinal ",
+||"DELETE VARY CPACcess DISPlay LOCATEVM RESTART TRace ",
+||"DETACH VMDUMPTL CPCAche DRain LOCK REWind TRANsfer ",
+||"DISABLE XLINK CPHX DUmp LOGoff SAVESEG TRSAVE ",
+||"DISPLAY CPLISTfil DUPlex Logon SAVESYS TRSOurce ",
+||"DRAIN CPRELease ECho Message SCHedule UNCOUPLE ",
+||"DUMP CPTRAP ENable MESSAGEA SCREen UNDEDicat ",
+||"ENABLE CPTYPE EXPlore MESSAGEU SEND UNDIAL TRACERED ",
+||"FLASHCOP ACNT CPU EXTernal MODify SET UNLOCK ",
+||"FREE ACTivate CPVLoad FLASHCopy MONitor SHUTDOWN UTILITY ",
+||"GIVE ASSOCiate CPXLoad Flush MSGNOH SIGnal VARY ",
+||"HOLD ASTERISK CPXUnload FOR NOTReady SILENTly VDelete ",
+||"INDICATE AT DEActive FORCE ORDer SLeep VInput ",
+||"LOCATE ATTach DEDicate FORWard PER SMsg VMDump ",
+||"MESSAGE ATTN DEFine FRee POUNDCP SNAPDUMP VMDUMPTL ",
+||"MODIFY AUTOLOg DEFSEG GIVE PURge SPAce VMRELOcat ",
+||"MONITOR BAckspace DEFSYS HALT Query SPool Warning ",
+||"PURGE Begin DELete HOld READY SPXtape XAUTOLOg ",
+||"RDEVICE CHange DESTAGE HYPerswap RECordin STArt XLINK ",
+||"CPFMTXA DISKMAP HCPLDR IPWIZARD MOVE2SFS SDINST SDINST ",
+||"CPSYNTAX DUMPLD2 IMAGELIB MIGR51D RETRIEVE SECTABLE DUMPVIEW ",
+||"CCDUMP CVTOVRID DUMPLOAD INSTTAPE MONWRITE SALIPL SPORDER ",
+||"CCLOAD DDR FORMSSI IOCP MONWSTOP SCSIDISC TRACERED ",
+||"CPEREPXA DIRECTXA GENIMAGE IOEXPLOR CONV ISLink DUMPLOAD"
+ 
+/* TCP/IP commands */
+TCPIPcmds = "IPFORMAT LPRM REXEC TCPCOMP CMSRESOL LDAPADD LPRSET ",
+||"REXECD TCPLOAD CONVXLAT LDAPCHPW MOUNT RPCINFO TCPTXT DB2PWDEN ",
+||"LDAPCMPR MOUNTPW SMTP TELNET DIG LDAPDLET MPROUTE SMTPQUEU ",
+||"TFTP DS2LDIF LDAPEXOP NETSTAT SMTPRSCS TRACERTE FTP ",
+||"LDAPMDFY NFSPERM SNMPD UFTD FTPPERM LDAPMRDN NSLOOKUP SQESERV ",
+||"UMOUNT GSKKYMAN LDAPSRCH OBEYFILE SRVRFTP VMFC GSKTRACE ",
+||"LDAPSRV PING SSLADMIN VMFPAS HOMETEST LPQ PORTMAP SSLIDCSS ",
+||"VMNFS IFCONFIG LPR RESOLV SSLPOOL VMSSL"
+ 
+Xcmds = "CDelete CP Help Next REFRESH SOS ",
+||"CFirst CReplace HEXType NFind RENum SPlit ",
+||"Change CURsor Input NFINDUp REPEat SPLTJOIN ",
+||"CInsert DELete Join Overlay Replace STAck ",
+||"CLAst Down LEft PARSE RESet STATus ",
+||"CLocate DUPlicat LOAD POWerinp RESTore SUPerset ",
+||"CMS EMSG Locate PREServe RGTLEFT TOP ",
+||"Add CMSG EXPand LOWercas PURge RIght TRAnsfer ",
+||"ALL CMSXEDIT EXTract LPrefix PUT SAVE Type ",
+||"ALter COMMAND FILE MACRO PUTD SCHANGE Up ",
+||"BAckward COMPress Find MErge Query SET UPPercas ",
+||"Bottom COpy FINDUp MODify QUIT SHift VMFDEOPT ",
+||"CANCEL COUnt FOrward MOve READ SI VMFOPT ",
+||"CAppend COVerlay GET MSG RECover SORT Xedit"
+ 
+/* CMS QUERY commands */
+CMSquery = "BORDER DOSLIB HIDE LOADAREA RDYMSG SYSNAMES ",
+||"CHARMODE DOSLNCNT IMESCAPE LOADLIB RECALL TAPECSL ",
+||"CMSLEVEL DOSPART IMPCP LOCATION REDTYPE TAPENEVR ",
+||"CMSPF ENROLL IMPEX LOCK RELPAGE TEXT ",
+||"ABBREV CMSREL ETRACE INPUT LOGFILE REMOTE TRACECTL ",
+||"ACCESSED CMSTYPE EXECTRACE INSTSEG MACLIB RESERVED TRANSLATE ",
+||"ACCESSM0 CMS370AC FILEATTR KEY MACLSUBS RORESPECT TRAPMSG ",
+||"ACCESSORS COMDIR FILEDEF KEYPROTEC NAMEDEF ROUTE TVICALL ",
+||"ALIAS CSLLIB FILEPOOL LABELDEF NONDISP SEARCH TXTLIB ",
+||"APL CURSOR FILESPACE LANGLIST OLDCMDS SEGMENT UPSI ",
+||"AUThORITY DIRATTR FILEWAIT LANGUAGE OPTION SERVER VSCREEN ",
+||"AUTODUMP DISK FULLREAD LDRTBLS OSTXTBUF SHOW WINDOW ",
+||"AUTOREAD DISPLAY FULLSCREE LIBRARY OUTPUT STORECLR WMPF ",
+||"BLIP DLBL GEN370 LIMITS PROTECT SYNONYM WORKSTati ",
+||"BLOCKS DOS GETMAIN LINEND"
+ 
+/* CP QUERY commands */
+CPquery = "CPLEVEL FENCES LOGmsg PER SDF TERMinal ",
+||"CPLOAD Files LPARs PFnn SECuser THROTtle ",
+||"CPOWNed FLASHC LSYStem PINNED Time ",
+||"ABEND CPPROTect FRames MAXLdev PORT SHARE TIMEZONE ",
+||"ACCount CPSERVice Gateway MAXSPOOL Printer SHUTDOWN TOKen ",
+||"AGELIST CPTRace GRaf MAXUsers PRIVclas SHUTDOWT TRace ",
+||"ALL CPTRAP HCD MDCache PROCess SIGnal TRACEFRA ",
+||"ALLOC CPUAFFini Hold MDisk PRODUCT SIGNALS TRFiles ",
+||"BYUSER CPUid HOTIO MEMAssist PROMPt SPACES TRSAVE ",
+||"CACHE CPUPool HYPerswap MITime Prtid SRM TRSOurce ",
+||"CACHEFW CPXLoad ICLNAME MONData PSWTRans SSI UCR ",
+||"CAPabilit CRYPTO IMG MONitor PUnch STGEXempt UNDERscor ",
+||"CFLINKs CTCa IO_OPT MSS PVMSG STGLimit UNRESOLVE  ",
+||"CHPID CU IOAssist MULTITHre QIOAssist STorage UR ",
+||"CHPIDS DAsd IOPRIORit Names QUICKDSP STP USERID ",
+||"CHPIDV DASDFW IPLparms NEW_DEVic SUBstitut Users ",
+||"CMDLIMit DATEForma ISFC NIC Reader SWitches VARiable ",
+||"COLlect DIAGnose ISLink NLS RECordin SXSPages VCONFIG ",
+||"COMMands DUMP IUCV NSS RELODomai SXSStorag VDISK ",
+||"CONCOPY DUMPDEV JOurnal NVS REORDER SYSAscii Virtual ",
+||"CONFIGmod DUPlex KEYAlias OBServer REServed SYSCONTRO VMDump ",
+||"CONTROLLE DYNamic LAN OSA RESOurce SYSOPER VMLAN ",
+||"CONV D8ONECMD LDEVs PAGING RESPool SYStem VMRELOcat  ",
+||"CPCHECKin EDEVice LInes PASSWORD RETrieve TAG VMSG ",
+||"CPCMDs ENCRYPT Links PATHS RSAW TApes VSWITCH ",
+||"CPDisks EQID LKFAC PAV SCMBKs TDisk VTOD ",
+||"CPLANGLI EXits LKFACR PCIFuncti SCMeasure TDISKCLR WRKALleg  ",
+||"CPLANGua FCP LOADDEV PENDING SCReen"
+ 
+/* XEDIT QUERY commands */
+Xquery = "COLumn ETMODE LIne PACK SELect TEXT ",
+||"CTLchar FILler LINENd PAn TOF COLPtr ",
+||"CURLine FMode LRecl PENDing SERial TOFEOF ",
+||"CURSor FName LScreen PFn SHADow TOL ",
+||"ACTion DISPLay FType MACRO PName SIDcode TRANSLat ",
+||"ALT EDIRName FULLread MASK Point SIZe TRunc ",
+||"APL EFMode GUI MEMber PREfix SPAN UNIQueid ",
+||"ARBchar EFName HEX MENubar RANge SPILL UNTil ",
+||"AUtosave EFType IMage MSGLine RECFm STAY UPDate ",
+||"BASEft ENTer IMPcmscp MSGMode REMOte STReam VARblank ",
+||"BFSLine EOF LASTLorc NAMetype RESERved SYNonym Verify ",
+||"BRKkey EOL LASTmsg NBFile RING TABLine VERShift ",
+||"CASE EPName LENgth NONDisp SCALe TABS WIDTH ",
+||"CMDline ESCape LIBName NULls SCOPE TARGet WRap ",
+||"COLOR ETARBCH LIBType NUMber SCReen TERMinal Zone "
+ 
+/* CMS SET commands */
+CMSset = "CHARMODE FILESPACe INSTSEG NONSHARE REMOTE THReshold ",
+||"CMSPF FILEWait KEYPROTe OLDCMDS RESERVED TRANslat ",
+||"CMSTYPE FULLREAD LANGuage OSTXTBUF RORESPECt TRAPMSG ",
+||"CMS370AC FULLSCRE LDRTBLS OUTPUT SERVER TVICALL ",
+||"ABBREV COMDIR GEN370 LINEND PROTECT STORECLR UPSI ",
+||"APL DOS GETMAIN LOADAREA RDYMSG SYSNAME VSCREEN ",
+||"AUTODUMP DOSLNCNT IMESCAPE LOCATION RECALL TAPECSL WINDOW ",
+||"AUTOREAD DOSPART IMPCP LOGFILE REDTYPE TAPENEVR WMPF ",
+||"BLIP EXECTRAC IMPEX MACLSUBS RELPAGE TEXT WORKSTati ",
+||"BORDER FILEPool INPUT NONDISP"
+ 
+/* CP SET commands */
+CPset = "CPUAFFini IO_OPT MEMAssist PFNNRETri SECUSER TIMEBomb ",
+||"CPUid IOAssist MIH PFNNTab SHARE TIMER ",
+||"CPUPool IOCDS_act MITIMe PORT SHARED TIMEZONE ",
+||"ABEND CU IOPRIORit MODE PRIVclass SHUTDOWNt TOKEN ",
+||"ACCount DASD IPLparms MONData PRODuct SHUTSIGna TRACEFRAM ",
+||"AGELIST DASDFW JOurnal MSG PROMPt SIGnal UNDERscor ",
+||"AUTOPoll DATEForma KEYAlias MSGFacil PSWTRans SMsg VARiable ",
+||"CACHE DEVICes LAN MULTITHre QIOAssist SRM VCONFIG ",
+||"CACHEFW DIALDrop LINEDit NEW_DEVic QUICKDsp SSI VDISK ",
+||"CFLINK DUMP LKFAC NIC RDEVice STGEXempt VMCONIo ",
+||"CMDLIMit DUMPDEV LKFACR NOPDATA RECord STGLimit VMLAN ",
+||"CONCeal DYNamic LOADDEV NVS REORDER STOrage VMRELOcat ",
+||"CONFIGmod D8ONECMD LOGmsg OBSERVER REServed SVC76 VSWITCH ",
+||"CPCHECKin EDEVice LSYStem PAGEX RESPool SYSCONTRO VTOD ",
+||"CPCONIo EMSG MACHine PAGING RETrieve SYSOPER WNG ",
+||"CPLANGuag ENCRYPT MAXLdev PASSWORD RUN TAPE WRKALleg ",
+||"CPPROTect HOTIO MAXUsers PFnn SCMeasure THROTtle 370Accom ",
+||"CPTRace IMSG MDCache PFNNCOPY"
+ 
+/* XEDIT set commands */
+Xset = "CMDline FMode MASK PName SELect TABS ",
+||"COLOR FName MSGLine Point SERial TERMinal ",
+||"COLPtr FType MSGMode PREfix SHADow TEXT ",
+||"CTLchar FULLread NAMetype RANge SIDcode TOFEOF ",
+||"ALT CURLine HEX NONDisp RECFm SPAN TRANSLat ",
+||"APL DISPlay IMage NULls REMOte SPILL TRunc ",
+||"ARBchar ENTer IMPcmscp NUMber RESERved STAY VARblank ",
+||"AUtosave ESCape LASTLorc PACK SCALe STReam Verify ",
+||"BFSLine ETARBCH LINENd PAn SCOPE SYNonym WRap ",
+||"BRKkey ETMODE LRecl PENDing SCReen TABLine Zone ",
+||"CASE FILler MACRO"
+ 
+REXXcmds = "CHAROUT DIGITS INTERPRE OPTIONS SIGN TRUNC ",
+||"ADDRESS CHARS DO ITERATE OVERLAY SIGNAL UPPER ",
+||"HELP CMSFLAG DROP JUSTIFY PARSE SOCKET USERID ",
+||"ABBREV COMPARE D2C LASTPOS POS SOURCELI VALUE ",
+||"ABS CONDITIO D2X LEAVE PROCEDURe SPACE VERIFY ",
+||"APILOAD COPIES ERRORTEXt LEFT PULL STORAGE WORD ",
+||"ARG CSL EXIT LENGTH PUSH STREAM WORDINDEx ",
+||"BITAND C2D EXTERNAL LINEIN QUEUE STRIP WORDLENGth ",
+||"BITOR C2X FIND LINEOUT QUEUED STSI WORDPOS ",
+||"BITXOR DATATYPE FORM LINES RANDOM SUBSTR WORDS ",
+||"B2X DATE FORMAT LINESIZE RETURN SUBWORD XRANGE ",
+||"CALL DELSTR FUZZ MAX REVERSE SYMBOL X2B ",
+||"CENTER DELWORD IF MIN RIGHT TIME X2C ",
+||"CENTRE DIAG INDEX NOP SAY TRACE X2D ",
+||"CHARIN DIAGRC INSERT NUMERIC SELECT TRANSLATe"
+ 
+/*-------------------------------------------------------------------*/
+/* main() - parse args, handle commands/QUERY/SET differently        */
+/*-------------------------------------------------------------------*/
+parse upper arg cmd arg1 rest '(' flags ')'
+if rest <> "" then do
+  say "Too many arguments"
+  call help
+end
+if cmd == '' | cmd == "?" | cmd == "-H" then
+  call help
+upper flags                          /* flags to upper case */
+debug = "no"
+doTrace = "no"
+helpFlag = "no"
+numCmds = 0                          /* number of command found */
+verbose = "no"
+call parseFlags
+if doTrace = "yes" then              /* turn trace on */
+  trace i
+call debugMsg "debug:" debug
+call debugMsg "helpFlag:" helpFlag
+call debugMsg "doTrace:" doTrace
+call debugMsg "verbose:" verbose
+ 
+/* handle QUERY and SET commands separately */
+select
+  when LEFT(cmd, 1) = "Q" then
+    call queryCmd                    /* search QUERY cmds */
+  when cmd = "SET" then
+    call setCmd                      /* search SET cmds */
+  otherwise
+    call otherCmds                   /* search all other cmds */
+end
+if numCmds = 0 then do
+  if verbose = "yes" then
+    say cmd arg1 "is not a command"
+  retVal = 1
+end
+else do
+  if verbose = "yes" then
+    say "found" numCmd "commands"
+  retVal = 0
+end
+exit retVal                          /* WHICH EXEC */
+ 
+/*-------------------------------------------------------------------*/
+parseFlags: procedure expose flags debug helpFlag verbose doTrace
+/* parse flags passed in, if any                                     */
+/*-------------------------------------------------------------------*/
+numFlags = LENGTH(flags)
+do i = 1 to numFlags
+  nextFlag = SUBSTR(flags, i, 1)
+  select
+    when nextFlag = "D" then
+      debug = "yes"
+    when nextFlag = "H" then
+      helpFlag = "yes"
+    when nextFlag = "S" then         /* silent mode */
+      verbose = "silent"
+    when nextFlag = "T" then         /* turn trace on */
+      doTrace = "yes"
+    when nextFlag = "V" then
+      verbose = "yes"
+    otherwise do
+      say "ERROR: unrecognized flag:" nextFlag
+      exit 8                         /* branch 2 halfwords */
+    end
+  end
+end
+return                               /* parseFlags() */
+ 
+/*-------------------------------------------------------------------*/
+debugMsg: procedure expose debug
+/* Issue message in debug mode                                       */
+/*-------------------------------------------------------------------*/
+if debug = "yes" then do
+  parse arg msg
+  say msg
+end
+return                               /* debugMsg() */
+ 
+/*-------------------------------------------------------------------*/
+giveResult: procedure expose debug helpFlag verbose numCmds
+/* Give the answer either terse or verbose - then exit as we're done */
+/* Arg 1: Command type - CMS, CP, XEDIT, TCPIP or REXX               */
+/* Arg 2: Scope - QUERY, SET or CMD                                  */
+/* Args 3-n: Fully qualified command - e.g. "q da" => QUERY DASD     */
+/*-------------------------------------------------------------------*/
+parse arg cmdType scope fullCmd
+call debugMsg "cmdType:" cmdType "scope:" scope "fullCmd:" fullCmd,
+  "helpFlag:" helpFlag
+if helpFlag = "yes" then                   /* convert to HELP cmd */
+  if cmdType = "XEDIT" then
+    if scope = "CMD" then
+      say "HELP" scope fullCmd
+    else                                   /* QUERY or SET */
+      say "HELP" cmdType  scope fullCmd
+  else if scope = "CMD" then
+    say "HELP" cmdType fullCmd
+  else                                     /* prefix command type */
+    say "HELP" cmdType||scope fullCmd
+else if verbose = "silent" then            /* give less info */
+  say cmdType
+else                                       /* normal verbosity */
+  if scope = "CMD" then
+    say fullCmd "is a" cmdType "command"
+  else
+    say scope fullCmd "is a" cmdType "command"
+numCmds = numCmds + 1
+return                                     /* giveResult() */
+ 
+/*-------------------------------------------------------------------*/
+checkArg: procedure expose debug helpFlag verbose numCmds
+/* Check if a supplied command/arg matches next one to check         */
+/* Arg 1: Command type CP, CMS, XEDIT, TCPIP or REXX                 */
+/* Arg 2: Scope - "QUERY", "SET" or "CMD"                            */
+/* Arg 3: User's input to check                                      */
+/* Arg 4: Command template with uppercase for required chars         */
+/*-------------------------------------------------------------------*/
+parse arg cmdType scope inputCmd tmplt
+call debugMsg "checkArg() cmdType:" cmdType "inputCmd:" inputCmd,
+  "tmplt:" tmplt
+inputLen = LENGTH(inputCmd)          /* length of input */
+tmpltLen = LENGTH(tmplt)             /* length of next cmd/arg */
+do i = 1 to tmpltLen                 /* check each character */
+  tmpltChar = SUBSTR(tmplt, i, 1)    /* next template char */
+  inputChar = SUBSTR(inputCmd, i, 1) /* get same input char */
+  if DATATYPE(tmpltChar, "U") then do /* template char is upper */
+    if i > inputLen then             /* more chars required */
+      return
+    if inputChar <> tmpltChar then   /* no match */
+      return
+  end
+  else do                            /* lower case not req'd */
+    UPPER tmpltChar                  /* fold tmpltChar to upper */
+    if i > inputLen | i > tmpltlen then /* match */
+      leave
+    if tmpltChar = inputChar then
+      iterate                        /* possible match */
+    else                             /* no match */
+      return
+  end
+end
+ 
+/* if we fall through there is a match */
+call debugMsg "checkArg(): MATCH!"
+fullCmd = translate(tmplt)           /* upper case command */
+call debugMsg "cmdType:" cmdType "fullCmd:" fullCmd
+call giveResult cmdType scope fullCmd
+return                               /* checkArg() */
+ 
+/*-------------------------------------------------------------------*/
+queryCmd: procedure,
+  expose cmd arg1 CMSquery CPquery Xquery debug helpFlag numCmds verbose
+/* Check if global "arg1" is a CP/CMS/XEDIT QUERY command argument   */
+/*-------------------------------------------------------------------*/
+if arg1 = "" then do                 /* no arg given */
+  say "both CP and CMS"              /* both have QUERY cmd */
+  return
+end
+ 
+/* check CMS QUERY commands */
+do i = 1 to WORDS(CMSquery)
+  nextArg = WORD(CMSquery, i)
+  call checkArg "CMS" "QUERY" arg1 nextArg
+end
+ 
+/* check CP QUERY commands */
+do i = 1 to WORDS(CPquery)
+  nextArg = WORD(CPquery, i)
+  call checkArg "CP" "QUERY" arg1 nextArg
+end
+ 
+/* check XEDIT QUERY commands */
+do i = 1 to WORDS(Xquery)
+  nextArg = WORD(Xquery, i)
+  call checkArg "XEDIT" "QUERY" arg1 nextArg
+end
+return                               /* queryCmd() */
+ 
+/*-------------------------------------------------------------------*/
+setCmd: procedure  expose cmd arg1 CMSset CPset Xset debug helpFlag,
+  numCmds verbose
+/* Reply whether a SET command is CP/CMS/XEDIT                       */
+/*-------------------------------------------------------------------*/
+if arg1 = "" then do                 /* no arg given */
+  say "both CP and CMS"              /* both have SET cmd */
+  return
+end
+ 
+/* check CMS SET commands */
+do i = 1 to WORDS(CMSset)
+  nextArg = WORD(CMSset, i)
+  call checkArg "CMS" "SET" arg1 nextArg
+end
+ 
+/* check CP SET commands */
+do i = 1 to WORDS(CPset)
+  nextArg = WORD(CPset, i)
+  call checkArg "CP" "SET" arg1 nextArg
+end
+ 
+/* check XEDIT SET commands */
+do i = 1 to WORDS(Xset)
+  nextArg = WORD(Xset, i)
+  call checkArg "XEDIT" "SET" arg1 nextArg
+end
+return                               /* setCmd() */
+ 
+/*-------------------------------------------------------------------*/
+otherCmds: procedure expose cmd arg1 CMScmds CPcmds TCPIPcmds Xcmds,
+  REXXcmds debug helpFlag numCmds verbose
+/* Not QUERY nor SET command - check all other one word commands     */
+/*-------------------------------------------------------------------*/
+if arg1 <> "" then do                /* only Q & SET add args */
+  say "ERROR: too many arguments"
+  call help
+end
+ 
+/* check for EXECs first as they take priority */
+"pipe CMS LISTFILE" cmd " EXEC * | stem execs."
+if rc = 0 then do
+  say execs.1 "is an EXEC"           /* 1st EXEC in search order */
+  numCmds = numCmds + 1              /* there is an EXEC */
+end
+ 
+/* check if EXECLOADed */
+/* SKIP FOR NOW
+address command 'EXECSTAT' cmd 'EXEC'
+if rc < 8 then do
+  say cmd "is EXECLOADed"
+end
+*/
+do i = 1 to WORDS(CMScmds)           /* check if CMS command */
+  nextArg = WORD(CMScmds, i)
+  call checkArg "CMS" "CMD" cmd nextArg
+end
+do i = 1 to WORDS(CPcmds)            /* check if CP command */
+  nextArg = WORD(CPcmds, i)
+  call checkArg "CP" "CMD" cmd nextArg
+end
+do i = 1 to WORDS(TCPIPcmds)         /* check if TCPIP command */
+  nextArg = WORD(TCPIPcmds, i)
+  call checkArg "TCPIP" "CMD" cmd nextArg
+end
+do i = 1 to WORDS(Xcmds)             /* check if XEDIT command */
+  nextArg = WORD(Xcmds, i)
+  call checkArg "XEDIT" "CMD" cmd nextArg
+end
+do i = 1 to WORDS(REXXcmds)          /* check if REXX command */
+  nextArg = WORD(REXXcmds, i)
+  call checkArg "REXX" "CMD" cmd nextArg
+end
+return                               /* otherCmds() */
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+say "Name:  WHICH EXEC - list type of command, details on QUERY and SET"
+say "Usage: WHICH command [(FLAGS)]"
+say "     | WHICH Query subcommand ['('FLAGS')']"
+say "     | WHICH SET   subcommand ['('FLAGS')']"
+say "Where: FLAGS can be:"
+say "             D: debug"
+say "             H: create help command"
+say "             S: silent - negative verbosity"
+say "             T: trace"
+say "             V: verbose - return expanded command"
+exit 2
+ 

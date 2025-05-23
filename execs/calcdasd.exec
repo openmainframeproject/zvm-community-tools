@@ -1,0 +1,104 @@
+/*-------------------------------------------------------------------*/
+/* CALCDASD EXEC - compute disk space from output of CP QUERY DASD   */
+/* Licensed under the Apache License, Version 2.0                    */
+/* Syntax: CALCDASD                                                  */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+address command
+parse upper arg arg1
+if arg1 = '?' | arg1 = "-H" then do
+  say "Name:  CALCDASD EXEC - compute total disk space"
+  say "Usage: CALCDASD"
+  exit 1
+end
+ 
+/* set counters for each sized disk */
+m1s = 0                             /* num 3390-1s    (1113 cyls)    */
+m2s = 0                             /* num 3390-2s    (2226 cyls)    */
+m3s = 0                             /* num 3390-3s    (3339 cyls)    */
+m9s = 0                             /* num 3390-9s   (10017 cyls)    */
+m27s = 0                            /* num 3390-27s  (30051 cyls)    */
+m32Ks = 0                           /* num 3390-32Ks (32760 cyls)    */
+m54s = 0                            /* num 3390-54s  (60102 cyls)    */
+m64Ks = 0                           /* num 3390-64Ks (65520 cyls)    */
+mAs = 0                             /* num 3390 "model As"           */
+CPcyls = 0                          /* total CP-Owned cylinders      */
+SYScyls = 0                         /* total SYSTEM cylinders        */
+ 
+'PIPE CP QUERY DASD | specs w2-5 | stem dasd.' /* get Q DASD output  */
+if (rc <> 0) then do
+  say 'Error: CP QUERY DASD returned' rc
+  exit 1
+end
+do i = 1 To dasd.0                  /* loop through all DASD         */
+  call processDASD dasd.i           /* process one                   */
+end
+call printOutput                    /* output procedure              */
+exit
+ 
+/*-------------------------------------------------------------------*/
+processDASD: procedure,
+  expose m1s m2s m3s m6s m9s m27s m32Ks m54s m64Ks mAs CPcyls SYScyls
+/* procedure to drill down into DASD with CP QUERY DASD DETAILS      */
+/*-------------------------------------------------------------------*/
+parse arg rdev cp type volser        /* get rdev, type and volser    */
+if (volser = 0) then return          /* probably PAV alias - skip    */
+'PIPE CP QUERY DASD DETAILS' rdev '| stem details.'
+if (rc <> 0) then do
+  say 'Unexpected return code from QUERY DASD DETAILS' rdev '=' rc
+  return
+end
+call processLine1 type details.1    /* parse first line of output    */
+return
+ 
+/* procedure to parse first line of CP QUERY DASD DETAILS output     */
+processLine1: procedure,
+  expose m1s m2s m3s m6s m9s m27s m32Ks m54s m64Ks mAs CPcyls SYScyls
+parse arg type rdev . . cuType . . devType . . volser . . cyls
+if (SUBSTR(devType,1,4) <> '3390') then do
+  say 'Warning - device' rdev 'type' devType 'is not a 3390 - skipping'
+  return
+end
+if (type = "OWNED") then            /* volume is CP-owned            */
+  CPcyls = CPcyls + cyls
+else                                /* assume vol is SYSTEM (perm)   */
+  SYScyls = SYScyls + cyls
+select                              /* get model type by # clyinders */
+  When (cyls = 1113) then m1s = m1s + 1
+  When (cyls = 2226) then m2s = m2s + 1
+  When (cyls = 3339) then m3s = m3s + 1
+  When (cyls = 10017) then m9s = m9s + 1
+  When (cyls = 30051) then m27s = m27s + 1
+  When (cyls = 32760) then m32Ks = m32Ks + 1
+  When (cyls = 60102) then m54s = m54s + 1
+  When (cyls = 65520) then m64Ks = m64Ks + 1
+  Otherwise do                      /* not a standard size           */
+    mAs = mAs + 1
+    if (cyls < 65520) then
+      say 'Warning - non standard size:' rdev 'has' cyls 'cylinders'
+  end
+end
+return
+ 
+/*-------------------------------------------------------------------*/
+printOutput: procedure,
+  expose m1s m2s m3s m6s m9s m27s m32Ks m54s m64Ks mAs CPcyls SYScyls
+/* procedure to print report                                         */
+/*-------------------------------------------------------------------*/
+say 'Number of 3390-1s    (1113 cylinders):' m1s
+say 'Number of 3390-2s    (2226 cylinders):' m2s
+say 'Number of 3390-3s    (3339 cylinders):' m3s
+say 'Number of 3390-9s   (10017 cylinders):' m9s
+say 'Number of 3390-27s  (30051 cylinders):' m27s
+say 'Number of 3390-32Ks (32760 cylinders):' m32Ks
+say 'Number of 3390-54s  (60102 cylinders):' m54s
+say 'Number of 3390-64Ks (65520 cylinders):' m64Ks
+say 'Number of 3390-As       (other sizes):' mAs
+say ''
+CPcylsGB = CPcyls * 849960 / 1024 / 1024 / 1024
+SYScylsGB = SYScyls * 849960 / 1024 / 1024 / 1024
+say 'Total CP-Owned cylinders:' CPcyls '('||FORMAT(CPcylsGB,,2) 'GiB)'
+say 'Total SYSTEM   cylinders:' SYScyls '('||FORMAT(SYScylsGB,,2) 'GiB)'
+say ''
+return
+ 

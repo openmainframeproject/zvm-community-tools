@@ -1,0 +1,92 @@
+/*-------------------------------------------------------------------*/
+/* HISTORY EXEC - View command history                               */
+/* Must be set up with LOGON and LOGOFF hooks:                       */
+/* - LOGON hooks:                                                    */
+/*   - Call MYLOGON in PROFILE EXEC to record logon time             */
+/* - LOGOFF hooks:                                                   */
+/*   - Make a LOG EXEC that adds cmd history (don't: '#CP LOGOFF')   */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+parse arg args                       /* get all args */
+ptrn = ""                            /* search pattern */
+tailLines = 0                        /* show just last lines? */
+if args <> "" then                   /* something passed in */
+  call parseArgs args                /* parse it */
+call doHistory                       /* do the work */
+exit                                 /* HISTORY EXEC */
+ 
+/*-------------------------------------------------------------------*/
+parseArgs: procedure expose tailLines ptrn
+/*-------------------------------------------------------------------*/
+  parse upper arg lxFlags ptrn
+  if lxFlags = "-H" lxFlags = "?" then
+    call help
+  if SUBSTR(lxFlags, 1, 1) = "-" then do /* tail lines passed in */
+    tailLines = SUBSTR(lxFlags, 2)   /* chop off '-' */
+    if DATATYPE(tailLines, "number") <> 1 then do
+      say "ERROR:" tailLines "is not an integer"
+      call help
+    end
+  end
+  else                               /* no tail lines passed in */
+    ptrn = lxFlags                   /* shift one */
+return                               /* parseArgs() */
+ 
+/*-------------------------------------------------------------------*/
+doHistory: procedure expose ptrn tailLines
+/* Show the command history                                          */
+/*-------------------------------------------------------------------*/
+  histFile = "COMMAND HISTORY A"
+  tempFile = "TEMP HISTORY A5"
+ 
+  /* if history file exists, copy it to temp file */
+  'PIPE CMS ESTATE' histFile
+  if rc = 0 then                     /* history file exists */
+    'COPY' histFile tempFile '(REP'  /* get previous cmds */
+    if rc <> 0 then do
+      say "ERROR: COPY" histFile tempFile "returned" rc
+      exit rc
+    end
+ 
+  /* append current history to temp file */
+  'PIPE CP QUERY RETRIEVE BUFFERS',  /* get history */
+  '| NLOCATE "Position Contents"',   /* remove header */
+  '| SPECS 10-*',                    /* remove first column */
+  '| TRANSLATE',                     /* fold to upper case */
+  '|>>' tempFile                     /* append to temp file */
+ 
+  /* display requested history */
+  if tailLines = 0 then do           /* show entire file */
+    if ptrn = "" then                /* no search pattern */
+      'TYPE' tempFile
+    else do                          /* apply search pattern */
+      'PIPE <' tempFile '| LOCATE /'ptrn'/ | CONSOLE'
+    end
+  end
+  else do                            /* show tail of file */
+    'EXECIO * DISKR' tempFile '(STEM' lines. 'FINIS'
+    if rc <> 0 then do
+      say "ERROR EXECIO DISKR" tempFile "returned" rc
+      exit rc
+    end
+    startLine = lines.0 - tailLines + 1 /* get last starting line */
+    if startLine <= 0 then           /* invalid line */
+      startLine = 1                  /* show entire file */
+    if ptrn = '' then                /* no search pattern */
+      'TYPE' tempFile startLine
+    else                             /* apply search pattern */
+      'PIPE CMS TYPE' tempFile startLine '| LOCATE /'ptrn'/ | CONSOLE'
+  end
+return                               /* doHistory() */
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+  say "Name:  HISTORY EXEC - Show the command history"
+  say "Usage: HISTORY [-lines] [pattern]"
+  say "Where: '-lines' is optional number of tail lines to show"
+  say "       'pattern' is optional search pattern"
+exit 1                               /* help() */
+ 

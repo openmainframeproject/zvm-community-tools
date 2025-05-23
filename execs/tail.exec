@@ -1,0 +1,24 @@
+/*-------------------------------------------------------------------*/
+/* TAIL EXEC - output the last part of files                         */
+/* Syntax: TAIL [-n] fn ft [fm]                                      */
+/* The HEAD EXEC does the heavy lifting                              */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+parse upper arg arg1 rest            /* get args in upper case */
+if arg1 = "?" | arg1 = "-H" | arg1 = "" then
+  call help
+say 'HEAD' "'"arg1"'" rest '(TAIL'       /* Call HEAD with (TAIL arg */
+'HEAD' "'"arg1"'" rest '(TAIL'       /* Call HEAD with (TAIL arg */
+exit                                 /* all done */
+ 
+/*-------------------------------------------------------------------*/
+help:
+/* Give help                                                         */
+/*-------------------------------------------------------------------*/
+say "Name:  TAIL EXEC - output the last part of file(s)"
+say "Usage: TAIL [-n] fn ft [fm] ..."
+say "Where: 'fn ft' is the file name and type"
+say "       'fm' is the file mode (default A)"
+exit 2
+ 
