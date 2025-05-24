@@ -1,9 +1,9 @@
-# zvm-tools
+# zvm-community-tools
 These are tools for z/VM, many based on Linux commands.
 
-Some emulate commonly used Linux commands such as ``diff``, ``grep``, ``man``, ``rm``, ``wc`` and ``who``. Others are more specific to z/VM such as ``calcdasd``, ``copydisk``, ``cpformat`` and ``ssicmd``.  Most are REXX EXECs, some are XEDIT macros and there is one VMARC file containing all other files.
+Some emulate commonly used Linux commands such as ``diff``, ``grep``, ``man``, ``rm``, ``wc`` and ``who``. Others are more specific to z/VM such as ``calcdasd``, ``copydisk``, ``cpformat`` and ``ssicmd``.  
 
-The following tools for z/VM are in this repository: 
+The following EXECs for z/VM are in this directory: 
 
     +------------------+-------------------------------------------------+
     | File             | Description                                     |
@@ -20,6 +20,7 @@ The following tools for z/VM are in this repository:
     | HEAD     EXEC    | Output the first part of files                  |
     | HISTORY  EXEC    | Display list of commands previously run         |
     | MAN      EXEC    | Give help on CMS/CP/XEDIT commands              |
+    | MKARCZCT EXEC    | Create the VMARC file with all EXECs inside     |
     | QA       EXEC    | Run QUERY ACCESSED                              |
     | RFN      EXEC    | Rename file changing only file name             |
     | RFT      EXEC    | Rename file changing only file type             |
@@ -111,6 +112,7 @@ calcosa -h
 Name:  CALCOSA EXEC - compute OSA statistics     
 Usage: CALCOSA [(v|verbose]                      
 ```
+By including the ``(V`` verbose flag, free OSAs will be shown also.
 
 Here is an example of using it:
 
@@ -124,9 +126,6 @@ Rdev  UserID    Vdev  DevType  OSAtype  CHPID  PCHID
 1340  DTCVSW2   0600  OSA      OSD      F1     NONE    
 1341  DTCVSW2   0601  OSA      OSD      F1     NONE    
 1342  DTCVSW2   0602  OSA      OSD      F1     NONE    
-2340  FREE                              A0     NONE    
-2341  FREE                              A0     NONE    
-2342  FREE                              A0     NONE    
                                                        
 Used OSAs:    6                                        
 Free OSAs:    3                                        
@@ -146,7 +145,7 @@ Where: 'fn1 ft1 fm1' is the source file:
        'options' add to COPY command such as 'REP' or 'OLDD' 
 ```
 
-For example, if you want to copy the file ``COPYDISK EXEC A`` to your B disk, you can type ``CFM B COPYDISK EXEC A``, but if your in a ``FILELIST``, you can simply type ``CFM B`` next to it, as the ``FN FT FM`` will be automatically added to the end.
+For example, if you want to copy the file ``COPYDISK EXEC A`` to your B disk, you can type ``cfm b copydisk exec a``, but if your in a ``FILELIST``, you can simply type ``cfm b`` next to it, as the ``FN FT FM`` will be automatically added to the end.
 
 ### CFN EXEC
 The ``CFN EXEC`` copies a file just changing the file name.
@@ -438,8 +437,8 @@ Where: command can be CMS, CP, XEDIT, TCPIP or REXX
 
 For example, ``man q da`` takes you to the ``CP QUERY DASD`` help screen, and ``man substr`` takes you to the ``XEDIT SUBSTR`` help screen.
 
-### MKVMARC EXEC
-The ``MKVMARC EXEC`` creates the z/VM file ``ZVMTOOLS VMARC`` from all of these REXX EXECs and XEDIT macros.
+### MKZVMARC EXEC
+The ``MKZVMARC EXEC`` creates the z/VM file ``ZVMTOOLS VMARC`` from all of these REXX EXECs.
 
 ### QA EXEC
 The ``QA EXEC`` simply calls ``QUERY ACCESSED`` to save keystrokes. 
@@ -583,32 +582,4 @@ SSL00003 - DSC
 SSL00004 - DSC   
 SSL00005 - DSC   
 ```
-
-## XEDIT Macros
-Following are descriptions of each XEDIT macro.
-
-### BF.XEDIT
-The ``BF XEDIT`` macro takes you to the last screen of a file. 
-
-### PROFFLST.XEDIT
-Is it just me, or does the stock ``FILELIST`` command *not* have an option to sort by file name?
-
-The ``PROFFLST XEDIT`` macro sets PF10 to *Sort by name* to the ``FILELIST`` command.
-
-### PROFILE.XEDIT     
-The ``PROFILE XEDIT`` macro is a slightly modified copy of the one on the ``MAINT 191`` disk. It's the *REAL THING*. 
-
-## VMARC file 
-There is a compressed file of all the EXECs and XEDIT macros in the file ``ZVMTOOLS.VMARC``.
-
-The ``VMARC`` tool to decompress it does not ship with z/VM. If you don't have it already, it has to be installed:
-
-### TO DO
-#### Possible new EXECs:
-
-    +------------------+-------------------------------------------------+
-    | File             | Description                                     |
-    |------------------|-------------------------------------------------|
-    | LOCATE   EXEC    | search for files on all CMS disks and SFS's     |
-    +------------------+-------------------------------------------------+
 
