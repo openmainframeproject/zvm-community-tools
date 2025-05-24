@@ -19,7 +19,7 @@ The following EXECs for z/VM are in this directory:
     | GREP     EXEC    | Search for patterns in files                    |
     | HEAD     EXEC    | Output the first part of files                  |
     | HISTORY  EXEC    | Display list of commands previously run         |
-    | MAN      EXEC    | Give help on CMS/CP/XEDIT commands              |
+    | MAN      EXEC    | Give help on CMS/CP/XEDIT/TCPIP/REXX commands   |
     | MKARCZCT EXEC    | Create the VMARC file with all EXECs inside     |
     | QA       EXEC    | Run QUERY ACCESSED                              |
     | RFN      EXEC    | Rename file changing only file name             |
@@ -48,22 +48,23 @@ PIPE < VMARC MODULE A | deblock cms | > VMARC MODULE A
 ```
 
 Then:
-- Download ``ZVMTOOLS.VMARC`` to your workstation.
+- Download ``ZVMEXECS.VMARC`` to your workstation.
 - Get it to z/VM in binary, either with FTP (using ``bin``, ``quote site fix 80``, then ``put ZVMTOOLS.VMARC``), or using another tool such as ``IND$FILE``.
 - Unpack it: 
 
 ```
-vmarc unpk zvmtools.vmarc
+vmarc unpk zvmexecs.vmarc
 ```
-All the files should now be accessible.
+All the files should now be accessible on your ``A`` disk.
 
 ## Installation through Linux
-To install the tools using Linux, perform the following steps:
+To install the tools using Linux, the VMARC file is not used.
+Perform the following steps:
 
 - Clone it from github:
 
 ```
-$ git clone https://github.com/mike99mac/zvm-tools
+$ git clone https://github.com/openmainframeproject/zvm-community-tools
 ```
 
 - Change to the new directory and copy the tools to z/VM with ``ftp`` or ``IND$FILE``.
@@ -379,7 +380,7 @@ Where: 'filter' is an optional search filter
 ```
 
 Hooks must be added to trap logon and logoff time.  Perform the following steps:
-- Call the MYLOGON EXEC at logon time.
+- Call the MYLOGON EXEC at logon time from your PROFILE EXEC.
 ```
 tail -3 profile exec                                                
                                                                      
@@ -387,12 +388,30 @@ tail -3 profile exec
 'EXEC MYLOGON'                       /* save logon time to history */
 'SP CONS START TO' userid()          /* spool console */            
 ```
-                                                                                                                                                   
-- Call MYLOGOFF at logoff time. Setting this in the ``SYN SYNONYM`` file sets LOGOFF to call it. If you logoff with ``#CP LOGOFF`` MYLOGOFF will not be called and you lose the command history for that session. 
+- The HISTORY command is added to SYN SYNONYM so just ``HIS`` or ``HIST`` will give you your history.                                                                                                                                          
 ```
-tail -2 syn synonym                                
-MYLOGOFF LOG                                                        
-HISTORY  HIS                   
+tail -1 syn synonym                                
+HISTORY  HISTORY 3                   
+```
+- Create a ``LOG EXEC`` that sends the retrieve buffers to the file ``COMMAND HISTORY A``. You must remember to type just ``LOG`` to logoff so it is called.  If you type ``#CP LOGOFF`` it will not be called and you lose the command history for that session.  Here is a sample:
+```
+/*-------------------------------------------------------------------*/   
+/* LOG EXEC - save command history, add timestamp then logoff        */   
+/*-------------------------------------------------------------------*/   
+parse arg args                                                            
+                                                                          
+/* add list of commands for this session to command history */            
+'PIPE CP QUERY RETRIEVE BUFFERS',    /* get command history */            
+'| NLOCATE "Position Contents"',     /* remove header */                  
+'| SPECS 10-*',                      /* remove position column */         
+'| TRANSLATE',                       /* fold to upper case */             
+'|>> COMMAND HISTORY A'              /* append to history file */         
+                                                                          
+/* add logoff timestamp, then log off  */                                 
+dashes = "--------------------"                                           
+line = "#" dashes "LOGOFF:" DATE('N') TIME('N') dashes                    
+'EXECIO 1 DISKW COMMAND HISTORY A (FINIS STRING' line                     
+'CP LOGOFF' args                     /* logoff with any args */           
 ```
 
 Examples:
