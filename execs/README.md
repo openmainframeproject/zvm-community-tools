@@ -48,7 +48,7 @@ PIPE < VMARC MODULE A | deblock cms | > VMARC MODULE A
 ```
 
 Then:
-- Download ``ZVMEXECS.VMARC`` to your workstation.
+- Download ``ZVMEXECS.VMARC`` (the link is above) to your workstation.
 - Get it to z/VM in binary, either with FTP (using ``bin``, ``quote site fix 80``, then ``put ZVMTOOLS.VMARC``), or using another tool such as ``IND$FILE``.
 - Unpack it: 
 
@@ -215,9 +215,7 @@ Syntax:
 ### DIFF EXEC
 The ``DIFF EXEC`` compares two files and shows the results with color.
 
-This is still *alpha* code, especially in regards to getting the lines back in sync.
-
-Here is the help:
+- Here is the help:
 ```
 diff -h                                            
 Name : DIFF EXEC - compare two files               
@@ -229,7 +227,25 @@ Where: flags can be:
          V: verbose                                
 ```
 
-Here is an example of using it: ... forthcoming ....
+- Here is an example of using it:
+
+```
+diff MKARCZCT EXEC     A MKVMARC EXEC D                                      
+2,3c2,3                                                                      
+< /* MKARCZCT EXEC - Create a VMARC file of zvm-community-tools execs  */    
+< /* Usage: MKARCZCT                                                   */    
+---                                                                          
+> /* MKVMARC EXEC - Create a VMARC file of all zvm-tools               */    
+> /* Usage: MKVMARC                                                    */    
+5,5c5,5                                                                      
+< /* Src: https://github.com/openmainframeproject/zvm-community-tools  */    
+---                                                                          
+> /* Source: https://github.com/mike99mac/zvm-tools                    */    
+7,7c7,7                                                                      
+< vmarcFile = "ZVMEXECS VMARC A"       /* output file */                     
+---                                                                          
+> vmarcFile = "ZVMTOOLS VMARC A"       /* output file */                     
+```
 
 <h3 id="grep-exec">GREP EXEC</h3>
 The ``GREP EXEC`` searches for patterns in files.
