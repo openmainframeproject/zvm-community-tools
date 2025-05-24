@@ -76,14 +76,14 @@ Following are descriptions of each REXX EXEC.
 ### CALCDASD EXEC
 The ``CALCDASD EXEC`` calculates the size of all disk space. 
 
-Here is the help:
+- Here is the help:
 ```
 calcdasd -h                                    
 Name:  CALCDASD EXEC - compute total disk space
 Usage: CALCDASD                                
 ```
 
-Here is an example of using it:
+- Here is an example of using it:
 
 ```
 calcdasd                                             
@@ -107,7 +107,7 @@ Total SYSTEM   cylinders: 1892676 (1498.22 GiB)
 ### CALCOSA EXEC
 The ``CALCOSA EXEC`` merges free and used OSAs by ``rdev`` and verifies the CHPIDs and PCHIDs. 
 
-Here is the help:
+- Here is the help:
 ```
 calcosa -h                                       
 Name:  CALCOSA EXEC - compute OSA statistics     
@@ -115,7 +115,7 @@ Usage: CALCOSA [(v|verbose]
 ```
 By including the ``(V`` verbose flag, free OSAs will be shown also.
 
-Here is an example of using it:
+- Here is an example of using it:
 
 ```
 calcosa                                              
@@ -136,7 +136,7 @@ Free OSAs:    3
 
 ### CFM EXEC
 The ``CFM EXEC`` copies a file just changing the file mode. 
-Here is the help:
+- Here is the help:
 ```
 cfm -h                                                       
 Name:  CFM EXEC - Copy file changing only file mode          
@@ -151,7 +151,7 @@ For example, if you want to copy the file ``COPYDISK EXEC A`` to your B disk, yo
 ### CFN EXEC
 The ``CFN EXEC`` copies a file just changing the file name.
 
-Here is the help:
+- Here is the help:
 ```
 cfn -h                                                       
 Name:  CFN EXEC - Copy file changing only file name          
@@ -161,7 +161,7 @@ Where: 'fn2' is the target file name
        'options' add to COPY command such as 'REP' or 'OLDD' 
 ```
 
-Here is an example of using it from within FILELIST to copy an EXEC with a new file name of ``FOO``:
+- Here is an example of using it from within FILELIST to copy an EXEC with a new file name of ``FOO``:
 
 ```
  MIKEMAC  FILELIST A0  V 169  Trunc=169 Size=50 Line=1 Col=1 Alt=0              
@@ -173,7 +173,7 @@ cfn foo LCOSA  EXEC     A1 V         73        233          3  2/08/25  5:48:42
 ### CFT EXEC
 The ``CFT EXEC`` copies a file just changing the file type.
 
-Here is the help:
+- Here is the help:
 ```
 cft -h                                                         
 Name:  CFT EXEC - Copy file changing only file type            
@@ -186,7 +186,7 @@ Where: 'ft2' is the target file type
 ### COPYDISK EXEC
 The ``COPYDISK EXEC`` first tries to copy a disk with ``FLASHCOPY`` and if that fails, falls back to ``DDR``.
 
-Here is the help:
+- Here is the help:
 ```
 copydisk ?                                                   
 Name:  COPYDISK EXEC - copy minidisk with FLASHCOPY or DDR   
@@ -196,7 +196,7 @@ Usage: COPYDISK source_vdev target_vdev
 ### CPFORMAT EXEC
 The ``CPFORMAT EXEC`` formats one or more DASD volumes using ``CPFMTXA``.
 
-Here is the help:
+- Here is the help:
 ```
 cpformat ?                                                     
 Name: CPFORMAT EXEC                                            
@@ -250,7 +250,7 @@ diff MKARCZCT EXEC     A MKVMARC EXEC D
 <h3 id="grep-exec">GREP EXEC</h3>
 The ``GREP EXEC`` searches for patterns in files.
 
-Here is the help:
+- Here is the help:
 ```
 grep -h                                                  
 Name:  GREP EXEC - search files for text patterns         
@@ -374,7 +374,7 @@ A B A1:this is the file A B A
 
 The ``HEAD EXEC`` output the first part of files.
 
-Here is the help:
+- Here is the help:
 ```
 head -h                                                  
 Name:  HEAD EXEC - output the first part of files
@@ -387,7 +387,7 @@ Where: 'fn ft' is the file name and type
 ### HISTORY EXEC
 The ``HISTORY EXEC`` displays all commands previously issued, or applies a filter to them.
 
-Here is the help:
+- Here is the help:
 ```
 history -h                                    
 Name:  HISTORY EXEC - Show the command history
@@ -459,7 +459,7 @@ HISTORY LOG
 ### MAN EXEC
 The ``MAN EXEC`` calls help for the requested command.  
 
-Here is the help:
+- Here is the help:
 ```
 man -h                                                             
 Name:  MAN EXEC - give help on command, details on QUERY and SET   
@@ -481,7 +481,7 @@ The ``QA EXEC`` simply calls ``QUERY ACCESSED`` to save keystrokes.
 ### RFN EXEC
 The ``RFN EXEC`` renames a file only changing the file name. 
 
-Here is the help:
+- Here is the help:
 ```
 rfn -h                                                   
 Name:  RFN EXEC - Rename file changing only file name    
@@ -495,7 +495,7 @@ If you want to rename the file name of a file to ``RFNOLD`` in FILELIST, you wou
 ### RFT EXEC
 The ``RFT EXEC`` renames a file only changing the file type.
 
-Here is the help:
+- Here is the help:
 ```
 rft -h                                                 
 Name:  RFT EXEC - Rename file changing only file type  
@@ -507,7 +507,7 @@ Where: 'ft2' is the new file type
 ### RM EXEC
 The ``RM EXEC`` allows wild cards when erasing files.
 
-Here is the help:
+- Here is the help:
 ```
 rm -h                                           
 Name: RM EXEC - erase one or more files         
@@ -518,7 +518,7 @@ Where: fn, ft or fm can be '*' for all files
 ### SPC EXEC
 The ``SPC EXEC`` closes your console and sends it to the reader with a unique timestamp. 
 
-Here is the help:
+- Here is the help:
 
 ```
 rm -h                                           
@@ -527,7 +527,7 @@ Usage: rm fn [ft [fm]]
 Where: fn, ft or fm can be '*' for all files    
 ```
 
-Here is an example of using it, and receiving the file from the reader:
+- Here is an example of using it, and receiving the file from the reader:
 
 ```
 spc                                                                             
@@ -541,7 +541,7 @@ File CON85431 20250208 A1 received from MIKEMAC at SNAVM4
 ### SSICMD EXEC
 The ``SSICMD EXEC`` runs a CP command on all members of a z/VM SSI cluster. 
 
-Here is the help:
+- Here is the help:
 ```
 ssicmd -h                                                 
 Name: SSICMD EXEC - Issue a CP command on all SSI members 
@@ -552,7 +552,7 @@ Usage: SSICMD <CPcmd>
 
 The ``TAIL EXEC`` output the last part of files.
 
-Here is the help:
+- Here is the help:
 ```
 tail -h                                                  
 Name:  TAIL EXEC - output the last part of files
@@ -565,7 +565,7 @@ Where: 'fn ft' is the file name and type
 ### WC EXEC
 The ``WC EXEC`` counts lines, words and bytes in one or more files. 
 
-Here is the help:
+- Here is the help:
 ```
 ssicmd ?                                                      
 Name: SSICMD EXEC - Issue a CP command on all SSI members     
@@ -575,7 +575,7 @@ Usage: SSICMD <CPcmd>
 ### WHICH EXEC
 The ``WHICH EXEC`` resolves and fully qualifies CMS, CP and XEDIT commands.
 
-Here is the help:
+- Here is the help:
 ```
 which -h                                                                  
 Name:  WHICH EXEC - list type of command, details on QUERY and SET        
@@ -606,7 +606,7 @@ QUERY SCALE is a XEDIT command
 ### WHO EXEC
 The ``WHO EXEC`` takes the output of ``QUERY NAMES``, sorts it and shows it one virtual machine per line.  It also allows for a search pattern. 
 
-Here is an example of using it:
+- Here is an example of using it:
 
 ```
 who SSL          
