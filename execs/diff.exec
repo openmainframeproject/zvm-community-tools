@@ -181,7 +181,7 @@ compareFiles: procedure expose fn1 ft1 fm1 fn2 ft2 fm2 flags,
     end
     diffs = 1
   end
-return
+return                               /* compareFiles() */
  
 /*-------------------------------------------------------------------*/
 usage:

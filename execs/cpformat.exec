@@ -7,7 +7,7 @@
 address COMMAND
 firstchar = "J"                      /* first character of label */
 arg dasds "AS " type .
-if dasds = "" | dasds = "?" then
+if dasds = "" | dasds = "-H" | dasds = "?" then
   call help
 labelPrefix = firstchar || getLabelPrefix(type)
 numDasd = parseDasd(dasds)

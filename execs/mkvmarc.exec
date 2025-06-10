@@ -1,0 +1,27 @@
+/*-------------------------------------------------------------------*/
+/* MKVMARC EXEC - Create a VMARC file of all zvm-tools               */
+/* Usage: MKVMARC                                                    */
+/* Licensed under the Apache License, Version 2.0                    */
+/* Source: https://github.com/mike99mac/zvm-tools                    */
+/*-------------------------------------------------------------------*/
+vmarcFile = "ZVMTOOLS VMARC A"       /* output file */
+'ESTATE' vmarcFile
+if rc = 0 then do
+  say "Erasing old file:" vmarcFile
+  'ERASE' vmarcFile
+  if rc <> 0 then do
+    say "ERROR: ERASE" vmarcFile "returned" rc
+    exit rc
+  end
+end
+ 
+/* List of EXECs */
+execs = "CALCDASD CALCOSA CFM CFN CFT COPYDISK CPFORMAT ",
+||"DIFF GREP HEAD HISTORY MAN MKVMARC QA RFN RFT RM ",
+||"SPC SSICMD TAIL WC WCZVMTLS WHICH WHO"
+do i = 1 to WORDS(execs)             /* Add each to the VMARC file */
+  nextFile = SUBWORD(execs,i,1) "EXEC A"
+  address COMMAND "VMARC PACK" nextFile vmarcFile "(APPEND"
+end
+say "Created file:" vmarcFile
+ 

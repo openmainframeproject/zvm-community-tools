@@ -1,0 +1,16 @@
+/*-------------------------------------------------------------------*/
+/* CALC EXEC - calculate a numeric expression                        */
+/* Usage: CALC expr                                                  */
+/* Licensed under the Apache License, Version 2.0                    */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/*-------------------------------------------------------------------*/
+parse upper arg args
+if args = '' | args = "?" | args = "-H" then do
+  say "Name:  CALC - calculate a numerical expression"
+  say "Usage: CALC expression"
+  say "Exmpl: CALC 5 + 6"
+  exit
+end
+interpret "result =" args
+say args "=" result
+ 

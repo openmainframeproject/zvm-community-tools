@@ -2,7 +2,7 @@
 /* Name:  GREP EXEC - search files for text patterns                  */
 /* Usage: grep [lxFlags] ptrn FN [FT [FM]] [(vmFlags)]                */
 /* Licensed under the Apache License, Version 2.0                     */
-/* https://github.com/openmainframeproject/zvm-community-tools/execs */
+/* https://github.com/openmainframeproject/zvm-community-tools/execs  */
 /*--------------------------------------------------------------------*/
 /* parse for quoted pattern, if not found => single word pattern */
 /* trace i */
@@ -218,10 +218,10 @@ regex: procedure expose chkCase debug numbers ptrn
   call debugMsg "ptrn:" ptrn "ptrnLen:" ptrnLen
   call debugMsg "line:" line "lineLen:" lineLen
  
-  /* check for leading µ */
-  if LEFT(ptrn, 1) = "µ" then do       /* must match begining of line */
-    call debugMsg "found leading µ"
-    ptrnLen = ptrnLen - 1              /* discount 'µ' */
+  /* check for leading 5 */
+  if LEFT(ptrn, 1) = "5" then do       /* must match begining of line */
+    call debugMsg "found leading 5"
+    ptrnLen = ptrnLen - 1              /* discount '5' */
     if LEFT(line, ptrnLen) = RIGHT(ptrn, ptrnLen) then
       return 1                         /* match */
     else

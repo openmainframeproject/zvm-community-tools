@@ -15,14 +15,18 @@ allOSA.0 = 0
 call mergeOSA                        /* merge free & used OSA by rdev */
 call prtOutput                       /* print results */
 exit                                 /* CALCOSA EXEC */
-
+ 
 /*-------------------------------------------------------------------*/
 parseArgs: procedure expose debug verbose
 /* Parse arguments                                                   */
 /*-------------------------------------------------------------------*/
-  parse arg arg1 '(' flags ')'
+  parse upper arg arg1 '(' flags ')'
   if arg1 = "?" | arg1 = "-H" then
     call help
+  if arg1 = "-V" then
+    verbose = 2
+  if arg1 = "-D" then
+    debug = 1
   if flags = "" then
     return                             /* all done */
   do i = 1 to LENGTH(flags)
@@ -39,7 +43,7 @@ parseArgs: procedure expose debug verbose
     end
   end
 return                               /* parseArgs() */
-
+ 
 /*-------------------------------------------------------------------*/
 getOSAs: procedure expose usedOSA. freeOSA. debug verbose
 /* Get the used and free OSAs                                        */
@@ -62,7 +66,7 @@ getOSAs: procedure expose usedOSA. freeOSA. debug verbose
       freeOSA.0 = freeIndex
   end
 return                               /* getOSAs() */
-
+ 
 /*-------------------------------------------------------------------*/
 setColor:
 /* Change color of next line                                         */
@@ -73,7 +77,7 @@ setColor:
   'conwait'                          /* flush output stack */
   'pipe cp screen outarea' color '| hole' /* no COMMAND COMPLETE */
 return                               /* setColor() */
-
+ 
 /*-------------------------------------------------------------------*/
 debugMsg: procedure expose verbose
 /* issue message in debug mode                                       */
@@ -85,7 +89,7 @@ debugMsg: procedure expose verbose
     call setColor "green"
   end
 return                               /* debugMsg() */
-
+ 
 /*-------------------------------------------------------------------*/
 parseFreeLine: procedure expose freeOSA. freeIndex verbose
 /* get a line of 1 - 4 free OSA and populate stem var freeOSA.       */
@@ -119,7 +123,7 @@ parseFreeLine: procedure expose freeOSA. freeIndex verbose
     freeOSA.freeIndex = rdev4 "FREE"
   end
 return                               /* parseFreeLine() */
-
+ 
 /*-------------------------------------------------------------------*/
 mergeOSA: procedure expose allOSA. freeOSA. numAllOSA usedOSA. verbose
 /* merge used and free OSA lists                                     */
@@ -170,7 +174,7 @@ mergeOSA: procedure expose allOSA. freeOSA. numAllOSA usedOSA. verbose
   end
   allOSA.0 = allIndex - 1
 return                               /* mergeOSA() */
-
+ 
 /*-------------------------------------------------------------------*/
 getPchid: procedure expose verbose
 /* Given a CHPID, return the PCHID or "NONE"                         */
@@ -181,7 +185,7 @@ getPchid: procedure expose verbose
   if pchid = "physical" then         /* no PCHID found */
     pchid = "NONE"
 return pchid                         /* getPchid() */
-
+ 
 /*-------------------------------------------------------------------*/
 prtLn: procedure expose verbose
 /* print one line of output formatting the 7 fields                  */
@@ -197,7 +201,7 @@ prtLn: procedure expose verbose
     JUSTIFY(devType,8) JUSTIFY(OSAType, 8) JUSTIFY(chpid,6),
     JUSTIFY(pchid,6)
 return                               /* prtLn() */
-
+ 
 /*-------------------------------------------------------------------*/
 prtFree: procedure expose verbose
 /* print one line of a free OSA - need to get CHPID and PCHID        */
@@ -217,7 +221,7 @@ Device 2340, Status ONLINE
   dash = "-"
   call prtLn rdev "FREE" dash dash dash chpid pchid
 return                               /* prtFree() */
-
+ 
 /*-------------------------------------------------------------------*/
 prtUsed: procedure expose verbose
 /* print one line of a used OSA - need to get PCHID from CHPID       */
@@ -228,7 +232,7 @@ OSA  0340 ATTACHED TO DTCVSW1  0600 DEVTYPE OSA         CHPID F0 OSD */
   pchid = getPchid(chpid)
   call prtLn rdev userID vdev devType OSAType chpid pchid
 return                               /* prtUsed() */
-
+ 
 /*-------------------------------------------------------------------*/
 prtOutput: procedure expose allOSA. freeOSA. usedOSA. verbose
 /* print merged free and used OSAs                                   */
@@ -248,15 +252,15 @@ prtOutput: procedure expose allOSA. freeOSA. usedOSA. verbose
   say "           ----"
   say "    Total:" FORMAT(allOSA.0, 4)
 return                               /* prtOutput() */
-
+ 
 /*-------------------------------------------------------------------*/
 help:
 /* give help                                                         */
 /*-------------------------------------------------------------------*/
   say "Name:  CALCOSA EXEC - compute OSA statistics"
   say "Usage: CALCOSA {-h|?} {(vd)}"
-  say "Where: -h or '|' = give help"
+  say "Where: -h or '?' = give help"
   say "       v = verbose"
   say "       d = debug"
 exit 2                               /* help() */
-  
+ 

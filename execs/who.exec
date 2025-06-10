@@ -28,7 +28,7 @@ exit
 /*-------------------------------------------------------------------*/
 /* process one line of QUERY NAMES output                            */
 /*-------------------------------------------------------------------*/
-processLine: procedure expose userIDs. userNum
+processLine: procedure expose userIDs. userNum filter
   parse arg line                     /* get 4 triplets per line */
   line = TRANSLATE(line, " ", ",")   /* remove commas */
   line = TRANSLATE(line, " ", "-")   /* remove dashes */
@@ -82,11 +82,11 @@ printOutput:
         say userIDs.i
       end
     end
-    else                             /* no filter applied */
+    else do                          /* no filter applied */
+      numUsers = numUsers + 1
       say userIDs.i
+    end
   end
-  if numUsers = 0 then               /* no filter */
-    numUsers = userNum - 1
   say "Total:    " numUsers
 return                               /* printOutput() */
  

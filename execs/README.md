@@ -73,6 +73,28 @@ $ git clone https://github.com/openmainframeproject/zvm-community-tools
 ## REXX EXECs
 Following are descriptions of each REXX EXEC.
 
+### CALC EXEC
+The ``CALC EXEC`` calculates a numerical expression. 
+
+- Here is the help:
+```
+calc -h                                    
+Name:  CALC - calculate a numerical expression  
+Usage: CALC expression                          
+Exmpl: CALC 5 + 6                               
+```
+
+- Here is an example of using it:
+```
+calc 21 * 5                                     
+21 * 5 = 105                                    
+```
+
+- Here is an example of using it:
+
+```
+calcdasd                                             
+
 ### CALCDASD EXEC
 The ``CALCDASD EXEC`` calculates the size of all disk space. 
 
