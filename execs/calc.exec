@@ -11,6 +11,13 @@ if args = '' | args = "?" | args = "-H" then do
   say "Exmpl: CALC 5 + 6"
   exit
 end
-interpret "result =" args
-say args "=" result
+ 
+signal on syntax name mathError      /* trap non-numerice expressions */
+interpret "result =" args            /* do the math */
+say args "=" result                  /* show expression and answer */
+exit
+ 
+mathError:
+say "SYNTAX ERROR"
+exit
  

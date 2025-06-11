@@ -4,8 +4,6 @@
 /* Licensed under the Apache License, Version 2.0                     */
 /* https://github.com/openmainframeproject/zvm-community-tools/execs  */
 /*--------------------------------------------------------------------*/
-/* parse for quoted pattern, if not found => single word pattern */
-/* trace i */
 parse arg args                       /* get all args */
 numArgs = WORDS(args)                /* get number of args */
 call parseArgs args                  /* parse them */

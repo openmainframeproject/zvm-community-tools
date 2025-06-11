@@ -20,7 +20,7 @@ The following EXECs for z/VM are in this directory:
     | HEAD     EXEC    | Output the first part of files                  |
     | HISTORY  EXEC    | Display list of commands previously run         |
     | MAN      EXEC    | Give help on CMS/CP/XEDIT/TCPIP/REXX commands   |
-    | MKARCZCT EXEC    | Create the VMARC file with all EXECs inside     |
+    | MKVMARC  EXEC    | Create the VMARC file with all EXECs inside     |
     | QA       EXEC    | Run QUERY ACCESSED                              |
     | RFN      EXEC    | Rename file changing only file name             |
     | RFT      EXEC    | Rename file changing only file type             |
@@ -89,11 +89,6 @@ Exmpl: CALC 5 + 6
 calc 21 * 5                                     
 21 * 5 = 105                                    
 ```
-
-- Here is an example of using it:
-
-```
-calcdasd                                             
 
 ### CALCDASD EXEC
 The ``CALCDASD EXEC`` calculates the size of all disk space. 
@@ -496,6 +491,38 @@ For example, ``man q da`` takes you to the ``CP QUERY DASD`` help screen, and ``
 
 ### MKZVMARC EXEC
 The ``MKZVMARC EXEC`` creates the z/VM file ``ZVMTOOLS VMARC`` from all of these REXX EXECs.
+
+Here is an example of using it:
+```
+mkvmarc                                                                         
+Erasing old file: ZVMTOOLS VMARC A                                              
+CALC     EXEC     A1. Bytes in=       735, bytes out=       640 (    87%).      
+CALCDASD EXEC     A1. Bytes in=      4581, bytes out=      2560 (    55%).      
+CALCOSA  EXEC     A1. Bytes in=     10372, bytes out=      4240 (    40%).      
+CFM      EXEC     A1. Bytes in=      1254, bytes out=       880 (    70%).      
+CFN      EXEC     A1. Bytes in=      1252, bytes out=       880 (    70%).      
+CFT      EXEC     A1. Bytes in=      1298, bytes out=       960 (    73%).      
+COPYDISK EXEC     A1. Bytes in=      1765, bytes out=      1200 (    67%).      
+CPFORMAT EXEC     A1. Bytes in=      7773, bytes out=      3840 (    49%).      
+DIFF     EXEC     A1. Bytes in=      6250, bytes out=      3040 (    48%).      
+GREP     EXEC     A1. Bytes in=     12292, bytes out=      4880 (    39%).      
+HEAD     EXEC     A1. Bytes in=      3996, bytes out=      2080 (    52%).      
+HISTORY  EXEC     A1. Bytes in=      4273, bytes out=      2240 (    52%).      
+MAN      EXEC     A1. Bytes in=      1812, bytes out=      1200 (    66%).      
+MKVMARC  EXEC     A1. Bytes in=      1274, bytes out=      1040 (    81%).      
+QA       EXEC     A1. Bytes in=       371, bytes out=       320 (    86%).      
+RFN      EXEC     A1. Bytes in=      1088, bytes out=       800 (    73%).      
+RFT      EXEC     A1. Bytes in=      1090, bytes out=       800 (    73%).      
+RM       EXEC     A1. Bytes in=      1548, bytes out=      1120 (    72%).      
+SPC      EXEC     A1. Bytes in=      1089, bytes out=       720 (    66%).      
+SSICMD   EXEC     A1. Bytes in=      1291, bytes out=      1040 (    80%).      
+TAIL     EXEC     A1. Bytes in=      1217, bytes out=       800 (    65%).      
+WC       EXEC     A1. Bytes in=      4337, bytes out=      2240 (    51%).      
+WCZVMTLS EXEC     A1. Bytes in=       428, bytes out=       400 (    93%).      
+WHICH    EXEC     A1. Bytes in=     20735, bytes out=     10480 (    50%).      
+WHO      EXEC     A1. Bytes in=      3301, bytes out=      1840 (    55%).      
+Created file: ZVMTOOLS VMARC A 
+```
 
 ### QA EXEC
 The ``QA EXEC`` simply calls ``QUERY ACCESSED`` to save keystrokes. 

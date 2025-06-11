@@ -1,0 +1,16 @@
+/*-------------------------------------------------------------------*/
+/* WCZVMTLS EXEC - count words in zvm-community-tools EXECs          */
+/* This assumes all the execs are on your A disk                     */
+/* Licensed under the Apache License, Version 2.0                    */
+/* Source: https://github.com/mike99mac/zvm-tools                    */
+/*-------------------------------------------------------------------*/
+execs = "CALC CALCDASD CALCOSA CFM CFN CFT COPYDISK CPFORMAT ",
+||"DIFF GREP HEAD HISTORY MAN MKVMARC QA RFN RFT RM ",
+||"SPC SSICMD TAIL WC WCZVMTLS WHICH WHO"
+files = ""                           /* list of EXECs */
+do i = 1 to WORDS(execs)
+  nextFile = SUBWORD(execs,i,1) "EXEC A" /* change if different fm */
+  files = files nextFile
+end
+wc files
+ 
