@@ -1,0 +1,8 @@
+Subject: SPBACKUP Failure Today                                                 
+                                                                                
+SPBACKUP reports a premature end. Please check its logs in SYSLOG and in        
+its reader to be sure it ran OK.                                                
+                                                                                
+We are going to attempt to run the WRAPUP step, however it might not            
+work. It may be necessary to run the WRAPUP step over again after               
+figuring out why the job failed.                                                

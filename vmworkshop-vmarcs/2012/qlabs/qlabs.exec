@@ -1,0 +1,105 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* This exec is intended to list VOL1 and CMS1 label enteries from a   */
+/* formatted disk.                                                     */
+/*                                                                     */
+/* One parameter is required and may be entered either                 */
+/* at invocation or in response to a prompt.                           */
+/* It is:    1) unit address                                           */
+/* An option is available to specify a range of cylinders to scan      */
+/*  .. useful to limit the scope of the label search                   */
+/*                                                                     */
+/* FORMAT:  QLABS vdev (startcyl endcyl                                */
+/*          DEFAULTS: startcyl = 0                                     */
+/*                    endcyl = startcyl                                */
+/*  NOTE: endcyl may be entered as * or END to scan to the end of the  */
+/*        volume                                                       */
+/*                                                                     */
+/* *** for these examples assume MAINT 123 linked as 123 ***           */
+/* EXAMPLE: QLABS 123          see the volume label for 123            */
+/* EXAMPLE: QLABS 123 (39      should show MNTCF1 (z/VM 6.2)           */
+/* EXAMPLE: QLABS 123 (39 1000 show all labels on 123 between          */
+/*                            cylinders 39 and 1000                    */
+/* EXAMPLE: QLABS 123 (0 END   show all labels on 123 between          */
+/*                            cylinders 0 thru the last cylinder       */
+/*                                                                     */
+/* Dependencies and pre-reqs:                                          */
+/*                                                                     */
+/* The pipe stage 'trackread' is used which is available in the        */
+/* Princeton University pipelines package.                             */
+/* http://vm.marist.edu/~pipeline/index.html#Runtime                   */
+/*                                                                     */
+/* PICKPIPE which can be downloaded from IBM's VM download page.       */
+/* http://www.vm.ibm.com/download/packages/                            */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+ 
+   parse source . . exname .                       /* get the EXEC name for displays */
+   arg unit . '(' start end .                      /* parse out the args */
+   if unit = '' then do                            /* do we have the unit addr? */
+     say 'CUU -- START & END cylinders'            /* no.. ask for it           */
+     pull unit start end .                         /* get the response          */
+   end
+   if start = '' then start = 0                    /* if not specified start on cyl 0 */
+   if end = '' then end = start                    /* if not specified end on the start cyl */
+   rrc = 0                                         /* initialize          */
+   ncms = 0                                        /* initialize          */
+   ycms = 0                                        /* initialize          */
+   'pipe query version | spec 1-3 1 | var pipelevel'
+    if pipelevel ¬= 'PIP' then,                     /* do we have correct pipes?*/
+       pickpipe u '(quiet'                          /* no then load the UPLEVEL pipes   */
+    if rc ¬= 0 then                                 /* was pipe load successful?  */
+      call msg 16, 'An uplevel pipe package is not available-- 'exname ' cannot continue'
+ 
+   'pipe devinfo' unit '| var temp'                 /* get device characteristics */
+   if rc ¬= 0 then                                  /* device error  */
+      call msg 20, 'Device error trying to access ' unit '--' exname 'cannot continue'
+      parse var temp cuu clas dvtyp cutyp cyls trkpc trklen .  /* parse it out to vars */
+ 
+   if dvtyp ¬= '3390' then                         /* device type must be 3390  */
+      call msg 24, 'Device' cuu 'is not a supported device type' dvtyp '¬= 3390'
+ 
+   if end = '*' | end = 'END' then end = cyls -1   /* calculate the end cylinder */
+ 
+   if end < start then                             /* verify cylinder range      */
+      call msg 26, 'END less than START on' unit ' --' exname 'cannot continue'
+ 
+   if end > cyls -1 then                            /* verify cylinder range     */
+      call msg 28, 'END ('end') > last cylinder ('cyls -1') on' unit ' --' exname 'cannot continue'
+ 
+ sscan = start                                      /* start scan cylinder */
+ escan = end                                        /* end scan cylinder   */
+ do start = start by 1 until start = end            /* loop read specified cylinders */
+    'PIPE (endchar ? )',                            /* start the pipe           */
+       '| trackread' unit start '0 ',               /* read a track             */
+       '| trackdeblock ',                           /* deblock the track        */
+       '| drop first 4',                            /*  ... possible label      */
+       '| specs 09-28 1 ',                          /* extract the label TYPE & NAME */
+       '| var r3vol '                               /* save TYPE and NAME for later */
+    if rc ¬= 0 then                                 /* device error? */
+       call msg 30, 'Device error see previous messages --' exname 'cannot continue'
+ 
+    select;
+      when substr(r3vol,1,4) = 'VOL1' then do    /* is this a non-CMS formatted extent */
+            call msg 00, 'VOLUME  label for' unit 'at cylinder' start 'is' substr(r3vol,9,6)
+            ncms = ncms +1                       /* count the non-CMS labels */
+      end
+      when substr(r3vol,1,4) = 'CMS1' then do    /* is this a CMS formatted extent? */
+            call msg 00, 'CMS label for' unit 'at cylinder 'start 'is ' substr(r3vol,5,6)
+            ycms = ycms +1                       /* count the CMS labels */
+      end
+    otherwise;
+    end                                          /* return and read the next track */
+ end
+ call msg 00, exname 'scanned cylinders' sscan  'through' escan
+ call msg 00, exname 'Finished normally and detected' ncms 'non-CMS labels and 'ycms' CMS labels'
+signal finish
+ 
+msg:                                           /*  messages                        */
+  parse arg rrc, txt                           /* parse the message into its parts */
+  say txt                                      /* display the message              */
+  if rrc = 0 then return
+  signal finish                                /* wrap it up and exit              */
+ 
+finish:
+   if pipelevel ¬= 'PIP' then,                 /* did we start with modern pipes? */
+      pickpipe cms '(quiet'                    /* no .. put back CMS pipes        */
+exit rrc                                       /* exit                            */

@@ -1,0 +1,877 @@
+/* ph exec - query name server for person.                    */
+/* Nick Laflamme - U. of Notre Dame                           */
+/* Dominique.P.Laflamme.1@nd.edu                              */
+/* UDM/Nick                                                   */
+/*                                                            */
+/* based heavily on GOPHER EXEC by Rick Troth, Rice U.        */
+/* which in turn relies heavily on Arty Ecoky's RXSOCKET      */
+/* May, 1992                                                  */
+/*      modified: June 4, 1992: add stack option                     */
+/*                also pull in improvements from FIXAFSID            */
+/*      modified: September 2, 1992: add UNIQUE, STACKALL, HOST, PORT*/
+/*                options, changed calling conventions.              */
+/*      modified: December 4, 1992 - January 8, 1993: GLOBALV for    */
+/*                host, port, support for FIELDS and                 */
+/*                fill-in-the-blanks queries                         */
+/* Adapted:       February 8, 1993: Handle more servers.      */
+/*      modified: February 24, 1993: display host's name      */
+/*      modified: February 24, 1993: RXSocket 2.0 support     */
+/*      modified: March 8, 1993: shortened one line length    */
+/*      modified: May 4, 1993: (2.52) don't use variable window sizes*/
+/*                when called using GLOBALV for  HOST definition to  */
+/*                avoid confusion when used under Gopher.            */
+/*      modified: June 29, 1993: (2.53) 2.52 was exactly wrong. Fix. */
+/*      modified: 2 August 1993: (2.54) Better error handling.       */
+/*      modified: 2 September 1993: (2.55) Allow self-escaping (     */
+/*      modified: 13 October 1993: (2.56) Missing terminate in fields*/
+/* Last modified: 11 October 1994: (2.56a) STACK opt RC 2 bombs      */
+ 
+/* return codes:             */
+/*  0: no problem            */
+/*  1: no matches            */
+/*  2: too many matches      */
+/*  3: bad parameters        */
+/*  4: no end of data?       */
+/*  5: Read or Write failed  */
+/*  6: internal error        */
+/*  7: user signalled done   */
+/*  8: not unique            */
+/*  9: not a qi host         */
+/*100: incorrect use/environ */
+ 
+signal prologue                         /* skip to start of code      */
+ 
+/* SYNTAX: and NOVALUE: come first so REXX can always find them       */
+ 
+syntax:                                 /* in case of syntax error    */
+erc = rc                                /* preserve error code        */
+$error='REXX error' erc 'in line' sigl':' errortext(erc)
+say $error                              /* get excited                */
+say "Line" sigl':' sourceline(sigl)     /* show offending line        */
+trace '?r'; nop                         /* start trace mode for debug */
+Parse Value Socket('Terminate') With rc .
+exit erc
+ 
+novalue:
+$error='Novalue error in line' sigl
+say $error                              /* get excited                */
+say sourceline(sigl)                    /* show offending line        */
+trace '?r'; nop                         /* start trace mode for debug */
+Parse Value Socket('Terminate') With rc .
+exit 100
+ 
+prologue:                               /* start of real code         */
+signal on novalue             /* complain about missing vairables     */
+signal on syntax              /* semi-graceful exit for syntax errors */
+parse source . invocation progfn progft progfm calledas addressee
+ 
+parse arg wanthelp .          /* check first argument                 */
+select
+when wanthelp='?' then
+ signal somehelp        /* break to explanation                 */
+when wanthelp='??' then
+ signal morehelp        /* break to long explanation            */
+otherwise
+ nop                    /* on with life                         */
+end   /* of select on wanthelp      */
+ 
+/* trace i */
+ 
+/************* START OF CODE *************************/
+ 
+Address "COMMAND"
+ 
+progid = "CMS PH 2.56"           /* 2.50: RXSocket V2 */
+ 
+Signal on SYNTAX
+ 
+'STATE RXSOCKET MODULE *'
+If rc ^= 0 Then Do
+Say "You must have RXSOCKET to run" progid
+Exit rc
+End  /*  If  ..  Do  */
+ 
+Parse Value Socket('Version') With rc name version date text
+If version<2.00 Then Do
+    Say "PH 2.50 (and later) requires RXSOCKET Version 2"
+    Exit 100
+    End  /*  If  ..  Do  */
+ 
+'STATE TCPIP DATA *'
+If rc ^= 0 Then Do
+Say "You must have VM TCP/IP V2 accessed to run" progid
+Exit rc
+End  /*  If  ..  Do  */
+ 
+'STATE PIPE MODULE *'
+If rc ^= 0 Then Do
+Say "You must have CMS Pipelines to run" progid
+Exit rc
+End  /*  If  ..  Do  */
+ 
+HHOST = "ns.nd.edu"
+HPORT = 105
+unique = 0                   /* by default, not looking for just one */
+stackall = 0                 /* by default, don't dump all to stack  */
+stack = 0                    /* not going for stacked output         */
+exitrc = 0                             /* optimistic default         */
+rawdata.0 = 0
+input.0 = 0
+input.current = 1            /* Start with the first line... */
+ 
+/* Parse Arg whom "(" host hport "(" all */
+parse arg args
+'PIPE (end \) var args',
+'| change /((/{/',
+'| a: chop before (',
+'| change /{/(/',
+'| var whom',
+'\ a:',
+'| specs 2-* 1',
+'| b: chop before ( ',
+'| change /{/(/',
+'| var optstring',
+'\ b: ',
+'| specs 2-* 1', /* '| append literal Never mind....', */
+'| change /{/(/',
+'| var whoops'
+/* Parse Arg whom "(" optstring "(" whoops */
+if whoops /= '' then /* if whoops /= 'Never mind....' then */
+do
+say "Calling conventions have changed."
+exit 100
+end
+optstring = translate(optstring,' ','=') /* allow "=" as whitespace  */
+do while optstring /= ''
+parse var optstring thisopt optstring
+select
+when translate(thisopt) = 'HOST' then
+parse var optstring hhost optstring
+when translate(thisopt) = 'PORT' then
+parse var optstring hport optstring
+when translate(thisopt) = 'UNIQUE' then
+do
+stack = 1
+unique = 1
+end
+when translate(thisopt) = 'STACK' then
+stack = 1
+when translate(thisopt) = 'STACKALL' then
+do
+stack = 1
+stackall = 1
+end
+otherwise
+say "Unknown option:" thisopt
+end                                                      /* select */
+end                                 /* do while optstring isn't null */
+ 
+helpstuff = '"Quit" means leave PH.  "Accept" means return this entry.'
+helpstuff = helpstuff '"Done" means leave PH and the calling program.'
+ 
+/* now check global variables in case this is a Gopher-callee */
+'GLOBALV SELECT PHCMS GET HOST PORT'
+if host = '' then
+do
+host = hhost
+varwin = 'VAR' /* PH 2.52 */
+end
+else
+varwin = ''
+if port /= '' then
+do
+hport = port
+end
+if hport /= strip(hport) then
+do
+hport = strip(hport)
+end
+ 
+if index(host,'.') = 0 then
+do
+if ^stack then
+say "Hostname" host "doesn't contain a period.  Is that correct?"
+exit 100
+end
+if datatype(hport,'W') = 0 then
+do
+if ^stack then
+say hport "isn't a valid port number."
+exit 100
+end
+ 
+/*
+**   Initialize RXSOCKET
+*/
+ 
+Parse Value Socket('Initialize', 'phCMS') With rc errno
+If rc^=0 Then
+do
+if ^stack then
+say "INITIALIZE" errno
+exit 5
+end
+ 
+/* much of the following is copied from the RXSOCKET help files */
+Parse Value Socket('Socket', 'AF_INET', 'Sock_Stream') With rc s stuff
+ 
+If rc /= 0 Then
+Do
+errno = s stuff
+if ^stack then
+say "RXSOCKET subfunction Socket returned error" errno
+Parse Value Socket('Terminate') With rc .
+exit 5
+End
+ 
+/*
+**   Tell RXSOCKET that we want to speak ASCII across this socket
+*/
+Parse Value Socket('SetSockOpt', s, 'SOL_SOCKET', 'SO_ASCII', 'On'),
+with rc errno
+If rc^=0 Then
+Do
+if ^stack then
+say "RXSocket subfunction Socket  returned error" errno
+Parse Value Socket('Terminate') With rc .
+exit 5
+End
+ 
+Parse Value Socket('GetHostByName', host) With rc netaddr stuff
+if rc /= 0 then
+do
+if rc = 2053 then
+say stuff
+else
+say "GetHostByName return code:" rc "error:" stuff
+Parse Value Socket('Terminate') With rc .
+exit 9
+end
+ 
+name = "AF_INET" hport netaddr
+Parse Value Socket('Connect', s, name) With Crc errno errtext
+if crc /= 0 then
+do
+if crc = 61 then
+say hhost hport "apparently isn't a qi server;" errtext
+else
+say "Connect return code:" crc "error:" errtext
+Parse Value Socket('Terminate') With rc .
+exit 9
+end
+ 
+abort = 0
+ 
+if whom = '' then
+call get_target
+else
+data       = "query" whom||'0D25'x||'quit'||'0D25'x
+ 
+if abort then /* from input screen */
+do
+Parse Value Socket('Terminate') With rc .
+exit 7
+end
+ 
+Parse Value Socket('Write', s, data) With rc bytes_sent
+if rc^=0 then
+do
+if ^stack then
+say "Write failed.  Errno:" bytes_sent
+Parse Value Socket('Terminate') With rc .
+exit 5
+end
+ 
+/* Go get the answer: */
+If (readresp(s) <= 0) Then
+Do
+Say "Read failed, errno:" errno
+Parse Value Socket('Terminate') With rc .
+exit 5
+End
+ 
+"PIPE (end \) stem rawdata.",
+"| c: nfind 501:",
+"| d: nfind 502:",
+"| a: nfind 102",
+"| b: nfind 200:",
+"| e: nfind 598:",
+"| find 500:",
+"| f: faninany",
+"| count lines",
+"| var badquery",
+"\ a:",
+"| specs word 3 1",
+"| var howmany",
+"\ b:",
+"| count lines",
+"| var OK",
+"\ c:",
+"| count lines",
+"| var NotFound",
+"\ e:",
+"| f:",
+"\ d:",
+"| count lines",
+"| var TooMany"
+ 
+If NotFound then
+do
+if ^stack then
+call qsay("Nothing found for" whom 'at' host)
+Parse Value Socket('Terminate') With rc .
+exit 1
+end
+ 
+If TooMany then
+do
+if ^stack then
+do    /* 2.56a fix */
+toomuch = "Too many matches for" whom 'at' host
+toomuch = toomuch||'; please be more selective.'
+call qsay(toomuch)
+end   /* 2.56a fix */
+Parse Value Socket('Terminate') With rc .
+exit 2
+end
+ 
+If BadQuery then
+do
+if ^stack then
+call qsay("Query not resolved by" host||"; possibly bad parameters.")
+Parse Value Socket('Terminate') With rc .
+exit 3
+end
+ 
+/*
+**   Tell RXSOCKET that we are done with this IUCV path
+*/
+Parse Value Socket('Terminate') With rc errno
+If rc="-1" Then say "RXSocket termination error:" errno
+ 
+if stackall then
+do
+"PIPE stem rawdata. | stack" /* give it all */
+exit
+end
+ 
+/* Limit the data */
+'PIPE stem rawdata.|',
+  'a: find -200:|',
+  'stem cooked.|',
+  'take last|',
+  'change /:/ /|',
+  'spec w2|',
+  'var howmany'
+ 
+if unique then
+do
+if howmany = 1 then
+"PIPE (name NewPH1) stem rawdata.",
+"| locate /:1:/",
+"| specs 9-* 1",                   /*    strip off line prefixes */
+"| strip both",
+"| stack"
+else
+exitrc = 8
+exit exitrc
+end
+ 
+do i = 1 to howmany
+ph.i. = ''                           /* set default value          */
+"PIPE (name NewPH1) stem cooked.",
+"| locate /:"||i||":/",
+"| specs 9-* 1",                   /*    strip off line prefixes */
+"| strip trailing",
+"| stem ph."||i||'.'
+end
+ph.0 = howmany
+ 
+/* set up windowing environment */
+"QUERY DISPLAY (LIFO"
+parse pull . lines cols devtype addrtype dbcs color exthi pss pssets
+/* wlines = (lines * .75)%1
+wcols = (cols * .75)%1
+Wpsline = lines%8
+Wpscol = cols%8 */
+wlines = lines-2 /* allow for borders */
+wcols = cols - 4 /* allow for borders again */
+Wpsline = 2
+Wpscol = 3
+Vlines = wlines - 2
+Vcols = wcols - 1
+VProtTop = 1                          /* protected lines at top     */
+VProtBot = 1                          /* protected lines at bottom  */
+"WINDOW DEFINE  PH" Wlines Wcols Wpsline Wpscol "(BOR" varwin
+"VSCREEN DEFINE PH" Vlines Vcols VProtTop VProtBot "(PROT"
+"WINDOW SHOW PH ON PH"
+"VMFCLEAR"
+Flen   = length(host) + 1
+"VSCREEN WRITE PH 1" 1 flen "(RES HI PROT FIELD" host
+ 
+/* Now we start to display entries, one at a time. */
+i=1
+done = 0
+parse var whom aa ' return ' .
+do while ^done
+Ftitle = "PH Lookup Entry:" aa i "of" ph.0
+Flen   = length(Ftitle) + 1
+Fcol   = (vcols-flen)%2
+"VSCREEN WRITE PH 1" fcol flen "(RES HI PROT FIELD" Ftitle
+if stack then
+select
+when ph.0 = 1 then
+PFMenu = 'F1: Help F3: Quit F5: Accept                    F12: Done'
+when i = ph.0 then
+PFMenu = 'F1: Help F3: Quit F5: Accept F7: Prior          F12: Done'
+when i = 1 then
+PFMenu = 'F1: Help F3: Quit F5: Accept           F8: Next F12: Done'
+otherwise
+PFMenu = 'F1: Help F3: Quit F5: Accept F7: Prior F8: Next F12: Done'
+end /* select */
+else
+select
+when ph.0 = 1 then
+PFMenu = 'F1: Help F3: Quit                              '
+when i = ph.0 then
+PFMenu = 'F1: Help F3: Quit            F7: Prior         '
+when i = 1 then
+PFMenu = 'F1: Help F3: Quit                      F8: Next'
+otherwise
+PFMenu = 'F1: Help F3: Quit            F7: Prior F8: Next'
+end /* select */
+"VSCREEN WRITE PH -1 1" length(pfmenu)+1 "(RES FIELD" PFMenu
+do j = 1 to ph.i.0
+"VSCREEN WRITE PH" j+1 1 length(ph.i.j)+1 "( HI PROT FIELD" ph.i.j
+end                                  /*    for each line of entry  */
+ 
+if ph.i.0 = 0 then
+do
+if ^stack then
+call qsay("Severe Error: 0 fields present for" i 'at' host)
+abort = 1                                /* ending early     */
+done = 1
+exitrc = 6
+leave
+end
+else
+"VSCREEN WAITREAD PH"              /* wait for user input        */
+/* now waitread.0 is the variable count,                           */
+/* waitread.1 is the attention key just used,                      */
+/* waitread.2 is the cursor position.                              */
+/* all variables after those are changed fields.                   */
+ 
+parse var waitread.1 ktype num
+select
+when (ktype = "PFKEY") & (find("1 13",num) /= 0) then
+call qsay(helpstuff)
+when (ktype = "PFKEY") & (find("5 17",num) /= 0) then
+done = 1
+when (ktype = "PFKEY") & (find("3 15",num) /= 0) then
+do
+abort = 1                              /* ending early     */
+done = 1
+end
+when (ktype = "PFKEY") & (find("12 24",num) /= 0) then
+do
+abort = 1                              /* ending early     */
+done = 1
+if stack then
+exitrc = 7                             /* really quit      */
+end
+when (ktype = "PFKEY") & (find("7 19",num) /= 0) then
+do
+if i > 1 then
+i = i-1
+else
+call qsay("Already at the first entry.")
+end
+when (ktype = "PFKEY") & (find("8 20",num) /= 0) then
+do
+if i < ph.0 then
+i = i+1
+else
+call qsay("That's the last entry.")
+end
+when ktype = "PFKEY" then
+call qsay("PFKey" num "was used.  That's fine, nothing wrong",
+"with that, it just doesn't do anything special. ")
+otherwise
+nop                                      /* no biggie        */
+end
+if done & ^abort then              /* we have a winner....       */
+if stack then
+"PIPE STEM PH.I. | stack LIFO"
+ 
+"VSCREEN CLEAR PH"
+ 
+end                                    /* wander through entries     */
+ 
+"WINDOW  DELETE PH"
+"VSCREEN DELETE PH"
+ 
+Exit exitrc
+ 
+somehelp:
+say 'Give a name and get local directory information.'
+exit 100                      /* non-zero RC for explanation mode     */
+ 
+morehelp:
+say 'Give a name and get local directory information.'
+say 'By default, it looks for you and returns brief information from'
+say 'Notre Dame.  Options include who you are looking for, where from,'
+say 'and if you want all the server knows about the person.'
+say 'Use "*" as the wildcard character.'
+say ''
+say 'Specify HOST by name, PORT by decimal number.  STACK, STACKALL,'
+say 'and UNIQUE are other CMS programs to use.'
+say ''
+say 'To use a "(" in a query, type "(("'
+say ''
+say 'Syntax:' progfn '{whom} {( {HOST host} {PORT port}'
+say             '{STACK|STACKALL|UNIQUE} }'
+exit 100
+ 
+ 
+Qsay:                        /* cheap SAY command for fullscreen     */
+procedure
+parse arg message
+ 
+"QUERY DISPLAY (LIFO"
+parse pull . lines cols devtype addrtype dbcs color exthi pss pssets
+wlines = (lines * .75)%1
+wcols = (cols * .75)%1
+Wpsline = lines%8
+Wpscol = cols%8
+Vlines = wlines - 2
+Vcols = wcols - 1
+VProtTop = 1                          /* protected lines at top     */
+VProtBot = 1                          /* protected lines at bottom  */
+"WINDOW DEFINE  QUICKIE" Wlines Wcols Wpsline Wpscol "(BOR VAR"
+"VSCREEN DEFINE QUICKIE" Vlines Vcols VProtTop VProtBot "(PROT"
+"WINDOW SHOW QUICKIE ON QUICKIE"
+PFMenu = 'Hit <ENTER> to Continue'
+a=(vcols-length(pfmenu))%2
+"VSCREEN WRITE QUICKIE -1" a length(PFMenu)+1 "(RES FIELD" PFMenu
+fields = 1
+Field.Row.1   = 1
+Field.title.1 = "Quick Message"
+Field.len.1   = length(Field.title.1) + 1
+Field.col.1   = (vcols-field.len.1)%2
+Field.opts.1  = "HI PROT"
+ 
+parse var message nextword message
+fields = fields + 1
+field.title.fields = ''
+ 
+do while nextword ^= ''
+if length(nextword) > vcols then
+do
+say "Too long word:" nextword
+say "No message sent."
+return
+end
+if length(nextword) + length(field.title.fields) < vcols then
+do
+field.title.fields = field.title.fields nextword
+parse var message nextword message
+end
+else
+do
+fields = fields+1
+field.title.fields = ''
+end
+end
+do i = 2 to fields
+Field.Row.i   = i
+Field.len.i   = length(Field.title.i) + 1
+Field.col.i   = 1
+Field.opts.i  = "HI PROT"
+end
+ 
+do i = 1 to fields
+"VSCREEN WRITE QUICKIE"  Field.row.i Field.col.i Field.len.i,
+    "(" Field.opts.i "FIELD" Field.title.i
+if length(field.title.i) >= field.len.i then
+say "Trouble: field" i
+end
+"VSCREEN WAITREAD QUICKIE"           /* wait for user input        */
+ 
+"VSCREEN CLEAR QUICKIE"
+"WINDOW  DELETE QUICKIE"
+"VSCREEN DELETE QUICKIE"
+ 
+return
+ 
+get_target:
+ 
+data       = 'fields'||'0D25'x
+Parse Value Socket('Write', s, data) With rc bytes_sent
+if rc /= 0 then
+do
+say "Write failed.  Errno:" bytes_sent
+Parse Value Socket('Terminate') With rc .
+exit 5
+end
+if (ReadResp(s) <= 0) Then
+do
+say "Read failed.  Errno:" errno
+Parse Value Socket('Terminate') With rc .
+exit 5
+end
+ 
+"PIPE (end \)",
+"| stem rawdata.",
+"| b: nfind 200:",
+"| e: nfind 598:",
+"| find 500:",
+"| f: faninany",
+"| count lines",
+"| var badquery",
+"\ b:",
+"| count lines",
+"| var OK",
+"\ e:",
+"| f:"
+ 
+If BadQuery then
+do
+say "Severe error: fields query failed at" host
+Parse Value Socket('Terminate') With rc .       /* 2.56 */
+exit 3
+end
+ 
+/* display code goes here. */
+do i = 1 to rawdata.0
+parse var rawdata.i msg ':' id ':' stuff
+rawdata.i = msg||':'||right(id,2,'0')||":" stuff
+end
+'PIPE (end \) stem rawdata. ',
+'| sort 1.8',
+'| a: unique 1.8 first',
+'| locate /Public/',
+'| locate /Indexed/',
+'| buffer', /* when in doubt.... */
+'| b: lookup 1.8 master',
+'| specs 10-* 1',
+'| split /:/',
+'| pad 9',
+'| join / /',
+'| stem indices.',
+'\ a:',
+'| buffer', /* when in doubt.... */
+'| b:',
+'| hole'
+ 
+stuff.1='Type the name (first, last, nickname or a combination) of the'
+stuff.2='person you wish to look up.'
+stuff.3=''
+stuff.4="Or, for lookups involving information other than the person's"
+stuff.5="name, use the following keywords:"
+ 
+if (indices.0 <> 0) then
+  do
+  stuff.0 = 5
+  'PIPE STEM INDICES. | STEM STUFF. APPEND'
+  end
+else
+  stuff.0 = 3
+ 
+"QUERY DISPLAY (LIFO"
+parse pull . lines cols devtype addrtype dbcs color exthi pss pssets
+Pscreen = "PHCMSQ"
+Pwindow = "PHCMSQ"
+Wlines = lines - 4
+Wcols = cols - 4
+Wpsline = 3
+Wpscol = 3
+Vlines = wlines - 1
+Vcols = wcols - 1
+VProtTop = 1                           /* protected lines at top     */
+VProtBot = 1                           /* protected lines at bottom  */
+ 
+"VMFCLEAR"                   /* clear the screen if possible/easy    */
+"WINDOW DEFINE"  Pwindow Wlines Wcols Wpsline Wpscol "(BOR VAR"
+"VSCREEN DEFINE" Pscreen Vlines Vcols VProtTop VProtBot "(PROT"
+"WINDOW SHOW" Pwindow "ON" Pscreen
+PFMenu = 'PF Keys: 3: Quit  5: Go 12: Quit'
+"VSCREEN WRITE" Pscreen  "-1 1" length(PFMenu)+1 "(RES FIELD" PFMenu
+ 
+fields = 3 + stuff.0         /* count of currently known fields      */
+done = 0
+abort = 0
+qpt1 = ''
+qpt2 = ''
+/* display host info */
+Flen   = length(host) + 1
+"VSCREEN WRITE" pscreen 1 1 flen "(RES HI PROT FIELD" host
+ 
+do i = 1 to fields
+Field.opts.i = 'PROTECT'
+Field.change.i = 1         /* write all lines to ensure state.     */
+end
+/* now define fields to be used later.                               */
+Field.Row.1   = 1
+Field.title.1 = "PH Input Screen"
+Field.len.1   = length(Field.title.1) + 1
+Field.col.1   = (cols-Field.len.1)%2
+Field.opts.1 = "RES NOHIGH PROTECT"
+ 
+Field.row.2   = 3
+Field.col.2   = 3
+Field.title.2 = left(qpt1,65,' ')
+Field.len.2   = length(Field.title.2) + 1
+Field.opts.2 = "NOHIGH NOPROTECT"
+ 
+Field.row.3   = 4
+Field.col.3   = 3
+Field.len.3   = 66
+Field.title.3 = copies(' ',65)
+Field.opts.3 = "NOHIGH NOPROTECT"
+ 
+lastrow = 5  /* don't write message lines in row 5 or above. */
+ 
+do i = 1 to stuff.0
+lastrow = lastrow + 1
+j = i+3
+Field.row.j = lastrow
+Field.col.j = 3
+Field.Title.j = stuff.i
+Field.len.j = length(stuff.i) + 1
+Field.opts.j = "PROTECT HIGH"
+end
+ 
+/* Set the initial cursor position */
+CurPosRow = Field.row.2                /* start on first query field */
+CurPosCol = Field.col.2 + 1
+ 
+do while done /= 1
+do i = 1 to fields
+if Field.change.i then
+do
+if Field.title.i = '' then
+"VSCREEN WRITE" Pscreen  Field.row.i Field.col.i Field.len.i,
+"(" Field.opts.i
+else
+"VSCREEN WRITE" Pscreen  Field.row.i Field.col.i Field.len.i,
+"(" Field.opts.i "FIELD" Field.title.i
+Field.change.i = 0              /* Reset flag                 */
+if length(field.title.i) >= field.len.i then
+say "Trouble: field" i
+end
+end
+ 
+"VSCREEN CURSOR" Pscreen CurPosRow  CurPosCol
+"VSCREEN WAITREAD" Pscreen           /* wait for user input        */
+/* now waitread.0 is the variable count,                           */
+/* waitread.1 is the attention key just used,                      */
+/* waitread.2 is the cursor position.                              */
+/* all variables after those are changed fields.                   */
+parse var waitread.1 ktype num
+if ktype = "PFKEY" & find("3 12 15 24",num) /= 0 then
+do
+abort = 1                                  /* ending early     */
+done = 1
+leave  /* don't process changes      */
+end
+if ktype = "CLEAR" then
+do
+abort = 1                                  /* ending early     */
+done = 1
+leave  /* don't process changes      */
+end
+if ktype = "PFKEY" & find("5 17",num) /= 0 then
+done = 1
+if ktype = "ENTER" then
+done = 1
+ 
+parse var waitread.2 . CurPosRow CurPosCol .
+ 
+DO varcount= 3 to waitread.0                   /* changed fields   */
+PARSE VAR waitread.varcount KWord ChngRow ChngCol NewVal
+SELECT
+WHEN ChngRow= 3 THEN                            /* query pt 1  */
+DO
+qpt1 = NewVal
+field.change.2 = 1
+field.title.2 = qpt1
+End
+WHEN ChngRow= 4 THEN                           /* query part 2 */
+DO
+qpt2 = NewVal
+field.change.3 = 1
+field.title.3 = qpt2
+End
+OTHERWISE
+say "Error: unrecognized changed field."
+say waitread.varcount
+END  /* select on changed fields   */
+END  /* parse changed fields       */
+end  /* do while not done loop               */
+"VSCREEN CLEAR"  Pscreen
+"WINDOW  DELETE" Pwindow
+"VSCREEN DELETE" Pscreen
+ 
+whom = strip(qpt1) strip(qpt2)
+data = 'query' whom||'0D25'x
+ 
+return
+ 
+ReadResp:
+Procedure expose input. rawdata. errno
+Arg s
+/* Read from the other end of the socket through a line beginning
+   with "200" or more.  CR/LFs are stripped.  Results go into the
+   "rawdata." stemmed array.  Uses the "input." stemmed array as
+   a work area -- nobody else better play with it!                */
+ 
+/* Returns -1 for failure, otherwise 0. */
+ 
+If (^datatype(rawdata.0, 'W')) Then
+  rawdata.0 = 0
+ 
+buffer = ''
+ 
+Do Forever
+ 
+/* See if there's anything in input. already to work with: */
+If (datatype(input.current,'W')) Then
+Do i = input.current to input.0
+Parse Var input.i code ':' .
+'PIPE VAR INPUT.I | STEM RAWDATA. APPEND'
+If (datatype(code,'W')) Then
+If (code >= 200) Then
+Do
+input.current = i + 1
+Return code                   /* Give a secret */
+End
+End
+ 
+/* Either nothing was there, or we have to read some more. */
+input.0 = 0            /* Guaranteed */
+input.current = 1      /* Starting next time */
+Parse Value Socket('Read', s) With rc bytes_read inbuffer
+If rc /= 0 Then
+do
+errno = bytes_read inbuffer
+Return rc    /* We're done */
+end
+buffer = buffer || inbuffer
+"PIPE (end \) var buffer ",
+"| deblock linend 25 ",
+"| change /" || '0d'x || '//',
+"| stem input."
+ 
+/* If the buffer didn't end in '25'x, save the last partial line: */
+If (Right(buffer,1) <> '25'x) Then
+Do
+i = input.0
+buffer = input.i
+input.0 = input.0 - 1
+End
+Else
+buffer = ''
+ 
+/* Here we go again! */
+ 
+End

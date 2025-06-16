@@ -1,0 +1,89 @@
+.cm *****************************************************************           
+.cm * Help for  MMAILUSR HELPCMS                                    *           
+.cm * Barbara Jones, IT-DCS, 8/12/94                                *           
+.cm * Modified, 8/15/94, PDL, added .cs blocks                      *           
+.cm *****************************************************************           
+.cs 1 on                                                                        
+MMAILUSR                  SEND MAIL USING MAILBOOK                              
+                                                                                
+This screen prompts for the information most commonly used to send a note       
+with MailBook.                                                                  
+                                                                                
+After filling in the desired fields, press Enter to proceed to the Sending      
+Mail screen where you will enter the text of your note.                         
+                                                                                
+Note: All entries on the screen may be entered in lower case for                
+convenience.  However, the subject should be entered in mixed case just as      
+you would enter the body of the note.                                           
+                                                                                
+.cs 1 off                                                                       
+.cs 2 on                                                                        
+Send Mail to ...                                                                
+                                                                                
+Userid/       - Enter either a userid, the CMS nickname you have defined        
+  Nickname      for the recipient, or the nickname of a list of names.  The     
+                full userid@nodename format should be entered if the            
+                recipient is not on ULKYVM, the U of L IBM system you are       
+                on right now (See HELP NAMES for more about creating            
+                nicknames.)                                                     
+                                                                                
+Subject       - Enter the subject for your note.  The subject is not            
+                required, but it is very helpful!                               
+                                                                                
+                                                                                
+Mailing Options ...                                                             
+                                                                                
+Type an X in the following fields that apply:                                   
+                                                                                
+Receive acknowledgement when read -                                             
+              When the recipient opens this note, an automatic                  
+              acknowledgement (ack) note is returned to you.  Note: The ack     
+              is only sent back when the note is read using MailBook or         
+              some other mail system that recognizes MailBook                   
+              acknowledgment requests.                                          
+                                                                                
+Do not log the outgoing note -                                                  
+              By default, notes are logged automatically when sent.  If you     
+              don't want this note logged, mark this selection.  Logging a      
+              note means it is saved in a notebook.  The notebook name will     
+              be ALL NOTEBOOK unless you have assigned another notebook         
+              name for this recipient in your CMS nickname file.                
+                                                                                
+Include a file in the note -                                                    
+              Enter the filename and filetype of a file containing text to      
+              be pulled into the note.  The filemode may be omitted if the      
+              file is on the 'A' disk, otherwise enter the filemode letter      
+              where the file can be found.  The SFS directory may be            
+              omitted unless the file exists in a filespace directory not       
+              already accessed.                                                 
+                                                                                
+Selecting a PF key gives you:                                                   
+                                                                                
+PF1/PF9            - Brings you to this help screen.                            
+  Help                                                                          
+                                                                                
+PF2                - Displays the online help about the options available       
+  MailBook Help      for the MMail command.                                     
+                                                                                
+PF3/PF12           - Exits without sending a note.                              
+  Quit                                                                          
+                                                                                
+PF4                - Resumes a note that was saved or suspended when you        
+  Resume             enter the same userid/nickname as was used when a          
+                     previous note was suspended.                               
+                                                                                
+.cs 2 off                                                                       
+.cs 5 on                                                                        
+Usage Notes:                                                                    
+1.  This input screen helps you use the MMAIL command to send notes.  You       
+may also use the MMAIL command from the command line at the bottom of the       
+main menu screens along with the necessary parameters.  Example: Send a         
+note to JQPUBLZ1 and request an acknowledgment with:                            
+                                                                                
+                         MMAIL JQPUBLZ1 (ACK                                    
+                                                                                
+2.  The original MailBook command to send notes is MAIL, and that command       
+name can be used when outside the student account menus.  Use the MMAIL         
+command instead from the command line of the student account menu screens.      
+MMAIL will also work outside the student menus.                                 
+.cs 5 off                                                                       

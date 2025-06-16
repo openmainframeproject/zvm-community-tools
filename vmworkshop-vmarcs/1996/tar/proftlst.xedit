@@ -1,0 +1,74 @@
+/*
+ *        Name: PROFTLST XEDIT
+ *              Profile macro for TARLIST
+ *              Copyright 1992, Richard M. Troth
+ */
+ 
+Parse Arg fn ft fm . '(' . ')' tfn tft tfm . '(' . ')' .
+Select
+    When tft ^= "" Then Do
+        lcmd = '<' tfn tft tfm '| tar tf - (TARLIST'
+        xcmd = '<' tfn tft tfm '| tar xf -'
+        End  /*  When  ..  Do  */
+    When Datatype(tfn,'N') Then Do
+        lcmd = 'tar ts' tfn '(TARLIST'
+        xcmd = 'tar xs' tfn
+        End  /*  When  ..  Do  */
+    When Left(tfn,3) = "TAP" & Datatype(Right(tfn,1),'N') ,
+            Length(tfn) = 4 Then Do
+        lcmd = 'tar t' || Right(tfn,1) '(TARLIST'
+        xcmd = 'tar x' || Right(tfn,1)
+        End  /*  When  ..  Do  */
+    Otherwise Do
+        lcmd = 'tar tf' tfn '(TARLIST'
+        xcmd = 'tar xf' tfn
+        End  /*  Otherwise  Do  */
+    End  /*  Select  */
+ 
+'COMMAND CMS GLOBALV SELECT TARLIST PUT XCMD'
+ 
+/*  'COMMAND SET CMDLINE BOTTOM'  */
+'COMMAND SET SCALE OFF'
+'COMMAND SET PREFIX OFF'
+'COMMAND SET RESERVED  2 HIGH Cmd   Filename                                          Bytes   Date     Time'
+'COMMAND SET RESERVED -5 HIGH 1= Help     2= Refresh  3= Quit     4= Sort(name)  5= Sort(date)  6= Sort(size)'
+'COMMAND SET RESERVED -4 HIGH 7= Backward 8= Forward  9= Extract 10=            11= Peek       12='
+'COMMAND SET MSGLINE ON -3'
+'COMMAND SET CURLINE ON  3'
+'COMMAND SET TOFEOF OFF'
+'COMMAND SET ENTER IGNORE MACRO EXECUTAR'
+ 
+'COMMAND SET CASE MIXED IGNORE'
+ 
+'COMMAND SET RECFM V'
+'COMMAND SET LRECL *'
+'COMMAND SET TRUNC *'
+ 
+'COMMAND SET SYNONYM  LINEND / REFRESH' ,
+        'COMMAND PRES /' ,
+        'COMMAND SET MSGMODE OFF /' ,
+        'COMMAND :1 /' ,
+        'COMMAND DELETE * /' ,
+        'COMMAND CMS PIPE' lcmd '| XEDIT' fn ft fm '/' ,
+        'COMMAND :1 /' ,
+        'COMMAND REST'
+'REFRESH'
+'COMMAND SET ALT 0'
+ 
+'COMMAND SET PF1  HELP CMS TARLIST'
+'COMMAND SET PF2  REFRESH#COMMAND CURSOR COLUMN'
+'COMMAND SET PF3  QQUIT'
+ 
+'COMMAND SET PF4  SORT * A 7 52'                /*  SORT(NAME)  */
+'COMMAND SET PF5  SORT * D 69 70 63 67 72 79'   /*  SORT(DATE)  */
+'COMMAND SET PF6  SORT * D 54 61'               /*  SORT(SIZE)  */
+/*  asis         'SORT * D 81 88'  */
+'COMMAND SET PF9  MACRO EXECUTAR CURSOR PIPE' xcmd '/ (SKIP /S'
+'COMMAND SET PF10'
+'COMMAND SET PF11 MACRO EXECUTAR CURSOR PIPE' xcmd '/ (SKIP /S PEEK'
+'COMMAND SET PF12'
+ 
+'COMMAND CURSOR COLUMN'
+ 
+Exit
+ 

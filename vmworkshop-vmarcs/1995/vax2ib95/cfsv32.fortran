@@ -1,0 +1,68 @@
+      subroutine cfsv32(ibm, vax, n)                                            
+      integer   vax(*), ibm(*), n                                               
+* ------------------------------------------------------------------- *         
+*           author: Federico Carminati, CERN, Geneva                  *         
+*           restructured by Valery Garger, CNSF, Cornell University   *         
+*                                                                     *         
+*           This is a subroutine to convert from ibm short floating   *         
+*           point format (32 bits) to vax short floating point format *         
+*           (32 bits)                                                 *         
+*                                                                     *         
+*         ex:    call cfsv32(ibm, vax, n)                             *         
+*                                                                     *         
+*           ibm    an area of storage 32*n bits long in which         *         
+*                    are stored nf 32 bits ibm floating point         *         
+*                    numbers.                                         *         
+*           vax   an area of storage 32*n bits long which             *         
+*                    on output will contain n                         *         
+*                    32 bits vax floating point numbers.              *         
+*                                                                     *         
+*                    ibm and vax could be located at the same space   *         
+*                                                                     *         
+*           n      number of floating point numbers to convert        *         
+*                                                                     *         
+* =================================================================== *         
+      logical btest                                                             
+      data ibig /z ffff 7fff/                                                   
+      data isma /z 0000 0080/                                                   
+*                                                                               
+      j = 1                                                                     
+      do while( j .le. n)                                                       
+c                                                                               
+c             check for exact 0                                                 
+c                                                                               
+        if(ibm(j) .eq. 0) then                                                  
+          vax(j) = 0                                                            
+        else                                                                    
+c                                                                               
+c              get exponent                                                     
+c                                                                               
+          iexp = ishft(ishft(ibm(j),1), -25)                                    
+*                                                                               
+          if    (btest(ibm(j),23)) then                                         
+             left = 0                                                           
+          elseif(btest(ibm(j),22)) then                                         
+             left = 1                                                           
+          elseif(btest(ibm(j),21)) then                                         
+             left = 2                                                           
+          elseif(btest(ibm(j),20)) then                                         
+             left = 3                                                           
+          else                                                                  
+             left = 0                                                           
+          endif                                                                 
+          iexp = iexp * 4 - left - 128                                          
+          if(iexp .le. 0) then                                                  
+            ibt = isma                                                          
+          elseif(iexp.gt.255) then                                              
+            ibt = ibig                                                          
+          else                                                                  
+            ibt = ior(ishft(ibm(j),16+left),                                    
+     &            ishft(ishft(ibm(j),9+left),-25))                              
+            ibt = ior(ibt,ishft(iexp,7))                                        
+          endif                                                                 
+          if(btest(ibm(j),31)) ibt = ibset(ibt,15)                              
+          vax(j) = ibt                                                          
+        endif                                                                   
+      j = j + 1                                                                 
+      enddo                                                                     
+      end                                                                       

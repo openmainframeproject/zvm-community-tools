@@ -1,0 +1,38 @@
+*
+*         Name: MIME FILELIST
+*               a list of files for doing MIME with MAILBOOK or Gopher
+*       Author: Rick Troth, Rice University, Information Systems
+*         Date: 1993-May-20
+*
+*               These files comprise a MIME decoder that can be
+*               that can be "hooked in" to MAILBOOK and is
+*               automatically used (if available) by CMS Gopher.
+*
+      MIME     FILELIST *  "README"  0
+*
+      MIME     README   *
+      MIME     NOTE     *
+      MIME     XEDIT    *
+      MIMEPROF XEDIT    *
+      MIMEMAIN XEDIT    *
+      MIMEREAD XEDIT    *
+      MIMEREAD REXX     *
+      MIMEREAD EXEC     *
+      MIMEPART REXX     *
+      MIMESEND XEDIT    *
+*
+      DEBASE64 REXX     *
+      DECODEQP REXX     *
+      RICHTEXT REXX     *
+      UNTAB    REXX     *
+      PRINT    XEDIT    *
+      PRINT    REXX     *
+      UFTXREAD REXX     *
+      WEBTEXT  REXX     *
+      MAKETEXT REXX     *
+*
+      ATTACH   HELPMAIL *
+      ENBASE64 REXX     *
+*
+      WEBUME   TEXT     *
+*

@@ -1,0 +1,66 @@
+/* archive console files to tape */
+ 
+'CP SPOOL CONSOLE START TO marie'
+ 
+'PIPE',
+  '< tovmarc totape a',
+  '| stem action.'           /* .1 is action, .2 is tape number */
+ 
+IF action.1 = 'totape done' THEN SIGNAL dotovmarc
+ 
+/* mount current tape: VMLGxx where xx is record 2 of TOVMARC TOTAPE */
+ 
+logtape = 'VMLG'action.2
+ 
+SAY 'dfsmsrm mount volume' logtape '( readwrite attach * vdev 181 wait'
+'dfsmsrm mount volume' logtape '( readwrite attach * vdev 181 wait'
+ 
+IF RC ^= 0 THEN SIGNAL no_mount  /* RMSMASTR not answering */
+ 
+/* position tape, empty tape must have 2 tape marks */
+'VMFPLC2 SKIP (EOT'          /* go to end of tape */
+'VMFPLC2 BSF 2'              /* and position right before 2nd tape mark*/
+'VMFPLC2 FSF 1'
+ 
+'VMFPLC2 MODESET ( 3490C'    /* select best compression for device */
+ 
+'VMFPLC2 DUMP * vmarc'
+retcode = RC
+ 
+'VMFPLC2 WTM 2'              /* finish off */
+IF retcode ^= 0 THEN SIGNAL eot
+ 
+'PIPE (endchar %)',
+  '  literal totape done',
+  '| fileslow tovmarc totape a from 1',
+  '%',
+  '  cp detach 181'
+ 
+'CP SPOOL CONSOLE STOP CLOSE'
+ 
+EXIT
+ 
+dotovmarc:
+   SAY 'Run TOVMARC before TOTAPE!!!'
+EXIT 99
+ 
+eot:
+   tapenbr = RIGHT(action.2 + 1,2,'0')      /* need 2 digits */
+   'pipe (endchar %)',
+     '  literal' tapenbr,
+     '| fileslow tovmarc totape a from 2',
+     '%',
+     '  cp detach 181'
+ 
+   SAY 'Check for possible end-of-tape condition, VMFPLC2 return code' retcode
+   SAY 'Waiting 10 seconds before Ejecting cartridge' logtape
+   'CP SLEEP 10 SEC'
+   'dfsmsrm set volcat volume' logtape 'targetcat eject (wait'
+   SAY 'Please insert new extended tape VMLG'tapenbr', initialize with TAPE WTM 2'
+   SAY
+EXIT 98
+ 
+no_mount:
+   SAY 'RMSMASTR not answering, check status before running RTOTAPE again'
+   'EXEC mail marie (FILE rmsmastr error NOLOG NOEDIT NOPROMPT NOSCREEN SUBJECT RTOTAPE not done!'
+EXIT 4

@@ -1,0 +1,45 @@
+* © Copyright 1992, 1996, Richard M. Troth, all rights reserved. 
+*		(casita sourced) <plaintext> 
+* 
+*         Name: MSG FILELIST 
+*               a list of all files associated with the 
+*               RFC 1312 (MSP) TELL/MSGD implementation for CMS 
+*       Author: Rick Troth, Houston, Texas, USA 
+*         Date: 1992-Jun-14, Dec-09, 1996-Feb-15 
+* 
+      MSG      FILELIST *  README "" 0 
+* 
+      MSGD     EXEC     * 
+      MSGD     README   * 
+      RFC1312  TXT      * 
+      MSGD     DIRECT   * 
+* 
+      TELL     EXEC     * 
+      TELL     REXX     * 
+      TELL     HELPCMS  * 
+      USERLIST REXX     * 
+      HOSTNAME EXEC     * 
+* 
+* MSGD is the TCP and UDP operative Message Send Protocol server. 
+* It needs port 18 from your TCP/IP service machine and likes to have 
+* class B (for MSGNOH),  but will work with just class G (for MSG). 
+* 
+* TELL EXEC is a (from scratch) replacement for standard CMS TELL. 
+* 
+* Be sure to get the latest REXX/Sockets for this to work! 
+* 
+* UNIX client and server: 
+      MSGC     C        * 
+      MSGLOCAL C        * 
+      MSGCUFTD C        * 
+      MSGCMSP  C        * 
+      MSGHNDLR H        * 
+      MSGCAT   C        * 
+      MSGD     C        * 
+      GETLINE  C        * 
+      PUTLINE  C        * 
+      USERID   C        * 
+      TCPIO    C        * 
+      MSG      MAK      * 
+* MSGC C is TELL C for UNIX; see the makefile 
+* 

@@ -1,0 +1,450 @@
+/* © Copyright 1995, Richard M. Troth, all rights reserved.  <plaintext>
+ *
+ * THIS IS A NEW VERSION OF TCPSHELL WITH IMPROVED INVOKATION SYNTAX
+ * (TCPSHELL doesn't have a version number because it is
+ * included with other software which do have version numbers)
+ *
+ *        Name: TCPSHELL EXEC
+ *              General purpose TCP/IP socket-to-pipeline interface
+ *      Author: Rick Troth, Rice University, Information Systems
+ *        Date: 1993-Feb-29, 1994-Feb-17
+ *      Author: Rick Troth, Houston, Texas, USA
+ *        Date: 1994-Feb-27, 1994-Oct-15, 1994-Jan-15, 1995-Apr-09
+ *
+ *     Co-reqs: PIPESOCKET REXX
+ *              CMS Pipelines
+ *              REXX/Sockets (RXSOCKET V2)
+ *              VM TCP/IP V2
+ *
+ *    GlobalVs: ARG0 (group TCPSHELL) names the group
+ *              LOCALHOST - FQDN of this server's host system
+ *              LOCALPORT - TCP port at which this server listens
+ *              SOCKET    - new socket for new connection
+ *              CLIENT    - remote host (and maybe user)
+ *              ... and some of the CGI variables ...
+ *              QUIT      - set by server pipe to terminate
+ */
+ 
+Trace "OFF"
+Address "COMMAND"
+ 
+Parse Source . . arg0 .
+argo = arg0 || ':'      /*  arg0 is about to change!  */
+argp = arg0
+ 
+verbose = 1;  binary = 0;  ident = 1;  dns = 1
+ 
+/*  we need a name and a port  */
+Parse Arg test
+If Left(Strip(test),1) = '(' Then Do
+    Parse Arg '(' opts ')' localport arg0 args
+    opt0 = ""
+    End  /*  If .. Do  */
+/*  still have to support old syntax  */
+Else Do
+    Parse Upper Arg localport arg0 args '(' opt0 ')' .
+    opts = ""
+    End  /*  Else Do  */
+ 
+If localport = "" Then Do
+    'XMITMSG 386 (ERRMSG'
+    Exit 24
+    End  /*  If  ..  Do  */
+ 
+If ^Datatype(localport,'N') Then Do
+    'XMITMSG 70 LOCALPORT (ERRMSG'
+    'XMITMSG 8205 (ERRMSG'
+    Exit 24
+    End  /*  If  ..  Do  */
+ 
+If arg0 = "" Then Do
+    'XMITMSG 386 (ERRMSG'
+    Exit 24
+    End  /*  If  ..  Do  */
+ 
+/*  deprecated options processing  */
+If opts = "" Then Do
+    If opt0 ^= "" Then args = args '('
+    Do While opt0 ^= ""
+        Parse Var opt0 op opt0
+        Select  /*  op  */
+            When  Abbrev("BINARY",op,3)     Then binary = 1
+            Otherwise args = args op
+            End  /*  Select  op  */
+        End  /*  Do  While  */
+    End  /*  If .. Do  */
+ 
+/*  preferred options processing  */
+Do While opts ^= ""
+    Parse Var opts op opts
+    Select  /*  op  */
+        When  Abbrev("BINARY",op,3)     Then binary = 1
+        When  Abbrev("NOBINARY",op,3)   Then binary = 0
+        When  Abbrev("TEXT",op,1)       Then binary = 0
+        When  Abbrev("ASCII",op,1)      Then binary = 0
+        When  Abbrev("IDENT",op,2)      Then ident = 1
+        When  Abbrev("NOIDENT",op,3)    Then ident = 0
+        When  Abbrev("VERBOSE",op,1)    Then verbose = 1
+        When  Abbrev("NOVERBOSE",op,3)  Then verbose = 0
+        When  Abbrev("TERSE",op,5)      Then verbose = 0
+        When  Abbrev("DNS",op,3)        Then dns = 1
+        When  Abbrev("NODNS",op,3)      Then dns = 0
+        Otherwise Address "COMMAND" 'XMITMSG 3 OP (ERRMSG'
+        End  /*  Select  op  */
+    End  /*  Do  While  */
+ 
+If verbose Then Do
+    time = Date('S') Time()
+    'XMITMSG 2323 ARG0 TIME (ERRMSG'
+    End  /*  If .. Do  */
+ 
+'GLOBALV SELECT TCPSHELL PUT ARG0'
+'GLOBALV SELECT' arg0
+ 
+Parse Value Socket("VERSION") With rc . ver .
+If ver < 2 Then Do
+    Say argo arg0 "server requires REXX/Sockets (RXSOCKET version 2)"
+    Exit -1
+    End  /*  If  ..  Do  */
+ 
+Parse Value Socket("INITIALIZE",arg0) With rc rs
+If rc ^= 0 Then Do
+    Say argo rs
+    Exit rc
+    End  /*  If  ..  Do  */
+Parse Var rs . maxdesc svm .
+If verbose Then Say argo "MAXDESC" maxdesc
+If verbose Then Say argo "SVM" svm
+ 
+Parse Value Socket("GETDOMAINNAME") With rc rs
+If rc ^= 0 Then Do
+    Say argo rs
+    Call Socket "TERMINATE", arg0
+    Exit rc
+    End  /*  If  ..  Do  */
+Parse Var rs dn .
+Parse Value Socket("GETHOSTNAME") With rc rs
+If rc ^= 0 Then Do
+    Say argo rs
+    Call Socket "TERMINATE", arg0
+    Exit rc
+    End  /*  If  ..  Do  */
+Parse Var rs hn .
+localhost = hn || '.' || dn
+'PIPE VAR LOCALHOST | XLATE LOWER | VAR LOCALHOST'
+If verbose Then Say argo "LOCALHOST" localhost
+ 
+Parse Value Socket("SOCKET","AF_INET","SOCK_STREAM") With rc rs
+If rc ^= 0 Then Do
+    Say argo rs
+    Call Socket "TERMINATE", arg0
+    Exit rc
+    End  /*  If  ..  Do  */
+Parse Var rs socket .
+If verbose Then Say argo "SOCKET" socket
+ 
+/*  make this address reusable  */
+Parse Value Socket("SETSOCKOPT",socket,"SOL_SOCKET",,
+    "SO_REUSEADDR", "ON") With rc rs
+If rc ^= 0 Then Do
+    Say argo rs
+    Call Socket "CLOSE", socket
+    Call Socket "TERMINATE", arg0
+    Exit rc
+    End  /*  If  ..  Do  */
+/*
+If verbose Then Say argo "Socket" socket "set to reusable address."
+ */
+ 
+/*
+If ^binary Then Do
+    Parse Value ,
+        Socket("SETSOCKOPT",socket,"SOL_SOCKET","SO_ASCII","ON") ,
+            With rc rs
+    If rc ^= 0 Then Do
+        Say argo rs
+        Call Socket "CLOSE", socket
+        Call Socket "TERMINATE", arg0
+        Exit rc
+        End
+    If verbose Then Say argo "Set socket" socket "to ASCII mode"
+    End
+ */
+ 
+/*  make this socket non-blocking  */
+Parse Value Socket("IOCTL",socket,"FIONBIO","ON") With rc rs
+If rc ^= 0 Then Do
+    Say argo rs
+    Call Socket "CLOSE", socket
+    Call Socket "TERMINATE", arg0
+    Exit rc
+    End  /*  If  ..  Do  */
+/*
+If verbose Then Say argo "Set socket" socket "to FIONBIO mode"
+ */
+ 
+/* If verbose Then */ Say argo "PORT" localport
+Parse Value Socket("BIND",socket,"AF_INET" localport) With rc rs
+If rc ^= 0 Then Do
+    Say argo rs
+    Call Socket "CLOSE", socket
+    Call Socket "TERMINATE", arg0
+    Exit rc
+    End  /*  If  ..  Do  */
+ 
+Parse Value Socket("LISTEN",socket,maxdesc) With rc rs
+If rc ^= 0 Then Do
+    Say argo rs
+    Call Socket "CLOSE", socket
+    Call Socket "TERMINATE", arg0
+    Exit rc
+    End  /*  If  ..  Do  */
+/*
+If verbose Then Say argo "Listening ..."
+ */
+ 
+'GLOBALV SELECT' arg0 'PUT LOCALHOST LOCALPORT'
+ 
+/* CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI */
+    'PIPE VAR LOCALHOST | XLATE LOWER | VAR SERVER_NAME'
+    server_port = localport
+    'GLOBALV SELECT' arg0 'PUT SERVER_NAME SERVER_PORT'
+/* CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI */
+ 
+If verbose Then
+If verbose Then Do
+    'XMITMSG 8201 ARG0 (ERRMSG'
+    'XMITMSG 740 (ERRMSG'
+    End  /*  If .. Do  */
+ 
+argp = argp || '/' || arg0
+Say argp "Ready;"
+ 
+Do Forever
+ 
+/*  If verbose Then Say "*"  */
+ 
+    Parse Value Socket("SELECT","READ" socket 0) With rc rs
+    If rc ^= 0 Then Do
+        Say argo rs
+        Leave
+        End  /*  If  ..  Do  */
+    Parse Var rs ec el
+    If verbose Then Say argo "EL:" el
+ 
+    Parse Var el . "READ" es "WRITE" .
+    If verbose Then Say argo "ES:" es
+    If ^Datatype(es,'W') Then Leave
+ 
+    If es = 0 Then Do
+        Parse Pull line
+        Parse Upper Var line verb .
+        If Abbrev("STOP",verb,4) Then Leave
+        If Abbrev("QUIT",verb,4) Then Leave
+        Address "CMS" line
+        Select  /*  rc  */
+            When rc = 0 Then Say argp "Ready;"
+            When rc = -3 Then ,
+                Address "COMMAND" 'XMITMSG 15 ARG0 (ERRMSG'
+            Otherwise Say argp "Ready(" || rc || ");"
+            End  /*  Select rc  */
+        Iterate
+        End  /*  If .. Do  */
+ 
+    Parse Value Socket("ACCEPT",socket) With rc rs
+    If rc ^= 0 Then Do
+        Say argo rs
+        Leave
+        End  /*  If  ..  Do  */
+    Parse Var rs ns client
+ 
+    /* refresh disk access (same procedure as used by GONE EXEC) */
+    'PIPE COMMAND QUERY DISK | DROP | STEM STEM.'
+    Do i = 1 to stem.0
+        Parse Var stem.i . 8 va 12 fm .
+        If Left(va,3) = "DIR" Then Iterate
+        'DISKWRIT' Left(fm,1)
+        If rc = 1 Then 'ACCESS' va fm
+        End  /*  Do  For  */
+ 
+    /*  Identify the remote in the environment  */
+    hostname = ""; hostaddr = ""
+    Parse Var client . . host .
+    If dns Then Do
+        Parse Value Socket("RESOLVE",host) With rc rs
+        If rc = 0 Then Parse Var rs hostaddr hostname .
+        End  /*  If .. Do  */
+    Else Do;  hostname = host;  hostaddr = host;  End
+    'GLOBALV SELECT' arg0 'PUT HOSTNAME HOSTADDR'
+    /*  lower case for aesthetics  */
+    'PIPE VAR HOSTNAME | XLATE LOWER | VAR HOSTNAME'
+ 
+    /*  Per RFC 1413, try to identify the user on the other end.  */
+    system = ""; userid = ""
+    If ident Then Do
+        Parse Value TAPIDENT(ns) With rc rs
+        If rc = 0 Then Do
+            Parse Var rs ':' code ':' user
+            Upper code
+            If code = "USERID" Then Do
+                Parse Var user system ':' userid
+                system = Strip(system); userid = Strip(userid)
+                End  /*  If  ..  Do  */
+            End  /*  If  ..  Do  */
+        End  /*  If  ..  Do  */
+    If hostname = "" Then client = userid || '@' || host
+                     Else client = userid || '@' || hostname
+    'GLOBALV SELECT' arg0 'PUT CLIENT'
+ 
+    If verbose Then Say argo "Accepted" ns "at" Time() "client" client
+ 
+/* CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI */
+    REMOTE_ADDR = hostaddr
+    'PIPE VAR HOSTNAME | XLATE LOWER | VAR REMOTE_HOST'
+    REMOTE_IDENT = userid
+    REMOTE_USER = ""
+    REMOTE_SYSTEM = system
+    'GLOBALV SELECT' arg0 'PUT REMOTE_ADDR REMOTE_HOST' ,
+        'REMOTE_IDENT REMOTE_SYSTEM REMOTE_USER'
+/* CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI ** CGI */
+ 
+    'GLOBALV SELECT' arg0 'SET QUIT'    /*  clear this, just in case  */
+ 
+    'GLOBALV SELECT' arg0 'SET SOCKET' ns
+    'GLOBALV SELECT' arg0
+    /*  Now here is where we do all of the real work.                 *
+     *  When the gem goes to end-of-file,  then the pipeline          *
+     *  terminates and the socket is closed for another iteration.    */
+    If binary Then ,
+        'PIPE PIPESOCKET READ' ns ,
+            '|' arg0 args '(' opto ,
+                '| PIPESOCKET WRITE' ns
+    Else ,
+        'PIPE PIPESOCKET READ' ns '| MAKETEXT LOCAL' ,
+            '| UNTAB -8 |' arg0 args '(' opto ,
+                '| MAKETEXT NETWORK | PIPESOCKET WRITE' ns
+ 
+    Parse Value Socket("CLOSE",ns) With rc rs
+    If rc ^= 0 Then Do
+        Say argo rs
+        Leave
+        End  /*  If  ..  Do  */
+    If verbose Then Say argo "Closed" ns "at" Time()
+ 
+    /*  QUIT is a "die" signal from the application;  *
+     *  not necessarily a protocol "quit" command     */
+    'GLOBALV SELECT' arg0 'GET QUIT'
+    If quit = 1 | quit = "YES" Then Leave
+ 
+    End  /*  Do  Forever  */
+ 
+Parse Value Socket("CLOSE",socket) With rc rs
+If rc ^= 0 Then Say argo rs
+ 
+Parse Value Socket("TERMINATE",arg0) With rc rs
+If rc ^= 0 Then Say argo rs
+ 
+If verbose Then Do
+    time = Date('S') Time()
+    'XMITMSG 2324 ARG0 TIME (ERRMSG'
+    End  /*  If .. Do  */
+ 
+Exit
+ 
+ 
+/* ------------------------------------------------------------ TAPIDENT
+ *
+ *        Name: TAPIDENT (REXX function)
+ *              Return "ownership" information about a socket.
+ *    Requires: REXX/Sockets
+ *        Date: 1994-Feb-01, 03
+ */
+TAPIDENT: Procedure
+iport = 113
+Parse Arg s
+ 
+/*
+ *  Presume that RXSOCKET version 1 doesn't exist anymore.
+ */
+Parse Value Socket('Version') With rc rs
+Parse Var rs name version date .
+If version < 2 Then Return -1 rs
+ 
+Parse Value Socket('GetPeerName',s) With rc rs
+If rc ^= 0 Then Return rc rs
+Parse Var rs faf fport fhost .
+ 
+Parse Value Socket('GetSockName',s) With rc rs
+If rc ^= 0 Then Return rc rs
+Parse Var rs laf lport lhost .
+ 
+/*
+ *  Safe bet that REXX/Sockets has already been initialized.
+ */
+ 
+/*
+ *  Request a new socket descriptor (TCP protocol)
+ */
+Parse Value Socket('Socket','AF_INET','Sock_Stream') With rc rs
+If rc ^= 0 Then Return rc rs
+Parse Var rs t .
+ 
+/*
+ *  Set this socket to translate ASCII <---> EBCDIC.
+ */
+Parse Value Socket("SETSOCKOPT",t,"SOL_SOCKET","SO_ASCII","ON") ,
+    With rc rs
+If rc ^= 0 Then Do
+    Call Socket 'Close', t
+    Return rc rs
+    End  /*  If  ..  Do  */
+ 
+/*  And build a "name" structure.  */
+name = 'AF_INET' iport fhost
+ 
+/*
+ *  Set this socket to non-blocking mode
+ */
+/*
+Parse Value Socket('Ioctl',t,'FIONBIO','On') With rc errno errtx
+ */
+ 
+/*
+ *  Connect to the TAP/IDENT server there.
+ */
+Parse Value Socket('Connect',t,name) With rc rs
+If rc ^= 0 Then Do
+    Call Socket 'Close', t
+    Return rc rs
+    End  /*  If  ..  Do  */
+ 
+/*
+    send:
+    LPORT , FPORT <CR><LF>
+ */
+data = fport ',' lport '0D25'x
+Parse Value Socket("WRITE",t,data) With rc rs
+If rc ^= 0 Then Do
+    Call Socket 'Close', t
+    Return rc rs
+    End  /*  If  ..  Do  */
+ 
+/*
+ *  Read the response from the TAP/IDENT server.
+ */
+Parse Value Socket("READ",t,61440) With rc rs
+If rc ^= 0 Then Do
+    Call Socket 'Close', t
+    Return rc rs
+    End  /*  If  ..  Do  */
+Parse Var rs bc data
+Parse Var data data '25'x .
+Parse Var data data '0D'x .
+ 
+/*
+ *  All done, relinquish our socket descriptor.
+ */
+Call Socket 'Close', t
+ 
+Return 0 data
+ 

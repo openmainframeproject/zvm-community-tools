@@ -1,0 +1,115 @@
+                            S P B A C K U P
+ 
+                         OPERATING INSTRUCTIONS
+                             April 10, 1996
+ 
+ 
+SPBACKUP is a spool backup system which uses the new SPXTAPE command to
+back up the spool.  It's purpose is to create an interface between the CP
+SPXTAPE command, and the VMTAPE tape system, and to create catalogs and
+indexes to facilitate restores.  It replaces the old SPTAPE command.
+ 
+SPBACKUP is a service virtual which is always logged on.  You communicate
+with it by the SPBACKUP exec, SPBACKUP EXEC prompts you for all the
+information it needs, and then handles communications with the SPBACKUP
+service virtual.
+ 
+It will send information about its progress to the userid who issued the
+command to start it, however any authorized user may use the Query option
+to request progress information.
+ 
+EXAMPLE:
+ 
+R; spbackup
+                SPBACKUP Spool Backup System
+ 
+    Type a letter and press ENTER:
+ 
+    Q  QUERY current status of backup jobs
+    S  START a backup job
+    D  Change number of DRIVES currently in use for backup.
+    C  CANCEL currently running backup job.
+ 
+    ...or just press enter without typing anything to leave.
+ 
+The Q option will tell you if a spool backup job is currently running,
+and if it is, which tapes are mounted on which drives, and how far along
+(in %done) the job is.
+ 
+The S option will start a spool backup job.  Once a SPBACKUP backup is
+started, it will not allow a second one to be started.  The S option will
+issue prompts for tapepool name, and for the number of drives you wish to
+use.
+ 
+START BACKUP JOB EXAMPLE:
+ 
+    Enter tapepool name: SUN MON TUE WED THU FRI SAT IPL,
+    or press Enter for default MON -
+ 
+    Enter number drives, from 2 to 12, or just press Enter to quit.
+    (3 to 5 drives usually provides best performance.)
+    4
+ 
+    You have requested to start a spool backup using Tape Pool IPL
+    on 5 tape drives. This will overwrite and erase the previous
+    backup which was written on Tape Pool IPL. This backup will take
+    from 1.5 to 3 hours to run. Type "Y" to confirm and start this backup
+    or type anything else to quit now without starting anything.
+ 
+    Start the backup now? (Y or N) -
+    y
+ 
+There are Tape Pools corresponding to each day of the week, plus one more
+for special backups called IPL.
+ 
+Tape pools are defined on minidisk SPBACKUP 3E1, which you can get a
+WRITE link to and edit to add tapes, etc.  If you change something on
+disk 3E1, the command SMSG SPBACKUP RLDDATA will make the server reaccess
+its read-only link to this disk, so it will see your changes.
+ 
+SPBACKUP requires a minimum of two tape drives.  This is so that the
+backup can continue while you are mounting the next tape, after one tape
+is filled.  Of course, it runs faster with more drives - up to a point.
+Early tests indicate that using more than 6 drives does not provide any
+additional speed.  Using fewer drives will result in using fewer total
+tapes, because there will be fewer unfilled tapes when the job completes.
+(Therefore, you may wish to reduce the number of drives to 2 as a job
+nears completion, to minimize the number of unfilled tapes, but this is
+not essential.)
+ 
+New tapes will be mounted one at a time as the previous ones are filled.
+There is no need to reserve particular drives; VMTAPE is in full control
+of the drives at all times, and will assign them to SPBACKUP just like to
+any other user.
+ 
+You can start with any number of drives, and change this upwards and
+downwards in the middle of the backup job, using the D (drives) option.
+ 
+If this is more than were being used before, it will immediately start
+those drives and issue VMTAPE mounts for tapes to use on those new
+drives.  If this is fewer than were being used before, it will wait until
+the next tape fills up, and then simply not mount another tape to replace
+the one which filled up, until it gets down to the number of drives you
+specified.  (Minimum two drives.)
+ 
+SPBACKUP needs to use a minimum of two tape drives; it cannot work with
+just one drive.
+ 
+The "C" (CANCEL) option will cancel an in-progress backup job before it
+is done.  IF YOU CANCEL, YOU WILL NEED TO RESTART THIS BACKUP FROM THE
+BEGINNING.
+ 
+POST-PROCESSING:  After the backup is complete, the monitor svm will
+process the SPXTAPE log files into a database which will enable us to
+restore easily, and then write that database to one of the tape pool
+tapes with TAPE DUMP.  While this post-processing is underway (about 10
+minutes) the service virtual will consume a lot of CPU time, and will
+not respond to queries.  When it finishes building the restore catalog
+database and index, it will request one tape mount so it can back them
+up too.
+ 
+RESTORES:  At this point, restores must be handled manually by the
+Systems Programming Staff.
+ 
+AUTHORIZATION:  The list of users authorized to communicate with
+SPBACKUP is contained in file SPBACKUP CONFIG on minidisk SPBACKUP 3E1.

@@ -1,0 +1,105 @@
+        TITLE ' Revolving of bytes in words in SUN workstation data '           
+* --------------------------------------------------------------------*         
+*      subroutine srvsun(from, to, n)                                 *         
+*      integer*4  n, from(n), to(n)                                   *         
+*      integer n                                                      *         
+* --------------------------------------------------------------------*         
+* PROCESSOR    - ASSEMBLE H, VERSION 2, RELEASE 1.                    *         
+*                                                                     *         
+* DEPENDENCES  - NONE                                                 *         
+*                                                                     *         
+* ATTRIBUTES   - REENTERANT                                           *         
+*                                                                     *         
+* ENTRY POINT  - _srvsun_                                             *         
+*                                                                     *         
+* STATUS       - new: 05/17/90                                        *         
+*                                                                     *         
+*                            Val I. Garger, Technology Integration    *         
+*                            Group, CNSF, Cornell University          *         
+*                                                                     *         
+*                               vig@cornellf.tn.cornell.edu           *         
+*                               vig@eagle.cnsf.cornell.edu            *         
+*                               vig@cornellf.bitnet                   *         
+*-------------------------------------------------------------------- *         
+*                                                                     *         
+*  COPYRIGHT -  VAL GARGER, CORNELL NATIONAL SUPERCOMPUTER FACILITY,  *         
+*               (JUNE 1990) CORNELL UNIVERSITY, ITHACA, NY.           *         
+*               CONTAINS RESTRICTED MATERIALS OF CORNELL UNIVERSITY,  *         
+*               (C) COPYRIGHT CORNELL UNIVERSITY 1990                 *         
+*                                                                     *         
+* --------------------------------------------------------------------*         
+* Revolving of bytes in words of SUN 386i workstation data.           *         
+* This is to further use of SUN's data FTPed to any other computer as *         
+* regular IEEE format data.                                           *         
+*                                                                     *         
+*     input: from  SUN array of words.                                *         
+*            n     Number of words to revolve.                        *         
+*    output: to    regular IEEE words (real*4, logical, integer).     *         
+*                                                                     *         
+* The result of reversing is an array of single words which can be    *         
+* used in any further computation as a regular IEEE code.             *         
+*                                                                     *         
+* The fact is that SUN 368i keeps every single data element           *         
+* (interger, logical, and real*4 in words and real*8 in double words) *         
+* in bytes "from higher addresses to lower addresses" which is        *         
+* opposite to what other computers do.                                *         
+*                                                                     *         
+* Usage notes:                                                        *         
+*                                                                     *         
+*    1. Arguments "from" and "to" could be the same variable name,    *         
+*       which  means revolving "in place"                             *         
+*    2. Twice revolved in place data return to their original value.  *         
+*-------------------------------------------------------------------- *         
+_srvsun_ csect                                                                  
+       entry      _srvsun_                                                      
+       b          34(,15)                                                       
+       dc         al1(6+22)                                                     
+       dc         cl6'srvsun'                                                   
+       dc         cl22'05-17-90/vesion#1.1'                                     
+       stm        2,15,x'10'(13)                                                
+       lr         12,13                                                         
+       la         11,x'68'                                                      
+       slr        13,11                                                         
+       st         12,4(13)                                                      
+       lr         12,15                                                         
+       using      _srvsun_,12                                                   
+r0     equ   0                   symbolic register equates                      
+r1     equ   1                                                                  
+r2     equ   2                                                                  
+r3     equ   3                                                                  
+r4     equ   4                                                                  
+r5     equ   5                                                                  
+r6     equ   6                                                                  
+r7     equ   7                                                                  
+r8     equ   8                                                                  
+r9     equ   9                                                                  
+r10    equ   10                                                                 
+r11    equ   11                                                                 
+r12    equ   12                                                                 
+r13    equ   13                                                                 
+r14    equ   14                                                                 
+r15    equ   15                                                                 
+* -------------------------- b o d y ------------                               
+       lr    r4,r2                                                              
+       lr    r3,r1                                                              
+       lr    r2,r0                                                              
+       l     r11,00(,r4)             if (n == 0) go to exit                     
+       ltr   r11,r11                                                            
+       bz    exit                                                               
+next   ds    0h                                                                 
+       ic    r5,03(,r2)              load the last byte of the word             
+       sll   r5,8                    0040                                       
+       ic    r5,02(,r2)              0043                                       
+       sll   r5,8                    0430                                       
+       ic    r5,01(,r2)              0432                                       
+       sll   r5,8                    4320                                       
+       ic    r5,00(,r2)              4321                                       
+*                                                                               
+       st    r5,00(r3)               save the first as a second one             
+       la    r2,4(r2)                                                           
+       la    r3,4(r3)                                                           
+       bct   r11,next                                                           
+* --------- epiloge -----------------------------------------------             
+exit   lm         2,14,x'78'(13)                                                
+       br         14                                                            
+       end                                                                      

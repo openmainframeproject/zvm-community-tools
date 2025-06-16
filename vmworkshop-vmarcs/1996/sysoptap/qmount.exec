@@ -1,0 +1,393 @@
+/* This program queries VMTAPE and displays any pending mounts in big
+LETTERS ON THE SCREEN of all attached GRAF devices which are listed in
+file QMOUNT CONFIG. Any devices listed in QMOUNT CONFIG which are not
+actually attached and are GRAF devices, are ignored without causing an
+error. Note that if none of the devices listed in QMOUNT CONFIG are
+attached at the present time, this program is effectively a NOP.
+ 
+If (TEST is specified, output is written to this screen, which is
+assumed to be 24x80.
+ 
+Devices may be attached by any of the following three methods:
+o DEDICATE vdev rdev        <-- in CP Directory for this uid
+o CP ATTACH rdev uid vdev   <-- from any priveleged ID
+o CP DEFINE GRAF vdev 3270  <-- on this uid, and then...
+  DIAL uid vdev             <-- ...from any terminal
+ 
+VMTAPE RESPONSES:   (characters 4-6 may be any module name!)
+ 
+VMTQRY061I There are no mounts pending.
+VMTMNT057A Mount LIBRARY volume '000058' on 1888, NO RING, for U52983 0181.
+VMTMNT057A Mount FOREIGN volume 'IL336' on 0880, NO RING, for VMCENTER 0181.
+VMTMNT057A Mount LIBRARY volume '000058' on 1889, RING IN, for U52983 0181.
+VMTMNT057A Mount LIBRARY volume '000029' on 1882, RING IN, for U09046 0181.
+VMTMNT057A Mount LIBRARY volume 'VMB510' on 1883, RING IN, for VMBACKUP 0320.
+VMTMNT280A Mount selected COMPCTR SCRATCH volume 000342 on '188B', RING IN, for U52983 0181.
+VMTDRV144I Waiting for a 18track XF BPI drive for VMBACKUP 0420 VXB510.
+VMTVOL699I MOUNT BATCHA02 0181 waiting for volume N09018.
+VMTDRV144I Waiting for a 9-track 1600 BPI drive for BATCHA01 0181 N09018.
+VMTVOL699I MOUNT BATCHA02 0181 waiting for volume N09018.
+VMTDRV144I Waiting for a 9-track 1600 BPI drive for BATCHA01 0181 N09018.
+VMTMNT057A Mount LIBRARY volume 'VMA270' on 1882, NO RING, for VMBACKUP 0310.
+VMTMNT057A Mount LIBRARY volume 'VMA326' on 1888, NO RING, for VMBACKUP 0510.
+VMTMNT057A Mount LIBRARY volume 'VMA333' on 1889, NO RING, for VMBACKUP 0710.
+VMTVOL699I MOUNT BATCHA02 0181 waiting for volume N09018.
+VMTVOL701I MOUNT VMBACKUP 0610 waiting for volume VMA326 which is mounted on 1888.
+VMTDRV144I Waiting for a 9-track 1600 BPI drive for BATCHA01 0181 N09018.
+VMTMNT051T Mount IL336 0181 canceled by U52983.
+ 
+MODIFICATION HISTORY:
+05/26/96 - Roger - Randomize location of "No Tape Mounts Waiting" message
+                   to prevent screen burn-in
+04/08/96 - Roger - Fix Rexx interrupt trying to issue err msg about
+                   can't mount foriegn tape.
+06/06/95 - Roger - Don't test module name in chars 4-6 of msgs
+12/07/94 - Roger - fix tiny bug in mounting scratch tapes.
+06/03/94 - Roger Deschner - Deal with SELECTED SCRATCH requests; look up
+                            slots for FOREIGN tapes.
+07/06/93 - Roger Deschner - Check for "NOT DIALED" response
+04/13/93 - Roger Deschner - Deal with pending alloc messages
+04/02/93 - Roger Deschner - Original version
+*/
+ADDRESS COMMAND
+operid = 'OPERATOR' /* Userid of system console operator */
+vmtapeid = 'VMTAPE'  /* Userid of VM:Tape service virtual. */
+PARSE UPPER ARG  '(' testparm .
+ 
+IF (testparm = 'TEST') THEN testparm = 1
+                       ELSE testparm = 0
+IF (testparm) THEN configft = 'CONFTEST'
+              ELSE configft = 'CONFIG'
+ 
+/* Find CONFIG file */
+configfn = USERID()
+'PIPE LITERAL' configfn configft,
+  '| STATE NOFORMAT',
+  '| COUNT LINES',
+  '| VAR cfexists'
+IF (cfexists < 1) THEN DO
+  configfn = 'QMOUNT'
+  'PIPE LITERAL' configfn configft,
+    '| STATE NOFORMAT',
+    '| COUNT LINES',
+    '| VAR cfexists'
+  IF (cfexists < 1) THEN DO
+    SAY 'No CONFIG file found. Unable to continue'
+    EXIT 99
+  END
+END
+ 
+/* Read CONFIG file */
+'PIPE (ENDCHAR ?) <' configfn configft '*',
+  '| NFIND *' ||, /* Eliminate comments */
+  '| FOREIGN: NFIND FOREIGN' ||,
+  '| STEM displays.',                /* List of displays configured */
+'? FOREIGN:',
+  '| SPECS WORDS 2 1',
+  '| JOIN * / /',   /* String 'em all together */
+  '| VAR foreignids'       /* List of users allowed to mount FOREIGN */
+ 
+j = 0
+DO i = 1 TO displays.0
+  PARSE UPPER VAR displays.i cfaddr
+  /* What's at that virtual address? */
+  'PIPE CP QUERY VIRTUAL' SUBWORD(displays.i,1,1) '| VAR cpresp'
+  orc = rc
+  /* Is it what we want? A valid defined GRAF? */
+  PARSE VAR cpresp grafornot . dialed
+  IF ((orc = 0),
+    & ((grafornot = 'GRAF') | ((grafornot = 'CONS') & (testparm = 1))),
+    & (dialed <> 'NOT DIALED'),
+    ) THEN DO
+    j = j + 1
+    PARSE UPPER VAR displays.i disaddr.j dislines.j discols.j .
+  END
+END
+disaddr.0 = j
+dislines.0 = j
+discols.0 = j
+ 
+IF (testparm) THEN DO /* This is a test */
+  'PIPE < QMOUNT TEST * | NFIND * | STEM mountr.'
+END
+ELSE DO /* This is not a test */
+  'PIPE CMS' vmtapeid 'QUERY | STEM mountr.'
+END
+ 
+k = 0
+DO i = 1 TO mountr.0
+  PARSE VAR mountr.i msgid 1 msg1 4 . 7 msg2 .
+  SELECT
+    /* Eliminate messages we are not interested in */
+    WHEN ((msg1 = 'VMT') & (msg2 = '061I')) THEN NOP
+    WHEN ((msg1 = 'VMT') & (msg2 = '145I')) THEN NOP
+    WHEN ((msg1 = 'VMT') & (msg2 = '057A')) THEN DO
+      /* Regular mount request */
+      /* Variable <mountid> is the userid who issued the MOUNT. But,
+      what if it is a BATCH job? In that case, we look up the ACIGROUP
+      and assign that to <originid>. Variable <originid> is always the
+      userid who instigated the request - whether by issuing a MOUNT on
+      his terminal, or by running a BATCH job containing a mount. */
+      PARSE VAR mountr.i . . qforeign . volser . drive rwstat 'for' ,
+        mountid vaddr .
+      volser = STRIP(volser,"B","'") /* Remove quotes */
+      drive = STRIP(drive,'B',',')   /* Remove comma */
+      vaddr = STRIP(vaddr,'B','.')   /* Remove period. */
+      IF (rwstat = 'RING IN,') THEN rwstat = 'W'
+                               ELSE rwstat = ''
+      IF (SUBSTR(mountid,1,5) = 'BATCH') THEN DO
+        /* Get userid who ran the batch job */
+        'PIPE CP QUERY ACIGROUP' mountid '| STEM answer.'
+        PARSE VAR answer.1 '=' originid .
+        IF (originid = '') THEN originid = mountid
+      END
+      ELSE DO
+        originid = mountid
+      END
+      IF (qforeign = 'FOREIGN') THEN DO
+        /* This defines VAR slotnum and STEM answer. */
+        CALL GETSLOT volser originid
+        extlabrc = result
+        IF (extlabrc <> 0) THEN DO  /* ERROR RECOVERY */
+          /* No such tape, or duplicate tape */
+          IF (FIND(foreignids,originid) > 0) THEN DO
+            /* Allowed to mount FOREIGN */
+            k = k + 1
+            screenline.k = LEFT(volser,6) LEFT(drive,4) rwstat
+            k = k + 1
+            screenline.k = ' FOREIGN TAPE'
+          END
+          ELSE DO   /* Not allowed to mount FOREIGN. Issue message. */
+            IF (testparm) THEN DO
+              'PIPE STEM answer.',
+                '| LITERAL OPERATOR: The following message was sent',
+                  'to user' mountid'. They may call:',
+                '| SPECS /MSGNOH' USERID() '/ 1 1-* NEXT',
+                '| CP'
+            END /* of IF (testparm) THEN DO */
+            ELSE DO /* fer real */
+              'PIPE STEM answer.',
+                '| SPECS /MSGNOH' mountid '/ 1 1-* NEXT',
+                '| CP'
+              'PIPE STEM answer.',
+                '| LITERAL OPERATOR: The following message was sent',
+                  'to user' originid'. They may call:',
+                '| SPECS /MSGNOH' operid '/ 1 1-* NEXT',
+                '| CP'
+              IF (mountid <> originid) THEN DO /* Tell HIM too */
+                'PIPE STEM answer.',
+                  '| SPECS /MSGNOH' originid '/ 1 1-* NEXT',
+                  '| CP'
+              END
+              ADDRESS CMS vmtapeid 'CANCEL' vaddr mountid
+            END /* of ELSE DO /* fer real */ */
+          END /* of ELSE DO/* Not allowed to mount FOREIGN. Issue message. */ */
+        END /* of IF (extlabrc <> 0) THEN DO  /* ERROR RECOVERY */ */
+        ELSE DO /* Good lookup by Internal Label. Add lines to screen */
+          k = k + 1
+          screenline.k = LEFT(volser,6) LEFT(drive,4) rwstat
+          k = k + 1
+          screenline.k = ' Slot' slotnum
+        END
+      END
+      ELSE DO /* Not a foreign tape - add line to screen */
+        k = k + 1
+        screenline.k = LEFT(volser,6) LEFT(drive,4) rwstat
+      END
+    END
+    WHEN ((msg1 = 'VMT') & (msg2 = '280A')) THEN DO
+      /* Scratch mount request */
+      PARSE VAR mountr.i . . . . . . volser . drive rwstat 'for' .
+      drive = STRIP(drive,'B',',')   /* Remove comma */
+      drive = STRIP(drive,"B","'") /* Remove quotes */
+      IF (rwstat = 'RING IN,') THEN rwstat = 'W'
+                               ELSE rwstat = ''
+      k = k + 1
+      screenline.k = LEFT(volser,6) LEFT(drive,4) rwstat
+    END
+    /* Alloc pending */
+    WHEN ((msg1 = 'VMT') & (WORDPOS(msg2,'699I 701I 144I') > 0)) THEN DO
+      k = k + 1
+      screenline.k = 'Wait:' mountr.i
+    END
+    OTHERWISE DO /* Any other message */
+      k = k + 1
+      screenline.k = '*' mountr.i
+    END
+  END
+END
+screenline.0 = k
+/* debug trace */ 'PIPE STEM screenline. | CONSOLE'
+ 
+IF (screenline.0 = 0) THEN DO
+  randomize = 'YES'
+  screenline.1 = 'No Tape'
+  screenline.2 = 'Mounts'
+  screenline.3 = 'Waiting'
+  screenline.0 = 3
+END
+ELSE randomize = 'NO'
+ 
+DO j = 1 TO disaddr.0
+  /* Build the screen image in stem <screen.> */
+ 
+  scnlines = TRUNC(dislines.j / 6)
+  screen.0 = 0    /* initialize stem for APPEND */
+  IF (screenline.0 <= scnlines) THEN DO
+    /* There's room to build big letters */
+    DO I = 1 TO screenline.0
+      PARSE VAR screenline.i w1 wrest
+      /* Is it a line we need to catenate small letters to? */
+      IF (WORDPOS(w1,'* Wait:') > 0) THEN DO
+        'PIPE VAR w1 | BIGLET5 | STEM screen. APPEND'
+        lbigw1 = LENGTH(w1) * 6
+        stcol = lbigw1 + 1  /* Column to begin placing stuff */
+        lenstuff = (discols.j - lbigw1) - 1  /* 1 less for ctlchar */
+        k1 = screen.0 - 4
+        DO k = k1 TO screen.0
+          /* Find last blank, starting at LENSTUFF+1 working backwards */
+          m = lenstuff+1
+          DO WHILE (SUBSTR(wrest,m,1) ^= ' ')
+            m = m - 1
+            IF (m = 0) THEN m = lenstuff+1 /* Word too long? CHOP! */
+          END
+          screen.k = LEFT(screen.k,lbigw1) LEFT(wrest,(m-1))
+          wrest = SUBSTR(wrest,(m+1))
+          IF (wrest = '') THEN LEAVE
+        END
+      END
+      ELSE DO
+        'PIPE VAR screenline.i | BIGLET5 | STEM screen. APPEND'
+      END
+      /* Put blank line, if not last. */
+      IF (i < screenline.0) THEN 'PIPE LITERAL | STEM screen. APPEND'
+    END
+  END
+  ELSE DO
+    /* Too many lines for this display. Use reduced format.*/
+    'PIPE LITERAL TAPE MOUNTS:|',
+      'BIGLET5|',
+      'APPEND LITERAL |',
+      'APPEND STEM screenline.|',
+      'STEM screen.'
+  END
+  /* Are we going to randomize the position of "No Tape Mounts Waiting"
+     to prevent screen burn-in? */
+  IF (randomize = 'YES') THEN DO
+    'PIPE LITERAL  ',                 /* Make a blank record */
+      '| DUPLICATE' RANDOM(0,6),      /* Make 0-6 copies of it */
+      '| APPEND STEM screen.',        /* Add our stem */
+      '| DROP FIRST 1',               /* Kill the original blank */
+      '| SPECS 1-*' RANDOM(1,38),     /* Shift left */
+      '| BUFFER',                     /* ooo la la */
+      '| STEM screen.'
+  END
+  /* Write it out */
+  IF (testparm) THEN DO
+    'VMFCLEAR'
+    'PIPE STEM screen. | CONSOLE'
+  END
+  ELSE DO
+    CALL WRIT3270
+  END
+END
+RETURN
+ 
+WRIT3270: /* EXPOSE all vars */
+/**********************************************************************\
+Example 2:  The following exec writes a data stream to a 3270 device at
+virtual address specified by the argument.  A read is not performed.
+ 
+MODIFICATION HISTORY:
+04/03/93 - Roger - From IBM manual "CMS Pipelines reference"
+\**********************************************************************/
+EraseWrite = 'C0'x                /* Erase/Write command */
+WriteControlChar = '03'x          /* Write Control Character */
+SetBufferAddress = '11'x          /* Set Buffer Address order */
+InsertCursor = '13'x              /* Insert Cursor order */
+StartField = '1D'x                /* Start Field order */
+AttrProtect = '28'x               /* Unprotected attribute byte */
+/* DataStreamOut = EraseWrite||WriteControlChar||SetBufferAddress||, */
+/*    '0000'x||StartField||AttrProtect||'You have connected to', */
+/*     userid()||SetBufferAddress||'0000'x||InsertCursor */
+DataStreamOut = EraseWrite||WriteControlChar
+DO i = 1 TO screen.0
+  /* Calculate 3270 "14-bit" screen address */
+  scnpos = RIGHT(D2C((i-1)*discols.j),2,'00'x)
+  DataStreamOut = DataStreamOut ||,
+   SetBufferAddress || scnpos || StartField || AttrProtect || screen.i
+END
+DataStreamOut = DataStreamOut ||,
+    SetBufferAddress||'0000'x||InsertCursor
+                                  /* Build the data stream */
+'PIPE',
+   'VAR DataStreamOut',           /* Get outbound data stream */
+   '| FULLSCREEN' disaddr.j 'NOREAD',    /* Write it to device 0500 */
+   '| HOLE'                       /* Discard the results */
+RETURN rc                           /* Exit */
+ 
+GETSLOT: PROCEDURE EXPOSE slotnum answer. vmtapeid
+/*********************************************************************\
+*                                                                     *
+* SUBROUTINE GETSLOT                                                  *
+*                                                                     *
+\*********************************************************************/
+/*
+List the external label of all tapes signed in for a user which have a
+internal label specified.
+*/
+PARSE UPPER ARG tapevol ownerid .
+slotnum = ''
+IF (ownerid = '*') THEN ownerid = USERID()
+IF (ownerid = '') THEN RETURN 24
+IF (tapevol = '') THEN RETURN 24
+ 
+/* Do this to avoid unnecessary error when asking about own tapes */
+IF (ownerid <> USERID()) THEN ownpart = 'OWNEDBY' ownerid
+                         ELSE ownpart = ''
+ 
+'PIPE CMS' vmtapeid 'LIST (BIN' ownpart,
+  '| PAD 22',
+  '| LOCATE 17-22 /' || LEFT(tapevol,6) || '/',
+  '| STEM vols.'
+vmtrc = rc
+ 
+SELECT
+  WHEN ((vols.0 < 1) | (vmtrc = 28)) THEN DO /* No such internal volser found */
+    answer.1 = 'You have requested a mount for a tape with internal label' tapevol', however'
+    answer.2 = 'no such tape can be found belonging to' ownerid'. This MOUNT request has'
+    answer.3 = 'been cancelled. When mounting by internal label, the tape must belong to the'
+    answer.4 = 'ID requesting the mount. (For BATCH, that is the ID which scheduled the job.)'
+    answer.5 = 'The' vmtapeid 'LIST command may help you determine why this mount has failed. If'
+    answer.6 = 'you need further assistance with this, or if you do not know why you got'
+    answer.7 = 'this message, contact the ADN Computer Center.'
+    answer.0 = 7
+    finalrc = 6
+  END
+  WHEN (vmtrc <> 0) THEN DO                     /* Some VMTAPE error. */
+    'PIPE STEM vols. | STEM answer.'
+    finalrc = vmtrc             /* Issue VMTAPE's rc */
+  END
+  WHEN (vols.0 = 1) THEN DO                     /* This is goodness */
+    PARSE VAR vols.1 slotnum .
+    answer.0 = 0
+    finalrc = 0
+  END
+  OTHERWISE DO      /* PANIC! Several found. Data integrity exposure. */
+    answer.1 = '***CAUTION*** User' ownerid 'owns more than one tape with internal label'
+    answer.2 = tapevol'. They are listed after this message. It is impossible to tell which is'
+    answer.3 = 'desired. This MOUNT has been cancelled to avoid the possibility of overwriting'
+    answer.4 = 'valuable data, or of reading the wrong data. To straighten this out, you'
+    answer.5 = 'should remove all the tapes listed below from the Computer Center tape'
+    answer.6 = 'racks, except for the one you want to use. The' vmtapeid 'LIST command may help'
+    answer.7 = 'you determine which you really want. You can also mount these tapes using'
+    answer.8 = 'the slot number to TAPEMAP them. If you need further assistance with'
+    answer.9 = 'this, or if you do not know why you got this message, contact the ADN'
+    answer.10 = 'Computer Center before proceeding.'
+    answer.11 = 'Slot--------Internal Label'
+    answer.0 = 11
+    'PIPE STEM vols. | STEM answer. APPEND'
+    finalrc = 12
+  END
+END
+RETURN finalrc

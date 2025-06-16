@@ -1,0 +1,67 @@
+/* BACKTRAP EXEC:
+This routine collects CP console output.
+ 
+MODIFICATION HISTORY:
+05/13/96 - Roger Deschner - Add trap for premature end
+04/17/96 - Roger Deschner - Add more detailed trap for reader files
+02/13/96 - Roger Deschner - Original Version
+*/
+ADDRESS COMMAND
+PARSE ARG msgl
+msgl = STRIP(msgl)
+'PIPE VAR msgl',     /* DEBUG TRACE */
+  '| SPECS !' || DATE('U') TIME() || '! 1',
+          '1-* NEXTWORD',
+  '| >> BACKTRAP LOG A'
+/*   '| CONSOLE' */
+'GLOBALV SELECT SPBACKUP GET MODETRAP' /* Were we recording already? */
+SELECT
+  WHEN (SUBSTR(msgl,1,9) = 'RDR FILE ') THEN DO
+    PARSE VAR msgl . . spid . . originid .
+    IF (originid = USERID()) THEN DO  /* Did it come from ourselves? */
+ 
+/* Sample output:
+ORIGINID FILE CLASS RECORDS  CPY HOLD DATE  TIME     NAME      TYPE     DIST
+SPBACKUP 0078 T CON 00010985 001 NONE 04/17 03:06:47 0417D182  02184301 UICVM
+*/
+ 
+      'PIPE VAR msgl | >> BACKFILE SAVEMSGS A'
+      'PIPE CP QUERY RDR *' spid 'ALL',
+        '| DROP FIRST 1',                         /* eliminate header */
+        '| LOCATE 15-19 /T CON/',     /* Just the ones we really want */
+        '| LOCATE 58 /D/',      /* Take just files from DUMP commands */
+        '| NLOCATE 58-61 /DUMP/',       /* Eliminate Cmd Summary logs */
+        '| SPECS 54-71 1',                         /* Just the fileid */
+        '| VAR spfileid',
+        '| COUNT LINES',                         /* See if we got one */
+        '| VAR nspfileid'
+      IF (nspfileid = 1) THEN DO
+        SAY 'BACKTRAP: Sending unload signal. Received file' spfileid
+        'EXEC BACKUP UNLOADED' spfileid
+      END
+    END
+  END
+  WHEN (modetrap = 'RECORD') THEN DO /*Yes, we were recording already. */
+    'PIPE VAR msgl | >> BACKTRAP SAVEMSGS A' /* Add to msg queue */
+    IF (SUBSTR(msgl,1,12) = 'SPOOL PAGES:') THEN DO    /* Done? */
+      SAY 'BACKTRAP received a complete message from SPXTAPE:'
+      'PIPE < BACKTRAP SAVEMSGS A | SPECS />/ 1 1-* 2 | CONSOLE'
+      /* Clear recording flag in case something comes during EOT. */
+      'GLOBALV SELECT SPBACKUP SETL MODETRAP NORMAL' /* Stop recoding */
+      'EXEC BACKUP EOT'                   /* Doit toit */
+    END
+  END
+  WHEN ((SUBSTR(msgl,1,32) = 'SPXTAPE DUMP END-OF-TAPE ON VDEV'),
+      | (SUBSTR(msgl,1,31) = 'SPXTAPE DUMP COMPLETED  ON VDEV'),
+      | (SUBSTR(msgl,1,39) = 'SPXTAPE DUMP COMMAND COMPLETED  ON VDEV'),
+      | (SUBSTR(msgl,1,39) = 'SPXTAPE DUMP COMMAND ENDED      ON VDEV'),
+      )THEN DO
+    'GLOBALV SELECT SPBACKUP SETL MODETRAP RECORD'  /* Start recording */
+    'PIPE VAR msgl | > BACKTRAP SAVEMSGS A' /* Start new msg queue */
+  END
+  WHEN (SUBSTR(msgl,1,7) = 'DUMPING') THEN DO /* Save progress msg */
+    'GLOBALV SELECT SPBACKUP SETL PROGRESS' SUBSTR(msgl,20)
+  END
+  OTHERWISE NOP
+END
+EXIT

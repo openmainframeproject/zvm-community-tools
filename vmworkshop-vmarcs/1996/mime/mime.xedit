@@ -1,0 +1,47 @@
+/*
+ *        Name: MIME XEDIT
+ *              a hack to put some MIME capability into RiceMAIL
+ *      Author: Rick Troth, Rice University, Information Systems
+ *        Date: 1992-Aug-04, 1993-Mar-12
+ *
+ *       Calls: MIMEREAD REXX (pipeline stage)
+ *   Called by: MAILUSER XEDIT (from RiceMAIL)
+ *
+ *        Note: you must enable the POSTREAD exit in Mail 92,
+ *              trap it in your MAILUSER XEDIT,  and then call
+ *              this macro with the parameter "READ".
+ */
+ 
+Parse Source . . . . . arg0 .
+argo = arg0 || ':'
+Parse Upper Arg mode
+ 
+Select  /*  mode  */
+ 
+    When mode = "INITIAL"  Then nop
+ 
+    When mode = "MENU"     Then nop
+ 
+    When mode = "READ"     Then Do
+ 
+        'COMMAND EXTRACT/LINE'
+        'MACRO ALL'
+        'COMMAND TOP'
+        'COMMAND CMS PIPE XEDIT | MIMEREAD'
+        'COMMAND :' || line.1
+ 
+        End  /*  When  ..  Do  */
+ 
+    When mode = "SEND"     Then Do
+ 
+        /*  I have tried.  I have failed.  */
+        /*  Maybe someone else can do it.  */
+ 
+        End  /*  When  ..  Do  */
+ 
+    Otherwise Say argo "What mode is" mode || "?"
+ 
+    End  /*  Select  mode  */
+ 
+Exit
+ 

@@ -1,0 +1,78 @@
+      subroutine cfdv64(ibm, vax, n)                                            
+      integer ibm(*), vax(*), n                                                 
+c ------------------------------------------------------------------- *         
+c                                                                     *         
+c          author: Federico Carminati, CERN, Geneva                   *         
+c          restructured by Valery Garger, CNSF, Cornell University    *         
+c                                                                     *         
+c          This is a subroutine to convert from ibm double precision  *         
+c          floating point format (64 bits) to vax long floating point *         
+c          format (64 bits)                                           *         
+c                                                                     *         
+c          ex:   call cfdv64(ibm, vax, n)                             *         
+c                                                                     *         
+c           ibm   an area of storage 64*n bits long in which          *         
+c                    are stored one next to the other n 64 bits       *         
+c                    ibm floating point numbers.                      *         
+c                                                                     *         
+c           vax  an area of storage 64*n bits long which              *         
+c                 on output it will contain n 64 bits vax floating    *         
+c                 point numbers                                       *         
+c                                                                     *         
+c                 ibm and vax could be located at the same space      *         
+c                                                                     *         
+c           n     number of floating point numbers to convert         *         
+c                                                                     *         
+c =================================================================== *         
+*                                                                               
+      logical btest                                                             
+      data ibig /z ffff 7fff/                                                   
+      data isma /z 0000 0080/                                                   
+*                                                                               
+      j = 1                                                                     
+      do while (j .lt. 2*n)                                                     
+c                                                                               
+c             check for exact 0                                                 
+c                                                                               
+        if(ibm(j) .eq. 0) then                                                  
+          vax(j)   = 0                                                          
+          vax(j+1) = 0                                                          
+        else                                                                    
+c                                                                               
+c            get exponent                                                       
+c                                                                               
+          iexp  = ishft( ishft(ibm(j),1), -25)                                  
+          if    (btest(ibm(j),23)) then                                         
+            left = 0                                                            
+          elseif(btest(ibm(j),22)) then                                         
+            left = 1                                                            
+          elseif(btest(ibm(j),21)) then                                         
+            left = 2                                                            
+          elseif(btest(ibm(j),20)) then                                         
+            left = 3                                                            
+          else                                                                  
+            left = 0                                                            
+          endif                                                                 
+          iexp = iexp * 4 - left - 128                                          
+          if(iexp .le. 0) then                                                  
+            ibt = 0                                                             
+            it = isma                                                           
+          elseif(iexp.gt.255) then                                              
+            ibt = not(0)                                                        
+            it  = ibig                                                          
+          else                                                                  
+            ibt = ishft(ibm(j+1),left)                                          
+            it  = ior(ishft(ishft(ibm(j),9+left),-9),                           
+     &            ishft(ibm(j+1),-32+left))                                     
+            ibt = ior(ishft(ibt,16),ishft(ibt,-16))                             
+            it  = ior(ishft(it,16),ishft(it,-16))                               
+            it  = ior(it,ishft(iexp,7))                                         
+          endif                                                                 
+          if(btest(ibm(j),31)) it = ibset(it,15)                                
+          vax(j)   = ibt                                                        
+          vax(j+1) = it                                                         
+*                                                                               
+        endif                                                                   
+      j = j + 2                                                                 
+      enddo                                                                     
+      end                                                                       

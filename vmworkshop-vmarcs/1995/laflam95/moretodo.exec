@@ -1,0 +1,122 @@
+/*******************************************************************/
+/*           OUC, University of Notre Dame, IRISHVMA               */
+/* EXEC Name:   LOADTODO EXEC                                      */
+/* Function:    Add to VMToDo table from keyboard.                 */
+/* Author Name: Nick Laflamme                                      */
+/* Date:        January, 1992                                      */
+/* Updates:                                                        */
+/*******************************************************************/
+ 
+Signal Prologue
+ 
+/* Error Trap for syntax errors */
+Syntax:
+rcs = rc
+$error="REXX error" rcs "in line" Sigl":" Errortext(rcs)
+Say $error
+Say "Line" Sigl":" Sourceline(Sigl)
+Nop
+exit rcs
+ 
+/* Error Trap for undefined variables */
+Novalue:
+$error = "Novalue error in line" Sigl
+say $error
+say Sourceline(Sigl)
+Trace "?r"; Nop
+exit 100
+ 
+Prologue:
+signal on Novalue
+signal on Syntax
+Parse source . intype progfn progfm progft calledas addressee
+ 
+/* Get local RSCS machine name */
+"IDENTIFY (STACK"
+parse pull me . here . rscsid .
+ 
+address command
+say "What needs doing?"
+parse pull task
+if task = '' then 
+  do
+    say "Nothing, apparently."
+    exit
+  end
+task = left(task,30)
+say "Due when?"
+parse pull when .
+if when = '' then
+  drop when
+say "How important? (1-5)"
+parse pull prio .
+if prio = '' then 
+  prio = 3
+say "How long will it take? (1-5)"
+parse pull length .
+if length = '' then 
+  length = 3
+say "For whom?"
+parse pull whom
+if whom = '' then
+  drop whom
+else 
+  whom = left(whom,8)
+assigned = '19'||translate(date('O'),'-','/')
+/* assign I! */
+select2 = "SELECT MAX(TASKNUM) FROM NLAFLAMM.VMTODO"
+ 
+'RXSQL PREP SELECT2' select2         /* Prepare the SELECT statement */
+'RXSQL OPEN SELECT2'                   /* Open the SELECT statement  */
+If rc = 0 then
+  Do                                   /* If no errors occurred then */
+    RXC = 0
+    Do Forever       /* Load REXX variables from SQL/DS      */
+ 
+      'RXSQL FETCH SELECT2 :I'
+      If rc ^= 0 then
+        Leave                 /* If there is no more        */
+      rxc = rxc + 1
+    End                                  /* do forever       */
+    'RXSQL CLOSE SELECT2'              /* Close the SELECT statement */
+  End                                                      /* RC = 0 */
+'RXSQL COMMIT'                         /* Commit the transaction     */
+'RXSQL PURGE SELECT2'                  /* Purge Preped statement     */
+i = i+1                                /* increment                  */
+ 
+insert_data = 'INSERT INTO NLAFLAMM.VMTODO',
+    'VALUES (:Assigned,:due,:prio,:done,:task,:length,:i,:whom)'
+'RXSQL PREP STMT1' insert_data                   
+  'RXSQL CALL STMT1' 
+  rxrc = rc
+  step = "CALL"
+  call sanity_check
+  'RXSQL COMMIT STMT1' 
+  rxrc = rc
+  step = "COMMIT"
+  call sanity_check
+'RXSQL PURGE STMT1'                              
+rxrc = rc
+step = "PURGE"
+call sanity_check
+ 
+exit
+ 
+sanity_check:
+select
+  when rxrc = 8 then
+    do
+      say "RXSQL return code:" rxrc step
+      say "SQLCode:" sqlcode "SQLSTATE:" sqlstate
+    end
+  when rxrc < 0 then
+    do
+      say "RXSQL return code:" rxrc step
+      say "SQLCode:" sqlcode
+    end
+  when rxrc > 0 then
+    say "RXSQL return code:" rxrc step
+  otherwise
+    nop
+end
+return
