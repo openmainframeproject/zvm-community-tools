@@ -28,8 +28,8 @@ Each subdirectory has its own build process, if any:
 
 You can connect with the community in a variety of ways...
 
-- [#z/VM Community Tools channel on Open Mainframe Project Slack](https://openmainframeproject.slack.com/archives/C035HAMNUU9)
-- ['z/VM Community Tools' category on Open Mainframe Project Community Forums](https://community.openmainframeproject.org/)
+- [z/VM Community Tools channel on Open Mainframe Project Slack](https://openmainframeproject.slack.com/archives/C035HAMNUU9)
+- [z/VM Community Tools category on Open Mainframe Project Community Forums](https://community.openmainframeproject.org/)
 
 ## Contributing
 Anyone can contribute to the z/VM Community Tools project - learn more at [CONTRIBUTING.md](CONTRIBUTING.md)
