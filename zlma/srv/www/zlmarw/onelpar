@@ -1,0 +1,155 @@
+#!/bin/bash
+#
+# onelpar - draw a Web page showing user IDs that have saved console data and
+#           for admins user IDs that are logged on but don't have any saved data 
+#
+#+--------------------------------------------------------------------------+
+function drawRows
+# Draw table row where each row gets max of $numCols user IDs
+#   Arg 1    : Data type: 'consdata' or 'nodata'
+#   Arg 2    : LPAR
+#   Args 3-n : User IDs that have console data saved
+#+--------------------------------------------------------------------------+
+ {
+  local dataType=$1                        # 'consdata' or 'nodata'
+  local LPARspec=$2
+  shift 2                                  # skip first two args
+  userIDs=" $@ "                           # remaining user IDs with padded blanks
+
+  local systemID=`echo $LPARspec | awk -F: '{print $2}'`
+
+  # draw all rows with max of $numCols user IDs on each row
+  local color="green"
+  local nextUserID
+  local colNum=1
+  for nextUserID in $userIDs; do           # loop through first $numCols user IDs
+    if [ "$role" = netadmin ]; then        # user is a network admin
+      echo $netadminIDs | grep $nextUserID >/dev/null
+      if [ $? != 0 ]; then                 # not a user ID network admins can see
+        continue                           # iterate loop
+      fi
+    fi
+    if [ "$colNum" = 1 ]; then             # first column
+      echo "<tr>"                          # start row
+    fi
+    if [ "$dataType" = consdata ]; then    # draw with black background and green text
+      echo "<td bgcolor=\"black\">"
+      echo "<a style=\"color:#40ff00; text-decoration:none;\" href=onecons?$nextUserID&amp;$systemID>$nextUserID</a></td>"
+    else                                   # draw in normal text
+      echo "<td>"
+      echo "<a style=\"text-decoration:none;\" href=onecons?$nextUserID&amp;$systemID&amp;spool>$nextUserID</a></td>"
+    fi
+    if [ $colNum = $numCols ]; then        # row is full
+      echo "</tr>"                         # end row
+      colNum=1
+    else                                   # row is not full
+      let colNum=$colNum+1                 # increment counter
+    fi
+  done
+
+  # draw empty cells, if any
+  if [ $colNum -le $numCols ]; then        # there will be some empty cells
+    local numEmptyCells
+    let numEmptyCells=$numCols-$colNum+1   # number empty cells to draw
+    for i in `seq 1 $numEmptyCells`; do
+      echo "<td>&nbsp;</td>"               # empty cell
+    done
+  fi
+ }                                         # drawRows{}
+
+#+--------------------------------------------------------------------------+
+function drawMainTable
+# Draw a table with all guests that have saved console data - $numCols per row 
+# Args: none 
+#+--------------------------------------------------------------------------+
+ {
+  startPage $title                         # start the Web page
+  cat consolez.css                         # inline cascading style sheets
+
+  local cmd                                # a command
+  local consoleData                        # summary of console data
+  local rc                                 # a return code
+
+  cmd="/usr/local/sbin/lscons : $systemID" # saved consoles for this LPAR
+  consoleData=`$cmd`                       # run the command
+  rc=$?
+  if [ "$rc" != 0 ]; then                  # not expected
+    startTable
+    startRow $redColor                     # turn the row to red
+    echo "<td><h2>Unexpected!</h2><p>$cmd returned $rc</p>"
+    echo "<p>consoleData = $consoleData</p>" 
+    echo "</td></tr></table>"              # end cell, row and table
+    exit 3                                 # internal server error
+  fi  
+
+  # draw the table
+  echo "<h2>$title</h2>"
+  echo '<table class="consolezTable" align="center">' # start consolez table aligned in center 
+  drawRows consdata $consoleData           # draw rows with green-screen cells
+  echo "</table>"                          # end table
+ }                                         # drawMainTable()
+
+#+--------------------------------------------------------------------------+
+function drawNoDataTable
+# Draw a table of users logged on for which there is no saved console data 
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  title="Guests without console data"      # title above table
+  local sshCmd="/usr/bin/ssh -q -o StrictHostKeyChecking=no" # command to SSH to other node
+  local engData
+  getEngServer $systemID                   # search input file for engineering server
+  if [ $? != 0 ]; then                     # error
+    echo "ERROR: Unexpected - did not find LPAR $systemID in $confFile"
+    exit 1                                 # object not found
+  fi
+  local loggedUserIDs=`$sshCmd $engServer sudo vmcp QUERY NAMES`  # get all users logged on
+  rc=$?
+  if [ "$rc" != 0 ]; then                  # not expected
+    startTable
+    startRow $redColor                     # turn the row to red
+    echo "<td><h2>Unexpected!</h2><p>$sshCmd $engServer sudo vmcp QUERY NAMES returned $rc</p>"
+    echo "<p>loggedUserIDs = $loggedUserIDs</p>"
+    echo "</td></tr></table>"              # end cell, row and table
+    exit 3                                 # internal server error
+  fi
+  loggedUserIDs=`echo "$loggedUserIDs" | grep -v "VSM  " | sed -e 's/-//g' -e 's/,/\n/g' \
+    | grep -v LOGN | grep -v LOGL | grep -v LOGV | awk '{print $1}' | sort | xargs`
+
+  # draw the table
+  local noDataIDs="$systemID" # user IDs that do not have saved consoles
+  echo "<h2>$title</h2>"
+  #echo '<table class="consolezTable" align="center">' # start consolez table aligned in center
+  echo '<table class="consolezTable">'     # start consolez table aligned in center
+  local nextUserID
+  for nextUserID in $loggedUserIDs; do
+    echo $userIDs | grep " $nextUserID " >/dev/null
+    if [ $? != 0 ]; then                   # no console data for this ID
+      noDataIDs="$noDataIDs $nextUserID"   # add to list with no data
+    fi
+  done
+  drawRows nodata $noDataIDs               # draw rows with regular colors
+  echo "</tr></table>"                     # end row and table
+ }                                         # drawNoDataTable()
+
+#+--------------------------------------------------------------------------+
+# global variables
+confFile="/etc/consolez.conf"              # configuration file
+consolezUser="none"                        # user this script is running as
+flags="-s"                                 # default is succinct output
+systemID=`echo $QUERY_STRING | awk -F'&' '{print $1}' | tr [:lower:] [:upper:]`  # arg 1
+title="$systemID guests with console data" # page title
+userIDs=""                                 # user IDs with saved console data
+vmcpCmd="sudo /sbin/vmcp"                  # how to issue vmcp commands
+
+# main()
+source /usr/local/sbin/consfuncs           # import common line command functions
+source consuifuncs                         # import common Web UI functions
+readConfFile                               # read the /etc/consolez.conf file
+checkUser    
+drawMainTable                              # show table with all user IDs that have data 
+if [ "$role" = admin ]; then               # admins can add new spool files
+  drawNoDataTable                          # show table with logged on users that don't have data
+fi
+drawButtons using-consoles                 # add navigation buttons
+

@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# testrestapi - test various Mariacmdb RESTful APIs
+#
+hostName=`hostname`
+#baseURL="http://$hostName.devlab.sinenomine.net/restapi.py"
+baseURL=" http://zlnx1.devlab.sinenomine.net/restapi.py"
+let numTests=0
+let numSuccesses=0
+testClauses="count hostname ping query count&cpus=4&mem_gb=4 update&model100&newApp&newGroup&newOwner"
+for nextClause in $testClauses; do
+  let numTests=$numTests+1
+  url="$baseURL?$nextClause"
+  echo "Testing URL $url ..."
+  curl $url 
+  rc=$?
+  if [ $rc != 0 ]; then                    # not successful
+    echo "ERROR: curl $url returned $rc"
+    break                                  # out of for loop
+  fi
+  let numSuccesses=$numSuccesses+1
+done
+if [ "$numTests" = "$numSuccesses" ]; then
+  echo "All $numTests tests succeeded in $SECONDS seconds"
+else
+  echo "Out of $numTests tests, $numSuccesses succeeded in $SECONDS seconds"
+  exit 1
+fi
+

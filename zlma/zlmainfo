@@ -1,0 +1,57 @@
+#!/bin/bash
+#
+# zlmainfo - lpar userID IPaddr numCPUs memGB arch arch_com os distro kern_ver kern_rel rootfsFull last_ping created hostName 
+#
+hostName=`hostname -s`
+if [ -f /proc/sysinfo ]; then              # zLinux - TO DO: handle 2nd level VMs
+  cmd='egrep "VM00 Name:|LPAR Name:" /proc/sysinfo | xargs'
+  bothVals=`eval $cmd`
+  lpar=`echo $bothVals | awk '{print $3}'`
+  userID=`echo $bothVals | awk '{print $6}'`
+else
+  lpar="unknown"
+  userID="unknown"
+fi  
+IPaddr=`ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}'`
+if [ ${#IPaddr} = 0 ]; then                # empty var
+  IPaddr=`curl -4 ifconfig.co`             # try a different way
+  if [ ${#IPaddr} = 0 ]; then
+    IPaddr="unknown"
+  fi
+fi
+numCPUs=`grep ^processor /proc/cpuinfo | wc -l`
+memKB=`cat /proc/meminfo | head -1 | awk '{print $2}'`
+let memGB="( $memKB + 524288 ) / (1024 * 1024 )" # round to nearest GB
+arch=`arch`                                # hardware platform
+case $arch in
+  "i686"|"x86_64")
+    arch_com="intel"                       # more common word
+    ;;
+  "aarch64"|"arm64")
+    arch_com="arm"
+    ;;
+  "amd64")
+    arch_com="amd"
+    ;;
+  "s390x")
+    arch_com="zlinux"
+    ;;
+  *)
+    arch_com="unknown"    
+    ;;
+esac
+last_ping=`date +"%y-%m-%d %H:%M:%S"`       # consider an ssh a ping
+created=`stat / | grep "Birth" | sed 's/Birth: //g' | cut -b 2-11`
+if [ ${#created} = 0 ]; then                # date not found
+  created="unknown"
+fi
+os=`uname -s`                               # kernel name
+distro=`cat /etc/os-release | egrep '^NAME=|^VERSION_ID=' | xargs | sed -e 's/NAME=//g' -e 's/VERSION_ID=//g'`
+if [ ${#distro} = 0 ]; then                 # empty var
+  distro="unknown"
+fi 
+kern_ver=`uname -v | sed -e 's/PREEMPT_DYNAMIC //g' -e 's/PREEMPT //g'` 
+kern_rel=`uname -r`                          
+rootfsFull=`df -h / | tail -1 | awk '{print $5}' | sed 's/%//g'`
+echo -n "$lpar,$userID,$IPaddr,$numCPUs,$memGB,$arch,$arch_com,$os,$distro,$kern_ver,$kern_rel,$rootfsFull,$last_ping,$created,$hostName"
+

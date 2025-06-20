@@ -1,0 +1,282 @@
+/* 
+
+VIFCMS EXEC - VIF commands backend for zlma 
+
+Prototype EXEC to perform operations for VIF commands in zlma
+See: https://github.com/mike99mac/zlma
+
+*/
+parse upper arg cmd sub_cmd args
+say "cmd =" cmd "sub_cmd =" sub_cmd "args =" args
+select
+  when cmd = "HYP" then
+    result = hyp_cmd(sub_cmd, args)
+  when cmd = "IMAGE" then
+    result = image_cmd(sub_cmd, args)
+  when cmd = "DISK" then
+    result = disk_cmd(sub_cmd, args)
+  when cmd = "QUERY" then
+    result = query_cmd(sub_cmd, args)
+  otherwise do
+    say "Unexpected VIFCMS command: " cmd
+    exit 1
+  end
+end
+exit
+ 
+hyp_cmd: procedure
+  parse arg sub_cmd args
+  say "hyp_cmd(): sub_cmd:" sub_cmd "args:" args
+  select
+    when sub_cmd = "COLLECT" then
+      result = hyp_collect()
+    when sub_cmd = "DISK" then
+      result = hyp_disk(args)
+    when sub_cmd = "ERRORS" then
+      result = hyp_errors()
+    when sub_cmd = "RESTART" then
+      result = hyp_restart()
+    when sub_cmd = "SERVICE" then
+      result = hyp_service()
+    when sub_cmd = "SHUTDOWN" then
+      result = hyp_shutdown()
+    when sub_cmd = "VERIFY" then
+      result = hyp_verify()
+    otherwise do
+      say "Unexpected VIFCMS command: HYP" sub_cmd
+      exit 1
+    end
+  end
+  return 0
+ 
+image_cmd: procedure
+  parse arg sub_cmd args
+  say "image_cmd(): sub_cmd:" sub_cmd "args:" args
+  select
+    when sub_cmd = "CREATE" then
+      result = image_create(args)
+    when sub_cmd = "DELETE" then
+      result = image_delete(args)
+    when sub_cmd = "SET" then
+      result = image_set(args)
+    when sub_cmd = "START" then
+      result = image_start(args)
+    when sub_cmd = "STOP" then
+      result = image_stop(args)
+    when sub_cmd = "STOPALL" then
+      result = image_stopall(args)
+    otherwise do
+      say "Unexpected VIFCMS command: IMAGE" sub_cmd
+      exit 1
+    end
+  end
+  return 0
+ 
+disk_cmd: procedure
+  parse arg sub_cmd args
+  say "disk_cmd(): sub_cmd:" sub_cmd "args:" args
+  select
+    when sub_cmd = "COPY" then
+      result = disk_copy(args)
+    when sub_cmd = "CREATE" then
+      result = disk_create(args)
+    when sub_cmd = "DELETE" then
+      result = disk_delete(args)
+    when sub_cmd = "SHARE" then
+      result = disk_share(args)
+    otherwise do
+      say "Unexpected VIFCMS command: IMAGE" sub_cmd
+      exit 1
+    end
+  end
+  return 0
+ 
+query_cmd: procedure
+  parse arg sub_cmd args
+  say "query_cmd(): sub_cmd:" sub_cmd "args:" args
+  select
+    when sub_cmd = "ALL" then
+      result = query_all(args)
+    when sub_cmd = "DISKS" then
+      result = query_disks(args)
+    when sub_cmd = "ERRORS" then
+      result = query_errors(args)
+    when sub_cmd = "LEVEL" then
+      result = query_level(args)
+    when sub_cmd = "NETWORK" then
+      result = query_network(args)
+    when sub_cmd = "PAGING" then
+      result = query_paging(args)
+    when sub_cmd = "PERFORMANCE" then
+      result = query_performance(args)
+    when sub_cmd = "VOLUMES" then
+      result = query_volumes(args)
+    otherwise do
+      say "Unexpected VIFCMS command: IMAGE" sub_cmd
+      exit 1
+    end
+  end
+  return 0
+ 
+/* hypervisor commands */
+ 
+/* Function to collect HYP data */
+hyp_collect: procedure
+  parse upper arg args
+  say "Return problem determination data ..."
+  return "HYP data collected successfully"
+ 
+/* Function to manage HYP disk operations */
+hyp_disk: procedure
+  parse upper arg args
+  say "Add paging or Linux disk space ..." args
+  return "HYP disk operation completed"
+ 
+/* Function to check for HYP errors */
+hyp_errors: procedure
+  parse upper arg args
+  say "Return hardware errors ..."
+  return "No errors found"
+ 
+/* Function to restart hypervisor */
+hyp_restart: procedure
+  parse upper arg args
+  say "Do a CP SHUTDOWN REIPL ..." args
+  /* Add restart logic here */
+  return "Hypervisor restarted successfully"
+ 
+/* Function to manage HYP services */
+hyp_service: procedure
+  parse upper arg args
+  say "Install latest z/VM service ..." args
+  /* Add service management logic here */
+  return "HYP services managed"
+ 
+/* Function to shutdown hypervisor */
+hyp_shutdown: procedure
+  parse upper arg args
+  say "Do a CP SHUTDOWN ..." args
+  return "Hypervisor shut down"
+ 
+/* Function to verify hypervisor status */
+hyp_verify: procedure
+  parse upper arg args
+  say "Perform z/VM consistency checks ..."
+ 
+  return "HYP status verified"
+ 
+/* image commands */
+ 
+/* Create a new image */
+image_create: procedure
+  parse upper arg args
+  say "Creating new image - args:" args
+ 
+  return "Image created"
+ 
+/* Delete an existing image */
+image_delete: procedure
+  parse upper arg args
+  say "Deleting existing image - args:" args
+  return "Image deleted"
+ 
+/* Set properties of an image */
+image_set: procedure
+  parse upper arg args
+  say "Set memory or # of CPUs - args:" args
+  return "Image properties set"
+ 
+/* Start an image */
+image_start: procedure
+  parse upper arg args
+  say "Start a Linux image -  args:" args
+  return "Image started"
+ 
+/* Stop an image */
+image_stop: procedure
+  parse upper arg args
+  say "Stop a Linux image - args:" args
+  return "Image stopped"
+ 
+/* Stop all images */
+image_stopall: procedure
+  parse upper arg args
+  say "Stop all Linux images on this LPAR ..."
+  return "All images stopped"
+ 
+/* disk commands */
+ 
+/* Copy disk */
+disk_copy: procedure
+  parse upper arg args
+  say "Copy a disk - args:" args
+  return "Disk copied"
+ 
+/* Create a new disk */
+disk_create: procedure
+  parse upper arg args
+  say "Create a disk - args:" args
+  return "Disk created"
+ 
+/* Delete a disk */
+disk_delete: procedure
+  parse upper arg args
+  say "Delet a disk - args:" args
+  return "Disk deleted"
+ 
+/* Share a disk */
+disk_share: procedure
+  parse upper arg args
+  say "Share a disk - args:" args
+  return "Disk shared"
+ 
+/* query commands */
+ 
+/* run all query commands */
+query_all: procedure
+  parse upper arg args
+  say "Run all query commands ..." args
+  return "All data queried"
+ 
+/* Query specific disks */
+query_disks: procedure
+  parse upper arg args
+  say "Display Linux DASD utiliztion ..."
+  return "Disk information retrieved"
+ 
+/* Query errors */
+query_errors: procedure
+  parse upper arg args
+  say "Report on hardware errors ..."
+  return "Error information retrieved"
+ 
+/* Query system level */
+query_level: procedure
+  parse upper arg args
+  say "QUERY CPLEVEL and more ..."
+  return "System level queried"
+ 
+/* Query network status */
+query_network: procedure
+  parse upper arg args
+  say "QUERY VSWITCH DETAILS and more ..."
+  return "Network status retrieved"
+ 
+/* Query paging information */
+query_paging: procedure
+  parse upper arg args
+  say "Report used/available page space ..."
+  return "Paging information retrieved"
+ 
+/* Query performance metrics */
+query_performance: procedure
+  parse upper arg args
+  say "Display CPU, paging and I/O utilization ..."
+  return "Performance metrics retrieved"
+ 
+/* Query volume information */
+query_volumes: procedure
+  parse upper arg args
+  say "Display image and paging DASD volumes"
+  return "Volume information retrieved"
+ 

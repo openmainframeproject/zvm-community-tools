@@ -1,0 +1,201 @@
+#!/bin/bash
+#
+# consuifuncs - functions common to consolez Web UI interface  
+#
+#---------------------------------------------------------------------------
+function startPage
+# Common Web page header
+# Args: page title
+#---------------------------------------------------------------------------
+ {
+  local title="$@"
+
+  echo "Content-type: text/html"
+  echo ""
+  echo '<!DOCTYPE html><meta https-equiv="Content-Type" content="text/html; charset=iso-8859-1" />'
+  echo "<html><head>"
+  echo "<link rel=\"icon\" href=\"/zlma.ico\" type=\"image/x-icon\"/>"
+  echo "<title>$title</title>"
+  echo "</head><body>" 
+ }                                         # startPage()
+
+#+--------------------------------------------------------------------------+
+function startTable
+# Start an HTML table using the consolezTable CSS
+# Args: $1 id of the table
+#       $2 table class "basic" "consolezTable" "invisible"
+# Global variables:
+#+--------------------------------------------------------------------------+
+ {
+  local tableid="consolezTable"
+  if [ ${#1} != 0 ]; then
+    tableid=$1
+  fi
+  local tableclass="consolezTable"
+  if [ ${#2} -gt 0 ]; then                 # if there is a second argument then its a table class
+    if [ "$2" = "basic" ]; then
+      tableclass="basicTable"
+    elif [ "$2" = "invisible" ]; then
+      tableclass="invisibleTable"
+    else
+      tableclass="consolezTable"
+    fi
+  fi
+  echo "<table id=\"$tableid\" class=\"$tableclass\">"
+ }                                         # startTable()
+
+#---------------------------------------------------------------------------
+function startRow
+# Arg 1: color for the row (optional)
+#---------------------------------------------------------------------------
+ {
+  local color=$1
+  local args=""
+
+  if [ ${#color} -gt 0 ]; then             # a color was passed in
+    args=" style=\"background-color:$color;\""
+  fi
+  echo "<tr$args>"
+ }                                         # startRow()
+
+#+--------------------------------------------------------------------------+
+function drawButtons
+# Draw 5 buttons common to zlma
+# Arg 1: Anchor for location on help page
+# YOOOO: this code has to be kept in sync with zlma_buttons.py 
+#+--------------------------------------------------------------------------+
+ {
+  #local greenStyle="style=\"background-color:#8CFF66\""
+  #local yellowStyle="style=\"background-color:#FFDB4D\""
+  local anchor=$1
+
+  echo '<br><table align=center border="0" cellpadding="0" cellspacing="0"><tr>' # start a table
+  echo "<td><form action='/zlmarw/cpcmds' accept-charset='utf-8'>"
+  echo "<button class='button green-button'>Commands</button>&nbsp;"
+  echo "</form></td>"
+
+  echo "<td><form action='/zlmarw/consolez' accept-charset='utf-8'>"
+  echo "<button class='button green-button'>Consoles</button>&nbsp;"
+  echo "</form></td>"
+
+  echo "<td><form action='/zlma/finder.py' accept-charset='utf-8'>"
+  echo "<button class='button green-button'>Finder</button>&nbsp;"
+  echo "</form></td>"
+
+  echo "<td><form action='/zlmarw/vif.py' accept-charset='utf-8'>"
+  echo "<button class='button green-button'>Vif</button>&nbsp;"
+  echo "</form></td>"
+
+  echo "<td><a href=\"https://github.com/mike99mac/zlma#$anchor\" target=\"_blank\">"
+  echo "<button class='button yellow-button'>Help</button><br>"
+  echo "</a></td></tr></table><br>"
+ }                                         # drawButtons()
+
+#+--------------------------------------------------------------------------+
+function consButtons
+# Draw buttons to
+#   (1) Spool the current user ID's console
+#   (2) Search consoles 
+#+--------------------------------------------------------------------------+
+ {
+  echo '<br><table align=center border="0" cellpadding="0" cellspacing="0"><tr>' # start table and row
+  local spoolCmd="$SCRIPT_NAME?$userID&amp;$systemID&amp;spool"
+  echo "<td><form method=POST action=\"${spoolCmd}\" accept-charset='utf-8'>"
+  echo "<input class=button $greenStyle type=submit value=\"Spool console\">&nbsp;"
+  echo "</form></td>"                      # end form and cell
+ 
+  echo "<td><form action=\"/zlmarw/searchcons\" accept-charset='utf-8'>"
+  echo "<button class=button $yellowStyle>Search</button>"
+  echo "</form></td>"                      # end form and cell
+  echo "</tr></table>"                     # end row and table
+ }                                         # consButtons()
+
+#---------------------------------------------------------------------------
+function startCell
+# Start a table cell
+# Arg 1: optional color
+#---------------------------------------------------------------------------
+ {
+  local color=""
+  if [ $# = 1 ]; then                      # a color was passed in
+    color=" style=\"background-color:$1;\""
+  fi
+  echo "<td$color>"
+ }                                         # startCell()
+
+#+--------------------------------------------------------------------------+
+function uudecode
+# Decode special characters - from stackoverflow:
+# Using the : builtin, special parameters, pattern substitution and the echo
+# builtin's -e option to translate hex codes into characters.
+# Arg 1: the string to decode
+#+--------------------------------------------------------------------------+
+ {
+  : "${*//+/ }"; echo -e "${_//%/\\x}";    # have no idea HOW this works just THAT it does
+ }                                         # uudecode()
+
+#---------------------------------------------------------------------------
+function checkUser
+# Check that REMOTE_USER is set 
+# Args: none
+#---------------------------------------------------------------------------
+ {
+  # REMOTE_USER should always be set to who is logged in
+  if [ ${#REMOTE_USER} = 0 ]; then         # not expected
+    startPage ERROR
+    startTable
+    startRow "#FF6666"                     # draw row in light red
+    echo "<td><h2>Unexpected!</h2><p>global REMOTE_USER is not set</p>"
+    echo "</td></tr></table>"              # end cell, row and table
+    exit 3                                 # internal server error
+  fi
+ }                                         # checkUser()
+
+#+--------------------------------------------------------------------------+
+function addScrollButton
+# Draw a button that scrolls to bottom of page
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  # JavaScript to scroll to bottom of page
+  echo "<script>"
+  echo "scrollingElement = (document.scrollingElement || document.body)"
+  echo "function scrollToBottom () {"
+  echo "   scrollingElement.scrollTop = scrollingElement.scrollHeight;"
+  echo "}"
+  echo "</script>"
+
+  # add 'Scroll to bottom' button
+  echo "<table align=center><tr><td>"      # start table, row and cell
+  echo "<button class=button style=\"background-color:#8CFF66\" onClick=\"scrollToBottom()\">Scroll to Bottom</button>"
+  echo "</td></tr></table>"                # end cell, row and table
+  echo "<br>"                              # leave some room
+ }                                         # addScrollButton()
+
+#+--------------------------------------------------------------------------+
+function drawSearchBar
+# Draw a search bar to find consoles by host name or user ID if such a tool
+# exists, specified by the global variable 'searchTool'
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  if [ ${#searchTool} = 0 -o "$role" != admin ]; then # tool name is not set or user is not an admin 
+    return                                 # all done
+  fi
+  echo '<table class="consolezTable">'
+  echo "<tr><form method=GET action=/zlmarw/searchforcons accept-charset='utf-8'>"
+  echo "<td><b>Search for z/VM consoles by host name or user ID:</b></td>" # what to search for
+  echo "<td><input type=text id=searchString name=searchString></td>"
+  echo "</form>"                           # end form
+  echo "</tr></table><br>"                 # end row, table, leave some room
+ }                                         # drawSearchBar{}
+
+#---------------------------------------------------------------------------
+# global variables
+cmdCalled=`basename $0`                    # get the name of the script called
+color1="#DAEAFF"                           # first background color 
+headerColor="#fff2e6"                      # color of divider rows - a muted orange
+adminGID=0                                 # GID of full administrators (0 = all users are admins)
+numCols=14                                 # number of columns in main tables
+webIcon="consolez.ico"                     # browser tab icon in /srv/www/htdocs
+

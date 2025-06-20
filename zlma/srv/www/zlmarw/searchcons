@@ -1,0 +1,169 @@
+#!/bin/bash
+#
+# searchcons - Draw a page that enables the searching of saved console data
+#              on the Linux side 
+#
+#---------------------------------------------------------------------------
+function headerRow
+# create a table header row that spans columns and writes a title in large font
+# Arg 1:    number of columns to span
+# Args 2-n: title
+#---------------------------------------------------------------------------
+ {
+  local cols=$1                            # arg 1
+  shift                                    # get to remaining args
+  local text=$@                            # set the title
+
+  if [ "$cols" = 1 ]; then                 # no need for colspan
+    echo "<tr><th style=\"background-color:$color3;\"><font size=\"+1\">"
+  else
+    echo "<tr><th style=\"background-color:$color3;\" colspan=\"$cols\"><font size=\"+1\">"
+  fi
+  echo "$text</font></th></tr>"            # add text, end font, header and row
+ }                                         # headerRow()
+
+#+--------------------------------------------------------------------------+
+function drawClearButton
+# Draw a button to clear all search filters 
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  echo "<tr>" 
+  echo "<td style=\"text-align:center\"; colspan=\"3\">"
+  echo '<form method=GET action="/zlmarw/searchcons" accept-charset='utf-8'>'
+  echo "<input class=button type=submit style=\"background-color:$color1\"; value=\"Clear filters\">&nbsp;"
+  if [ ${#userIDflt} != 0 ]; then
+    echo "<input type=hidden name=hostFlt value=\"\">"
+  fi
+  if [ ${#systemIDflt} != 0 ]; then
+    echo "<input type=hidden name=systemIDflt value=\"\">"
+  fi
+  if [ ${#}attern} != 0 ]; then
+    echo "<input type=hidden name=pattern value=\"\">"
+  fi
+  echo "</form></td></tr>"  
+ }                                         # drawClearButton()
+
+#+--------------------------------------------------------------------------+
+function getArgs
+# Get search arguments passed in on URL 
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  userIDflt=`echo "$QUERY_STRING" | sed -n 's/^.*userIDflt=\([^&]*\).*$/\1/p'`
+  userIDflt=`uudecode $userIDflt`
+  systemIDflt=`echo "$QUERY_STRING" | sed -n 's/^.*systemIDflt=\([^&]*\).*$/\1/p'`
+  systemIDflt=`uudecode $systemIDflt`
+  pattern=`echo "$QUERY_STRING" | sed -n 's/^.*pattern=\([^&]*\).*$/\1/p'`
+  pattern=`uudecode $pattern`
+  nocase=`echo "$QUERY_STRING" | sed -n 's/^.*nocase=\([^&]*\).*$/\1/p'`
+  verbose=`echo "$QUERY_STRING" | sed -n 's/^.*verbose=\([^&]*\).*$/\1/p'`
+ }                                         # setArgs()
+
+#+--------------------------------------------------------------------------+
+function drawMainTable
+# Draw a table with search criteria for user ID, system ID/environment 
+#   the text patter to search form and a 'Search consoles' button
+#+--------------------------------------------------------------------------+
+ {
+  startPage $title                         # start the Web page
+  echo '<link rel="stylesheet" href="/zlma.css">' # CSS's
+  if [ ${#pattern} != 0 ]; then 
+    pattern=`uudecode $pattern`            # uu-decode the string
+  fi
+
+  # draw table with the search criteria
+  echo "<h2>$title</h2>"
+  echo "<h3 align=center>Enter a search pattern</h3>"
+  echo '<table class="consolezTable" align=center>'         # leave room, start table and row
+  headerRow 3 Search filters               # first header row
+
+  # row 1
+  drawClearButton                          # draw a button to clear filters
+
+  # row 2 - start the form to run searchcons again with filters
+  echo "<tr><form method=GET action=/zlmarw/searchcons accept-charset='utf-8'>"
+  echo "<td>User ID</td>"
+  echo "<td><input type=text id=userIDflt name=userIDflt value=\"$userIDflt\"></td>"
+  echo "<td></td>"                         # empty cell
+  echo "</tr><tr>"                         # end row, start row
+
+  # row 3
+  echo "<td>LPAR</td>"
+  echo "<td><input type=text id=systemIDflt name=systemIDflt value=\"$systemIDflt\"></td>"
+  echo "<td></td>"                         # empty cell
+  echo "</tr><tr>"                         # end row, start row
+
+  # row 4
+  echo "<td>Search pattern</td>"
+  echo "<td><input type=text id=pattern name=pattern value=\"$pattern\"></td>"
+  echo '<td><input type="radio" name="nocase" id="nocase" value="yes">Case insensitive'
+  echo     '<input type="radio" name="verbose" id="verbose" value="yes">Verbose</td>'
+  echo "</tr><tr>"                         # end row, start row
+
+  # row 5
+  echo '<td align=center colspan="3">'
+  echo "<input class=button type=submit style=\"background-color:#8CFF66; font:bold 16px\" value=\"Search consoles\">&nbsp;"
+  echo "</form>"                           # end form
+  echo "</td></tr></table><br>"            # end cell, row, table, leave some room
+
+  # perform the search
+  if [ ${#pattern} = 0 ]; then             # no pattern found
+    echo "<h4>A search pattern must be supplied</h4>"
+  else                                     # there is a search pattern
+    if [ ${#userIDflt} = 0 ]; then         # no user ID search criteria
+      userIDflt=':'                        # default is all
+    fi
+    if [ ${#systemIDflt} = 0 ]; then       # no user ID search criteria
+      systemIDflt=':'                      # default is all
+    fi
+    local args="$userIDflt $systemIDflt $pattern"
+    if [ "$nocase" = yes ]; then           # case insensitive search
+      args="-i $args"                      # add -i arg to grepcons
+    fi
+    if [ "$verbose" = yes ]; then          # add verbosity 
+      args="-v $args"                      # add -v arg to grepcons
+    fi
+    local cmd="/usr/local/sbin/grepcons $args" # command to send
+    # echo "Searching with: $cmd <br>"
+    local cmdOut                           # output from command
+    local rc                               # a return code
+    echo '<pre align="center">'            # preformatted text
+    cmdOut=`$cmd`                          # run the command
+    rc=$? 
+    echo "$cmdOut" | head -1               # first line shows grep command run
+    if [ "$rc" = 0 ]; then                 # search was successful
+      local numLines=`echo "$cmdOut" | wc -l`
+      echo "</pre>"                        # end preformatted text 
+      let numLines=$numLines-1             # dont count 'Searching from' line
+      echo "<h4>Pattern '$pattern' matched $numLines lines</h4>" 
+      addScrollButton                      # add a 'Scroll to bottom' button
+      echo '<table class="greenScreenTable">' # start a 'green screen' table 
+      echo "<tr><td><pre>"                 # start row, cell, preformatted text
+      echo "$cmdOut"                       # display the output
+      echo "</pre>"                        # end preformatted text
+    else                                   # no lines found
+      echo "</pre>"                        # end preformatted text
+      echo "<h4>Pattern '$pattern' did not match any lines</h4>"
+    fi
+  fi
+  echo "</td></tr></table><br>"            # end cell, row, table, leave some room
+ }                                         # drawMainTable()
+
+#+--------------------------------------------------------------------------+
+# global variables
+userIDflt=""                               # user ID filter
+systemIDflt=""                             # env:CEC:LPAR filter
+pattern=""                                 # search patter
+nocase=""                                  # case insensitive flag
+title="Search z/VM console data"           # page title
+verbose=""                                 # verbosity flag
+
+# main()
+source /usr/local/sbin/consfuncs           # import common line command functions
+source consuifuncs                         # import common Web UI functions
+checkUser  
+getArgs                                    # get arguments passed in
+drawMainTable                              # show table with all user IDs that have data 
+drawButtons using-consoles                 # add custom navigation buttons
+

@@ -1,0 +1,91 @@
+#zlma-table {
+  border-collapse: collapse;               /* borders collapse between cells */
+  border-spacing: 0;                       /* no extra space between cells */
+}
+#zlma-table th, #zlma-table td {
+  border: 1px solid black; 
+}
+#zlma-table tr:nth-of-type(odd) {
+  background-color:rgba(255, 221, 0, 0.1); /* odd rows light yellow */
+}
+#zlma-table tr:nth-of-type(even) {
+  background-color:rgba(0, 87, 183, 0.1);  /* even rows light blue */
+}
+th, td {
+  overflow-wrap: break-word;
+  word-wrap: break-word; 
+  text-align: left;
+}
+.button {
+  border:solid #1323a7 1px;
+  border-radius: 6px;
+}
+body {
+    font-family: Verdana, arial;
+}
+h1, h2, h3, h4 {
+  text-align: center;
+  font-family: Verdana, arial;
+}
+table {
+  /*border: 1px solid black;*/
+  font-family: Verdana, arial;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  border-radius: 6px;
+}
+.wrapper {
+  text-align: center;
+}
+.button {
+  border:solid #1323a7 1px;
+  border-radius: 6px;
+}
+form {
+ margin: 0px;
+}
+.surroundingTable {
+  border: 1px solid black;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+}
+.greenScreenTable {
+  align: center;
+  background-color: black;
+  border-collapse: separate;
+  border: 1px solid black;
+  border-radius: 6px;
+  color: #40ff00;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 120%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.consolezTable {
+  align: center;
+  border-collapse: separate;
+  border: 1px solid black;
+  border-radius: 6px;
+  font-size: 110%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.consolezTable td {
+  min-width: 75px;
+}
+.consolezTable th {
+  border-top: none;
+  border-left: none;
+}
+.consolezTable tr:nth-child(odd){          /* background color for ODD background rows  */
+  background: #e6e6e6;
+}
+.consolezTable tr:nth-child(even){         /* background color for EVEN background rows  */
+  background: #f2f2f2;
+}
+.consolezTable tr:hover {                  /* hover highlight color for table rows */
+  background-color: #CCBBDD;
+}
+

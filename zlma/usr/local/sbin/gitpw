@@ -1,0 +1,4 @@
+#!/bin/bash
+pw1="ghp_rFz4SEEzgGGalCHJ"
+pw2="ceB6JQYmhnEJuu2OJ46e"
+echo "$pw1$pw2"

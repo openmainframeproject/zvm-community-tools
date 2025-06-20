@@ -1,0 +1,89 @@
+#!/bin/bash
+#+--------------------------------------------------------------------------+
+#
+# onecons - show console data for one user ID 
+# Sample URL:  zlnx1.example.com/zlmarw/onecons?TCPIP&LPAR1
+#
+#+--------------------------------------------------------------------------+
+##+--------------------------------------------------------------------------+
+function showOneConsole
+# Draw a page showing one saved console file
+# Arg 1: user ID
+# Arg 2: system ID
+# Arg 3: option - 'spool' means spool new console
+#+--------------------------------------------------------------------------+
+ {
+  local userID=$1
+  local systemID=$2
+  local option=$3
+  local cmd                                # a command
+
+  # add page title and a 'Scroll to bottom' button
+  echo "<h3>$title</h3>"                   # add a heading
+  if [ "$option" = spool ]; then           # user asked to have console spooled
+    cmd="/usr/local/sbin/spoolcons -s $userID $systemID"
+    # echo "<pre align=\"center\">"
+    # echo "Spooling console with command: $cmd ..."
+    eval $cmd 2>&1                         # spool the specified console
+    # echo "Done!"
+    # echo "</pre>"
+  fi
+
+  # draw the main table
+  echo '<table class="greenScreenTable" align="center">'
+  echo "<tr>"
+  startCell
+  echo "<pre>"                             # preformatted text
+  cmd="/usr/local/sbin/catcons $userID $systemID"
+  eval $cmd 2>&1                           # run script to list console
+  echo "</pre></td></tr></table>"          # end preformatted, cell
+  echo "</body></html>"                    # end the page
+ }                                         # showOneConsole()
+
+#+--------------------------------------------------------------------------+
+function selfButtons
+# Draw buttons to
+#   (1) Spool the current user ID's console
+#   (2) Search consoles
+#+--------------------------------------------------------------------------+
+ {
+  # JavaScript to scroll to bottom of page
+  echo "<script>"
+  echo "scrollingElement = (document.scrollingElement || document.body)"
+  echo "function scrollToBottom () {"
+  echo "   scrollingElement.scrollTop = scrollingElement.scrollHeight;"
+  echo "}"
+  echo "</script>"
+
+  local greenStyle="style=\"background-color:#8CFF66\""
+  local yellowStyle="style=\"background-color:#FFDB4D\""
+
+  echo '<br><table align=center border="0" cellpadding="0" cellspacing="0"><tr>' # start table and row
+  local spoolCmd="$SCRIPT_NAME?$userID&amp;$systemID&amp;spool"
+  echo "<td><form method=POST action=\"${spoolCmd}\" accept-charset='utf-8'>"
+  echo "<input class=button $greenStyle type=submit value=\"Spool console\">&nbsp;"
+  echo "</form></td>"                      # end form and cell
+
+  echo "<td><form action=\"/zlmarw/searchcons\" accept-charset='utf-8'>"
+  echo "<button class=button $greenStyle>Search consoles</button>&nbsp;"
+  echo "</form></td>"                      # end form and cell
+
+  echo "<td><button class=button style=\"background-color:#8CFF66\" onClick=\"scrollToBottom()\">Scroll to Bottom</button>"
+  echo "</td></tr></table>"                # end row and table
+ }                                         # consButtons()
+
+# global variables:
+userID=`echo $QUERY_STRING | awk -F'&' '{print $1}'`   # user ID is arg 1 
+systemID=`echo $QUERY_STRING | awk -F'&' '{print $2}'` # system ID is arg 2
+option=`echo $QUERY_STRING | awk -F'&' '{print $3}'`   # option such as spool 
+title="Console of $userID at $systemID"                # page title
+
+# main()
+source consuifuncs                         # import common Web UI functions
+startPage                                  # start the Web page
+echo '<link rel="stylesheet" href="/zlma.css">' # CSS's
+drawButtons using-consoles                 # common menu buttons
+selfButtons                                # menu buttons for this page
+# checkUser 
+showOneConsole $userID $systemID $option   # do the work 
+

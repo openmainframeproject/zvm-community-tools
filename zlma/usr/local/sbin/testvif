@@ -1,0 +1,88 @@
+#!/bin/bash
+#
+# testvif - test many vif 
+#
+#+--------------------------------------------------------------------------+
+function oneTest
+# Run one vif test 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+ 
+  local args="$@"
+  let tests=$tests+1
+  printf "%-3s %-30s\n" "$tests)" "Running: vif $args ..." | tee -a $outFile 2>&1
+  (vif $args; echo $? > /tmp/rc) | tee -a $outFile 2>&1 # capture rc before pipe
+  rc=`cat /tmp/rc`
+  if [ "$rc" = 0 ]; then
+    let successes=$successes+1
+  else
+    echo "ERROR: vif returned $rc" | tee -a $outFile 2>&1
+  fi 
+  echo | tee -a $outFile 2>&1
+ }                                         # oneTest()
+
+#+--------------------------------------------------------------------------+
+function allTests
+# Run all vif tests
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  oneTest help
+  oneTest help all 
+  oneTest help disk
+  oneTest help hypervisor
+  oneTest help image
+  oneTest help query
+  oneTest hypervisor collect
+  oneTest hypervisor disk add image 1234
+  oneTest hypervisor disk add paging abcd
+  oneTest hypervisor errors
+  oneTest hypervisor restart
+  oneTest hypervisor service
+  oneTest hypervisor shutdown
+  oneTest hypervisor verify
+  oneTest image create linux1
+  oneTest image delete linux1
+  oneTest image network linux1 add 360 
+  oneTest image set linux1 storage 8
+  oneTest image set linux1 cpus 4
+  oneTest image start linux1
+  oneTest image stop linux1
+  oneTest image stopall
+  oneTest disk copy linux1 150 linux2 150
+  oneTest disk copy linux1 150 to linux2 150
+  oneTest disk create linux1 150 2G
+  oneTest disk delete linux1 150
+  oneTest disk share linux1 151 linux2 151
+  oneTest disk share linux1 151 with linux2 151
+  oneTest query active
+  oneTest query all
+  oneTest query configuration
+  oneTest query disks 
+  oneTest query errors
+  oneTest query image linux1
+  oneTest query level
+  oneTest query network
+  oneTest query paging
+  oneTest query performance
+  oneTest query shared
+
+  # errors
+  oneTest fubar                  
+ }                                         # allTests()
+
+# main
+timeStamp=`date +"%y-%m-%d-%H-%M-%S"`      # current date and time
+outFile="$HOME/$timeStamp-testvif.out"     # log file
+successes=0                                # good tests
+tests=0                                    # total tests
+
+allTests
+echo 
+echo "testvif: $successes of $tests tests were successful in $SECONDS seconds"
+echo "output is in $outFile"
+echo

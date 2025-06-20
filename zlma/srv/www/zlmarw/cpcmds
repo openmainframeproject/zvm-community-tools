@@ -1,0 +1,190 @@
+#!/bin/bash
+#
+# cpcmds - For admins run any CP command specified.  
+#
+#+--------------------------------------------------------------------------+
+function drawLPARchooser
+# Draw a table that enables the user to choose which LPARs to run the CP commands on 
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  local curCol="none"                      # current column
+  local nextLPAR 
+  local systemID
+  local thisColor
+
+  startTable
+  allLPARs=`/usr/local/sbin/lscons -L`     # list just LPARs
+  for nextLPAR in $allLPARs; do
+    echo "<tr>"                            # start new row
+    echo "<td>&nbsp;&nbsp;<input type='checkbox' name='l' value='$nextLPAR'>$nextLPAR"
+    echo "</td>"                           # end cell
+    echo "</tr>"
+  done
+  echo "</table><br>"                      # end table, leave room
+ }                                         # drawLPARchooser()
+
+#+--------------------------------------------------------------------------+
+function addOneLPAR
+# Add an LPAR to LPARlist if not already there
+# Arg 1: LPAR to add
+# Global variables:
+#   LPARlist: space separated list of LPARs
+#+--------------------------------------------------------------------------+
+ {
+  local LPARtoAdd=$1
+  if [ ${#LPARtoAdd} = 0 ]; then            # arg not passed
+    echo "INTERNAL ERROR - no LPAR passed to addOneLPAR<br>"
+    exit 3
+  fi
+  echo "$LPARlist" | grep $LPARtoAdd >/dev/null
+  if [ $? != 0 ]; then                     # not already in list
+    LPARlist="$LPARlist $LPARtoAdd"        # add to list
+  fi  
+ }                                         # addOneLPAR()
+
+#+--------------------------------------------------------------------------+
+function addToLPARlist
+# Add an LPARs to LPARlist 
+# Arg 1: LPAR to add
+# Global variables:
+#   allLPARs: all LPARs in org 
+#   LPARlist: space separated list of LPARs
+#+--------------------------------------------------------------------------+
+ {
+  local LPARtoAdd=$1
+  if [ ${#LPARtoAdd} = 0 ]; then
+    echo "INTERNAL ERROR - nothing passed to addToLPARlist<br>"
+    exit 3
+  fi
+  local nextLPAR
+  local nextSystemID
+
+  for nextLPAR in $allLPARs; do            # loop through all LPARs 
+    nextGroup=`echo $nextLPAR | awk -F: '{print $1 ":" $2}'` 
+    if [ "$nextGroup" = "$groupToAdd" ]; then  # there is a hit 
+      nextSystemID=`echo $nextLPAR | awk -F: '{print $3}'` # get system ID
+      addOneLPAR $nextSystemID             # add if not already there
+    fi
+  done
+ }                                         # addToLPARlist()
+
+#+--------------------------------------------------------------------------+
+function setLPARlist
+# Set the global variable nodeList based on the userID numbers
+# Args: none
+# Global variables:
+#   QUERY_STRING: can have multiple '&l=<name>' values where <name> is an LPAR
+#   nodeList: is set with a comma-delimited list
+#+--------------------------------------------------------------------------+
+ {
+  local lineSep=`echo "$QUERY_STRING" | sed 's/&/\n/g'`    # inject newlines into list
+  LPARlist=`echo "$lineSep" | grep '^l=' | sed 's/l=/ /g'`
+  # LPARlist=`uudecode $LPARlist`  is this needed?
+  if [ ${#adminCmd} != 0 ]; then           # there is a command to run
+    if [ ${#LPARlist} = 0 ]; then          # nothing was selected
+      echo "<h2>Whoops! Select at least one LPAR</h2>"
+      return
+    fi
+  fi
+  local nextCEC
+  for nextCEC in $CEClist; do              # loop through selected CECs 
+    addToLPARlist CEC $nextCEC             # add a CEC of LPARs
+  done
+ }                                         # setLPARlist()
+
+#+--------------------------------------------------------------------------+
+function drawCPcmdButtons
+# Draw navigation buttons specifically for this page
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  local greenStyle="style=\"background-color:#8CFF66\""
+  local yellowStyle="style=\"background-color:#FFDB4D\""
+
+  echo "<table align=center><tr><td>"    # leave room, start table, row and cell
+  echo "<p><b>z/VM command:</b></p>"
+  echo "</td></tr>"
+  echo "<tr><td>"
+  echo "<input type=text style=\"width: 300px;\" id=adminCmd name=adminCmd>"
+  echo "&nbsp;&nbsp;<input type='checkbox' name='verbose' value='-v'>verbose"
+  echo "</td></tr>"
+
+  echo "<tr><td><br>"
+  echo "<input class=button $greenStyle type=submit value=\"Run Command\">&nbsp;"
+  echo "</td></tr></table>"                # end cell, row, table 
+  echo "<br><br>"                          # leave some room
+ }                                         # drawCPcmdButtons()
+
+#+--------------------------------------------------------------------------+
+function runCommand
+# Draw a table with all guests that have saved console data - $numCols per row 
+# Args: none 
+#+--------------------------------------------------------------------------+
+ {
+  local CPcmd                              # the CP command to run 
+  local cmd                                # a command
+  local rc                                 # a return code
+
+  if [ ${#adminCmd} = 0 ]; then            # no command yet 
+    # echo "Enter a command!<br>"
+    return                                 # wait for a command 
+  fi
+  CPcmd=`uudecode $adminCmd`               # UU-decode the command
+
+  # addScrollButton                        # button not working?
+  echo '<table class="greenScreenTable">'  # start a 'green screen' table 
+  echo "<tr><td><pre>"                     # start row, cell, preformatted text
+
+  # run CP commands on each LPAR selected
+  local nextLPAR
+  for nextLPAR in $LPARlist; do            # loop through each LPAR
+    cmd="/usr/local/sbin/cpcommand $verbose -l $nextLPAR $CPcmd" # command to send
+    echo "calling: $cmd<br>"
+    #eval $cmd 2>&1 | sed "s/^/${nextLPAR}: /g"  # run command prefixing each line with LPAR:
+    $cmd 2>&1 | sed "s/^/${nextLPAR}: /g"  # run command prefixing each line with LPAR:
+  done
+  echo "</pre></td></tr></table>"          # end preformatted, cell, row, table
+ }                                         # runCommand()
+
+#+--------------------------------------------------------------------------+
+function doTheWork 
+# Draw the entire page 
+#+--------------------------------------------------------------------------+
+ {
+  echo 'Content-Type: text/html'           # start the HTML page
+  echo 
+  echo '<!DOCTYPE html>'
+  echo "<html><head><title>$title</title>"
+  echo '<link rel="icon" type="image/png" href="/zlma.ico">'
+  echo '<link rel="stylesheet" href="/zlma.css">'
+  echo '</head><body>'
+  drawButtons using-consoles               # add navigation buttons
+  echo "<h2>$title</h2>"    
+  echo "<h3>Choose LPARs</h3>"    
+  echo "<form action=\"/zlmarw/cpcmds\" method=\"GET\">" # rerun this script
+  drawLPARchooser                          # if no system ID passed in, allow choosing of LPARs
+  setLPARlist                              # set which LPARs have been set
+  drawCPcmdButtons                         # add custom navigation buttons
+  runCommand                               # run CP command and show output
+  #echo "</form></table>"                   # end form and table
+  echo "</body></html>"                    # end the page
+ }                                         # doTheWork()
+
+#+--------------------------------------------------------------------------+
+# global variables
+adminCmd=`echo "$QUERY_STRING" | sed -n 's/^.*adminCmd=\([^&]*\).*$/\1/p'`
+systemID=`echo "$QUERY_STRING" | sed -n 's/^.*systemID=\([^&]*\).*$/\1/p'`
+verbose=`echo "$QUERY_STRING" | sed -n 's/^.*verbose=\([^&]*\).*$/\1/p'`
+allLPARs=""                                # all z/VM LPARs in org
+colors=("#F6D9ED" "#FBF5E6" "#FEF0C9" "#F1EDC2" "#FEE0C9" "#DED0C6" "#FFEECA" "#EEF3E2") # to color-code CECs
+LPARlist=""                                # all z/VM LPARs chosen
+title="zlma z/VM commands"
+
+# main()
+source /usr/local/sbin/consfuncs           # import common line command functions
+source consuifuncs                         # import common Web UI functions
+checkUser   
+doTheWork                                  # draw the page 
+
+

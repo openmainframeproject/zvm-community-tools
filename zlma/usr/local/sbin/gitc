@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# gitc - wrapper around "git commit -a -m" 
+#
+if [ $# = 0 ]; then                        # no args passed
+  echo "Usage: gitc <Description of changes>"
+  exit 1
+fi
+cmd="git commit -a -m \"$@\""
+echo
+echo "Running command: $cmd"
+echo
+eval $cmd
+

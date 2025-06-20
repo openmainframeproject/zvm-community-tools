@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+# grz - short command to search through zlma files 
+#
+grep --color -n "$@" /usr/local/sbin/* /srv/www/zlma*/* 2>/dev/null 

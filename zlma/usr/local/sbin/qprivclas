@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+#  qprivclas - do a CP QUERY PRIVCLAS and either return current user's privilege class
+#              or 
+#
+# cpcommand - issue a CP command on a specified z/VM LPAR
+#
+#+--------------------------------------------------------------------------+
+function usage
+# Give help
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  echo ""                                  # leave some room
+  echo "Name:   qprivclass - query the user's privilege class" 
+  echo "Usage:  qprivclass [OPTIONS] [CLASS]"
+  echo "Where:  CLASS is an optional privilege class A-G to check for"
+  echo "Return: 0: User does not have privilege class"
+  echo "        1: User has privilege class"
+  echo "        2: Could not obtain privilege classes"
+  echo ""
+  echo "OPTIONS:"
+  echo "  -h|--help             Give help"
+  echo "  -v|--verbose          Include additional output"
+  echo "  -x|--debug            Print commands and arguments as they are executed"
+  echo ""                                  # leave some room
+  exit 51
+ }                                         # usage()
+
+#+--------------------------------------------------------------------------+
+function parseArgs
+# Parse arguments passed into script
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  while (( "$#" )); do                     # iterate through all flags and arguments
+    case $1 in
+      -h|--help)
+        usage
+        ;;
+      -v|--verbose)
+        verbose=2
+        ;;
+      -x|--debug)
+        set -vx
+        ;;
+      *)                                   # non-flag args
+        if [ "${1:0:1}" = "-" ]; then      # error - unrecognized flag
+          echo "ERROR: unrecognized flag $1"
+          usage
+        fi
+        if [ ${#classToCheck} != 0 ]; then # too many args
+          echo "ERROR: unrecognized flag $1"
+          usage
+        fi
+        classToCheck=`echo $1 | tr [:lower:] [:upper:]`
+        if [ ${#classToCheck} != 1 ]; then # too long
+          echo "ERROR: CLASS must be one character $1"
+          usage
+        fi
+        if [[ ! $classToCheck =~ ^[A-G]$ ]]; then # wrong letters 
+          echo "ERROR: can only check privilege classes A-G" 
+          usage
+        fi
+        ;;
+    esac
+    shift
+  done
+ }                                         # usage()
+
+#+--------------------------------------------------------------------------+
+function checkPrivClass
+# If a privilege class was passed in, check it, or show the user's current class(es)
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  local userID=`sudo vmcp q userid`
+  local privClasses=`sudo vmcp Q PRIVCLAS | grep Currently: | awk '{print $2}'` # get current classes
+  if [ ${#privClasses} = 0 ]; then         # did not get them
+    echo "ERROR: could not obtain privilege classes"
+    exit 2
+  fi
+  if [ ${#classToCheck} = 0 ]; then        # no class passed in
+    echo "User $userID current privilege classes: $privClasses"
+  else
+    # echo "$privClasses equals ${privClasses#$classToCheck} ?"
+    if [ $privClasses != ${privClasses#$classToCheck} ]; then # wrong letters 
+      echo "user $userID has $classToCheck privilege class"
+      exit 1
+    else                                   # no
+      echo "user $userID does not have $classToCheck privilege class"
+    fi
+  fi
+ }                                         # checkPrivClass()
+
+# main()
+classToCheck=""                            # privilege class to check for
+verbose="1"   
+
+parseArgs $@                               # parse arguments
+checkPrivClass                             # do the work 
+

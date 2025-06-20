@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# countzlma - count lines of the zlma code
+# 
+SBN="/usr/local/sbin"
+ZRO="/srv/www/zlma"
+ZRW="/srv/www/zlmarw"
+python="$ZRO/finder.py $ZRO/home.py $ZRO/restapi.py $ZRO/zlma_buttons.py $SBN/zlma $SBN/zlma_conf.py \
+  $SBN/zlma_srvrs.py $SBN/vif $ZRW/vifcmd.py $ZRW/vifdisk.py $ZRW/vifdiskcmd.py $ZRW/vifdoset.py $ZRW/vifhypdisk.py \
+  $ZRW/vifimgcreate.py $ZRW/vifimgdelete.py $ZRW/vifimgpower.py  $ZRW/vifimgset.py $ZRW/vif.py" 
+javascript="/srv/www/zlma/bootstable.js"
+bash="$HOME/zlmainfo $SBN/test* $SBN/spoolcons $SBN/cpcommand $SBN/consfuncs $SBN/qprivclas \
+  $ZRW/one* $ZRW/consolez $ZRW/searchcons $ZRW/cpcmds $ZRW/consuifuncs"
+css="/srv/www/zlma/zlma.css"
+ 
+echo
+echo "Lines of code in zlma:"
+echo
+echo "Bash:"
+wc -l $bash
+echo
+echo "Python:"
+wc -l $python
+echo
+echo "Javascript:"
+wc -l $javascript
+echo
+echo "CSS:"
+wc -l $css
+echo
+# get total lines
+wc -l $python $javascript $bash $css | tail -1 | sed 's/^  //g'

@@ -1,0 +1,171 @@
+#!/bin/bash
+#+--------------------------------------------------------------------------+
+#
+# cpcommand - issue a CP command on a specified z/VM LPAR 
+#
+#+--------------------------------------------------------------------------+
+function usage
+# Give help
+# Args: none 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  echo ""                                  # leave some room
+  echo "Name:   cpcommand - issue a CP command on a specified z/VM LPAR"
+  echo "Usage:  cpcommand [OPTIONS] CP-COMMAND"
+  echo "Where:  SYSTEM-ID  is the z/VM system to run the CP command on"
+  echo "Where:  CP-COMMAND is CP command to invoke"
+  echo ""
+  echo "OPTIONS:"
+  echo "  -h|--help             Give help"
+  echo "  -l|--lpar [LPAR]      LPAR system identifier to run command on (default: this LPAR)"
+  echo "  -s|--silent           Minimal output"
+  echo "  -v|--verbose          Include additional output"
+  echo "  -V|--veryverbose      Include even more output"
+  echo "  -x|--debug            Print commands and arguments as they are executed"
+  echo ""                                  # leave some room
+  exit 51
+ }                                         # usage()
+
+#+--------------------------------------------------------------------------+
+function parseArgs
+# Parse arguments 
+# Arg 1: all arguments passed into script 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  while (( "$#" )); do                     # iterate through all flags and arguments
+    case $1 in
+      -h|--help)
+        usage
+        ;;
+      -l|--lpar)
+        shift
+        if [ $# = 0 ]; then                # no more args
+          echo "ERROR: not enough arguments"
+          usage
+        fi
+        tgtSysID=`echo $1 | tr [:lower:] [:upper:]` # fold to upper case
+        ;;
+      -s|--silent)
+        verbose=0
+        flags="$flags -s"
+        ;;
+      -v|--verbose)
+        verbose=2
+        flags="$flags -v"
+        ;;
+      -V|--veryverbose)
+        verbose=3
+        flags="$flags -V"
+        ;;
+#     -w)                                  # undocumented - called from Web UI
+#       webUI=yes
+#       ;;
+      -x|--debug)
+        flags="$flags -x"
+        set -vx
+        ;;
+      *)                                   # non-flag args 
+        if [ "${1:0:1}" = "-" ]; then      # error - unrecognized flag
+          echo "ERROR: unrecognized flag $1"
+          usage 
+        fi
+        cpCmd="$@"                         # all remaining args = CP command 
+        break;                             # out of while loop
+        ;;
+    esac
+    shift
+  done
+  if [ ${#cpCmd} = 0 ]; then
+    echo "ERROR: CP-COMMAND not specified"
+    usage
+  fi
+  readConfFile
+  verboseMsg "cpCmd = $cpCmd logLevel = $logLevel"
+ }                                         # parseArgs()
+
+#+--------------------------------------------------------------------------+
+function checkEnv
+# Verify the environment 
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  if [ ${#USER} = 0 ]; then                # env var USER not set
+    USER=`id | awk -F\( '{print $2}' | awk -F\) '{print $1}'` # get the current user
+  fi
+  if [ "$USER" = root ]; then 
+    echo "ERROR: Sorry, cpcommand cannot run as root" 
+    exit 2                                 # not authorized
+  fi
+ }                                         # checkEnv()
+
+#+--------------------------------------------------------------------------+
+function sendCPcommand
+# Spool one z/VM console on this local LPAR or a remote one
+# NOTE: if remote, this function will be called and will become local
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  local cmd                                # a command
+  local tgtServer 
+  local rc                                 # a return code
+
+  verboseMsg "thisServer: $thisServer tgtSysID: $tgtSysID cpCmd: $cpCmd"
+  if [ ${#tgtSysID} = 0 ]; then 
+    cmd="sudo vmcp $cpCmd"                 # run locally
+  else
+    verboseMsg "trying to get engineering server with: getZlmaServer $tgtSysID"
+    tgtServer=`getZlmaServer $tgtSysID`
+    if [ $? != 0 ]; then 
+      echo "ERROR: did not find LPAR $tgtSysID in $confFile" | tee -a $logFile
+      exit 1                               # object not found
+    fi
+    if [ "$tgtServer" = "$thisServer" ]; then # run locally
+      cmd="sudo vmcp $cpCmd"
+    else                                      # run remotely
+      cmd="sudo su - mikemac; $sshCmd $tgtServer sudo vmcp $cpCmd" 
+    fi
+  fi
+  verboseMsg "Executing CP command: $cmd"
+  eval $cmd                                # run command locally or remotely
+  rc=$?
+  if [ "$rc" != 0 ]; then                  # error
+    verboseMsg "WARNING: command: $cmd returned $rc" 
+  fi
+ }                                         # sendCPcommand()
+
+#+--------------------------------------------------------------------------+
+# Global variables
+cmdCalled=`basename $0`                    # get the name of the script called
+confFile="/etc/zlma.conf"                  # configuration file
+cpCmd=""                                   # the CP command to execute
+flags=""                                   # flags to pass on to remote calls
+logFile="/var/log/zlma/consolez.log"       # log file 
+logLevel="info"                            # log level
+sshCmd="/usr/bin/ssh -q"                   # command to SSH to other nodes
+tgtSysID=""                                # target z/VM LPAR
+tgtUserID=""                               # target user ID 
+thisServer=`/bin/hostname -f`              # get FQDN of this server
+thisSysID=""                               # this z/VM LPAR
+thisUserID=""                              # this user ID 
+verbose="1"                                # default verbosity level
+vmcpCmd="sudo vmcp --buffer=1M"            # command to issue "vmcp"
+# webUI="no"                                 # called from the Web UI?
+
+# main()
+source /usr/local/sbin/consfuncs           # import common functions
+parseArgs $@                               # parse arguments
+checkEnv                                   # verify environment
+sendCPcommand                              # issue requested CP command
+

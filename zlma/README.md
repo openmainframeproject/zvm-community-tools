@@ -361,6 +361,11 @@ Group www-data
 TODO: install on z-graf1 and show Apache config file
 ```
 
+- Create the httpasswd for the site
+```
+sudo htpasswd -c /srv/www/zlmarw/.htpasswd yourusername
+```
+
 # Using zlma
 The following sections describe the line command, the Web interface and the RESTful API.
 
@@ -677,3 +682,4 @@ REXX:
 
 # Colophon
 Zelma is a feminine given name that originated in the late 19th century in the United States. It's believed to be a variant of the German name Selma, which is derived from the Old Norse word "selmr," meaning "protection" or "shelter."
+

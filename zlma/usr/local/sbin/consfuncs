@@ -1,0 +1,146 @@
+#!/bin/bash
+#
+# consfuncs - consolez functions 
+#
+#+--------------------------------------------------------------------------+
+function regMsg
+# write a regular message to stdout and log file unless in silent mode
+# Args: the message 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  if [ "$verbose" -gt 0 ]; then            # not in silent mode
+    local timeStamp=`date +"%Y-%m-%d %H:%M:%S,%3N"`
+    echo -e "$timeStamp ${0##*/}/${FUNCNAME[1]}()/$USER: $@" | tee -a $logFile
+  fi
+ }                                         # verboseMsg()
+
+#+--------------------------------------------------------------------------+
+function verboseMsg
+# write a message to stdout and log file when verbose is 2 or 3
+# Args: the message
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  if [ "$verbose" -gt 1 ]; then            # verbose or very verbose
+    local timeStamp=`date +"%Y-%m-%d %H:%M:%S,%3N"`
+    echo -e "$timeStamp ${0##*/}/${FUNCNAME[1]}()/$USER: $@" | tee -a $logFile
+  fi
+ }                                         # verboseMsg()
+
+#+--------------------------------------------------------------------------+
+function readConfFile
+# Read configuration file /etc/zlma.conf
+# Also set thisUserID and thisSysID - user ID and system ID we are on
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  if [ ! -f $confFile ]; then              # error
+    echo "ERROR: configuration file $confFile not found"
+    exit 1
+  fi
+  local confFileData=`cat $confFile`
+  lpars=`echo "$confFileData" | jq -r '.zlma_srvrs[].lpar' | xargs` # read engineering servers with jq
+  if [ ${#lpars} = 0 ]; then
+    regMsg "ERROR: did not find .lpar values in $confFile"
+    exit 1
+  fi
+  zlmaSrvrs=`echo "$confFileData" | jq -r '.zlma_srvrs[].zlma_srvr' | xargs` # read LPARs with jq
+  if [ ${#zlmaSrvrs} = 0 ]; then
+    regMsg "ERROR: did not find .zlma_srvrs values in $confFile"
+    exit 1
+  fi
+  lpars=($lpars)                           # convert to array
+  zlmaSrvrs=($zlmaSrvrs)                   # convert to array
+  numLPARs="${#lpars[@]}"
+  logLevel=`echo "$confFileData" | grep log_level | awk -F'"' '{print $4}'`
+  if [ "$logLevel" = debug ]; then         # in debug mode
+    verbose=2                              # increase verbosity
+  fi
+  local sysinfo=`cat /proc/sysinfo`        # get sysinfo in memory
+  thisUserID=`echo "$sysinfo" | grep "VM00 Name:" | awk '{print $3}'` # user ID of this server
+  thisSysID=`echo "$sysinfo" | grep "LPAR Name:" | awk '{print $3}'` # system ID (LPAR) 
+ }                                         # readConfFile()
+
+#+--------------------------------------------------------------------------+
+function CPcmd
+# invoke a CP command with the vmcp module/command
+# Args 1-n: the command to issue
+# Return:   the CP return code (not the vmcp rc)
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  local CPrc=0                             # assume CP command succeeds
+  local rc
+
+  verboseMsg "on $thisServer invoking CP command: $vmcpCmd $@"
+  CPout=`$vmcpCmd $@ 2>&1`                 # run the CP command
+  rc=$?
+  if [ "$rc" = 2 ]; then                   # output buffer overflow
+    local bytes=`echo $CPout | awk -F'(' '{print $2}' | awk '{print $1}'`
+    if [[ "$bytes" -gt 1048576 ]]; then    # output too large
+      echo "WARNING: Unable to get CP output of $bytes bytes - larger than 1 MB"
+      return 11                            # so caller can exit 11
+    fi
+    verboseMsg "increasing vmcp buffer size to $bytes bytes and trying again"
+    CPout=`$vmcpCmd --buffer=$bytes $@ 2>&1`
+    local rc2=$?
+    if [ $rc2 != 0 ]; then                 # capture the CP return code after "#"
+      CPrc=`echo $CPout | grep "Error: non-zero CP" | awk -F# '{print $2}'`
+    fi
+  elif [ $rc != 0 ]; then                  # capture the CP return code after "#"
+    CPrc=`echo $CPout | grep "Error: non-zero CP" | awk -F# '{print $2}'`
+  fi
+  if [ ${#CPout} != 0 -a "$CPverbose" != "no" ]; then
+    echo "$CPout"                          # show CP output in verbose mode
+  fi
+  return $CPrc                             # return code from CP
+ }                                         # CPcmd()
+
+#+--------------------------------------------------------------------------+
+function getZlmaServer
+# Given a z/VM system ID, return the engineering server
+# Arg 1: LPAR being queried
+# Return: engineering server host name
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  local theLPAR=$1                         # target z/VM System ID
+  if [ ${#theLPAR} = 0 ]; then             # unexpected
+    echo "INTERNAL ERROR: no args passed to getZlmaServer" | tee -a $logFile
+    exit 3                                 # internal server error
+  fi
+
+  local endIndex
+  let endIndex=$numLPARs-1
+  local i
+  for i in `seq 0 $endIndex`; do
+    if [ "${lpars[$i]}" = "$theLPAR" ]; then # found LPAR
+      echo ${zlmaSrvrs[$i]}
+      return 0                             # success
+    fi
+  done
+  return 1                                 # object not found 
+ }                                         # getZlmaServer()
+
+#+--------------------------------------------------------------------------+
+function getPrivClass
+# get the current user's z/VM privilege class 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  privClass=`sudo vmcp q privclas | grep Currently | awk '{print $2}'`
+ }                                         # getPrivClass()
+

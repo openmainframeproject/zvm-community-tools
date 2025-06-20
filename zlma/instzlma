@@ -1,0 +1,582 @@
+#!/bin/bash
+#
+# instzlma - install zlma onto a Linux on s390x (mainframe) architecture 
+#            user running this must have sudo access
+#
+#+--------------------------------------------------------------------------+
+function usage()
+# Give help to the user
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  echo "instzlma - install zlma onto s390x Linux" 
+  echo "Usage: instzlma [OPTIONS]" 
+  echo ""
+  echo "OPTIONS:"
+  echo "  -h|--help         Give help (this screen)"
+  echo "  -v|--verbose      Increase verbosity"
+  echo "  -x|--debug        Print commands and arguments as they are executed"
+  echo ""
+  exit 51
+ }                                         # usage()
+
+#+--------------------------------------------------------------------------+
+function parseArgs()
+# Parse arguments
+# Args: All arguments passed into script
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  while [ -n "$1" ]                        # loop through args passed in
+  do
+    case "$1" in
+      -h|--help)
+        usage
+        ;;
+      -v|--verbose)
+        verbose=2
+        flags="-v"
+        ;;
+      -x|--debug)                          # turn trace on
+         set -vx
+         ;;
+      *)
+        echo "ERROR: Too many arguments: $1"
+        usage
+        ;;
+    esac
+    shift
+  done
+ }                                         # parseArgs()
+
+#+--------------------------------------------------------------------------+
+function checkBase
+# Check that:
+# - We are running on s390x (zLinux) 
+# - The zlma repo is cloned
+# - Either 'apache' or 'www-data' user exists
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  if [ -f /proc/sysinfo ]; then            # Running on s390x (mainframe)
+    echo "Detected s390x (mainframe) architecture"
+  else                                      # Check if Intel/AMD Linux
+    arch=$(uname -m)
+    if [[ "$arch" == "x86_64" || "$arch" == "i386" || "$arch" == "i686" ]]; then
+      echo "Detected Intel/AMD Linux architecture: $arch"
+    else
+      echo "ERROR: Unsupported architecture: $arch"
+      echo "This installer supports s390x (mainframe) and x86_64 (Intel/AMD) only"
+      exit 1
+    fi
+  fi
+  if [ ! -d $HOME/zlma ]; then
+    echo 'ERROR: zlma repo not found under $HOME' 
+    echo "Try:   cd; git clone https://github.com/mike99mac/zlma"
+    exit 2
+  fi
+  id apache > /dev/null 2>&1
+  if [ $? = 0 ]; then                      # user exists - assume RHEL-based
+    webUser="apache"
+    webDir="/var/log/httpd"
+  else
+    id www-data > /dev/null 2>&1
+    if [ $? = 0 ]; then                    # user exists - assume Debian-based
+      webUser="www-data"
+      webDir="/var/log/apache2"
+    else
+      echo "ERROR: neither user 'apache' nor 'www-data' found - exiting"  | tee -a $outFile
+      exit 3
+    fi
+  fi
+ }                                         # checkBase()
+
+#+--------------------------------------------------------------------------+
+function verboseMsg
+# Write message to stdout when -v|--verbose is set 
+# Args: message to write
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  if [ "$verbose" -gt 1 ]; then            # verbose 
+    echo -e "$@"
+  fi
+ }                                         # verboseMsg()
+
+#+--------------------------------------------------------------------------+
+function runCmd
+# Run a command and exit if it fails
+# Args: command to run
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  cmd="$@"                                 # all args
+
+  echo "  Running: $cmd" | tee -a $outFile
+  eval $cmd 2>&1 
+  rc=$?
+  if [ "$rc" != 0 ]; then                  # it failed
+    echo "ERROR: $cmd returned $rc - exiting"  | tee -a $outFile
+    exit 4
+  fi
+ }                                         # runCmd()
+
+#+--------------------------------------------------------------------------+
+function mkDir
+# Make specified directory, set owner and group to webUser, set group write bit 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  local theDir=$1
+  local rc
+  
+  if [ -d $theDir ]; then                  # directory exists
+    echo "  directory $theDir already exists"
+  else                                     # create directory and set attributes
+    runCmd sudo mkdir -p $theDir
+    runCmd sudo chown $webUser:$webUser $theDir
+    runCmd sudo chmod g+w $theDir
+  fi 
+ }                                         # mkDir
+
+#+--------------------------------------------------------------------------+
+function copyAllFiles 
+# Copy all files from repo directories to new ones
+# Arg 1: source dir
+# Arg 2: target dir
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  local sourceDir=$1
+  local targetDir=$2
+
+  if [ ! -d $theDir ]; then                  # directory exists
+    echo "ERROR: Unexpected - source directory $sourceDir does not exist - exiting" | tee -a $outFile
+    exit 5
+  fi
+  cd $sourceDir
+  runCmd "sudo cp * $targetDir"
+  cd $targetDir
+  runCmd "sudo chown $webUser.$webUser *"
+ }                                         # copyAllFiles()
+
+#+--------------------------------------------------------------------------+
+function copyOneFile
+# Copy one file and set ownership to user running the script 
+# Arg 1: source dir
+# Arg 2: source file
+# Arg 3: target dir
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  local sourceDir=$1
+  local sourceFile=$2
+  local targetDir=$3
+
+  runCmd sudo cp $sourceDir/$sourceFile $targetDir
+  runCmd sudo chown $USER:$USER $targetDir/$sourceFile
+ }                                         # copyOneFile()
+
+#+--------------------------------------------------------------------------+
+function instPackages
+# Install packages with either 'apt' or 'dnf' 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  local cmd
+
+  echo | tee -a $outFile
+  echo "Step 1): Installing packages ..." | tee -a $outFile
+
+  which apt >/dev/null 2>&1
+  if [ $? = 0 ]; then                      # use apt and assume Debian-based
+    cmd="sudo apt install -y apache2 cifs-utils cmake curl gcc git jq locate make libmariadb-dev mariadb-server net-tools pandoc python3 python3-dev python3-pip "
+    runCmd $cmd
+
+    echo | tee -a $outFile
+    echo "Step 2): Setting Apache and mariadb to start at boot time ..." | tee -a $outFile
+    runCmd sudo systemctl enable apache2   # set Apache to start at boot
+  else                                     # no apt, check for dnf
+    which dnf >/dev/null 2>&1
+    if [ $? = 0 ]; then                    # use dnf and assume RHEL-based
+      cmd="sudo dnf install -y bind-utils bzip2-devel cifs-utils cmake curl file gcc git jq libffi-devel make mariadb-connector-c mariadb-connector-c-devel.s390x mariadb-server mlocate net-tools nfs-utils openssl-devel python3 python3-pip tar vim wget zlib-devel"
+      runCmd $cmd 
+
+      echo | tee -a $outFile
+      echo "Step 2): Setting Apache and mariadb to start at boot time ..." | tee -a $outFile
+
+      sudo systemctl enable httpd          # set Apache to start at boot - ignore non-0 rc
+    else
+
+      echo "ERROR: did not find 'apt' nor 'dnf' - exiting" | tee -a $outFile
+      exit 6
+    fi
+  fi
+  runCmd sudo systemctl enable mariadb     # set mariadb to start at boot 
+ }                                         # instPackages()
+
+#+--------------------------------------------------------------------------+
+function mkDirectories
+# Create target directories
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  # make 2 CGI dirs, a log file dir and a directory for console data
+  echo | tee -a $outFile
+  echo "Step 3): Creating directories ..." | tee -a $outFile
+
+  mkDir /srv/www/zlma                      # CGI R/O
+  mkDir /srv/www/zlmarw                    # CGI R/W
+  mkDir /var/log/zlma                      # log files
+  mkDir /srv/consolez                      # console data
+
+  # set attributes of /var/log/'apache|httpd'
+  echo | tee -a $outFile
+  echo "Step 4): Modifying directory /var/log/$webDir ..." | tee -a $outFile
+
+  cd /var/log
+  if [ ! -d $webDir ]; then                # log dir does not exist
+    runCmd sudo mkdir $webDir
+  fi    
+  runCmd sudo chown $webUser:$webUser $webDir
+  runCmd sudo chmod 750 $webDir
+ }                                         # mkDirectories()
+
+#+--------------------------------------------------------------------------+
+function copyFiles
+# Copy files from repo to target directories
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  # copy all files from CGI dirs in repo to new dirs
+  echo | tee -a $outFile
+  echo "Step 5): Copying CGI files from repo to /srv/www ..." | tee -a $outFile
+  copyAllFiles $repoDir/srv/www/zlma   /srv/www/zlma
+  copyAllFiles $repoDir/srv/www/zlmarw /srv/www/zlmarw
+
+  # copy files one at a time to /usr/local/sbin
+  echo | tee -a $outFile
+  echo "Step 6): Copying scripts from repo to /usr/local/sbin ..." | tee -a $outFile
+
+  cd $repoDir/usr/local/sbin
+  local nextFile
+  for nextFile in *; do                    # copy each file to /usr/local/sbin
+    copyOneFile $repoDir/usr/local/sbin $nextFile /usr/local/sbin
+  done
+  copyOneFile $repoDir zlmainfo $HOME      # copy zlmainfo to user's home directory
+ }                                         # copyFiles()
+
+#+--------------------------------------------------------------------------+
+function mkSymlinks() {
+  echo | tee -a $outFile
+  echo "Step 7): Creating symbolic links ..." | tee -a $outFile
+
+  cd /usr/local/sbin
+  if [ ! -h catcons ]; then
+    runCmd sudo ln -s spoolcons catcons    # Point to Python version
+  else
+    echo "  symlink catcons already exists - skipping"    
+  fi
+  if [ ! -h grepcons ]; then
+    runCmd sudo ln -s spoolcons grepcons   # Point to Python version
+  else
+    echo "  symlink grepcons already exists - skipping"    
+  fi
+  if [ ! -h lscons ]; then
+    runCmd sudo ln -s spoolcons lscons     # Point to Python version
+  else
+    echo "  symlink lscons already exists - skipping"    
+  fi
+  if [ ! -h rmcons ]; then
+    runCmd sudo ln -s spoolcons rmcons     # Point to Python version
+  else
+    echo "  symlink rmcons already exists - skipping"    
+  fi
+}
+#+--------------------------------------------------------------------------+
+function mkVenv
+# Make a virtual environment under /srv/venv/ 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+
+  cd /srv/
+  echo | tee -a $outFile
+  echo "Step 8): Creating virtual environment ..." | tee -a $outFile
+
+  /usr/bin/python3.11 -V >/dev/null 2>&1
+  if [ $? = 0 ]; then                      # Python 3.11 is installed - use it
+    pythonCmd="python3.11"
+  fi
+  runCmd sudo $pythonCmd -m venv venv
+  runCmd sudo chown -R $webUser:$webUser /srv/venv 
+  runCmd sudo chmod -R g+w /srv/venv 
+
+  # make a 'python3' symlink
+  cd /srv/venv/lib
+  if [ -d python3.10 ]; then   # 3.10 is the venv Python ver
+    ln -s python3.10 python3
+  elif [ -d python3.11 ]; then # 3.11 is the venv Python ver
+    ln -s python3.11 python3
+  elif [ -d python3.12 ]; then # 3.12 is the venv Python ver
+    ln -s python3.12 python3
+  fi
+
+  echo | tee -a $outFile
+  echo "Step 9): Activating venv ..." | tee -a $outFile
+
+  runCmd source /srv/venv/bin/activate     # activate the virtual environment
+
+  echo | tee -a $outFile
+  echo "Step 10): Upgrading pip ..." | tee -a $outFile
+
+  runCmd "$pythonCmd -m pip install --upgrade pip"
+ }                                         # mkSymlinks()
+
+#+--------------------------------------------------------------------------+
+# function buildConnector 
+# TODO: this is not getting called - should be able to delete it...
+# Download and build the mariadb Python connector
+#+--------------------------------------------------------------------------+
+#{
+# : SOURCE: ${BASH_SOURCE}
+# : STACK:  ${FUNCNAME[@]}
+
+# echo | tee -a $outFile
+# echo "Step 11): Building and installing the mariadb connector ..." | tee -a $outFile
+
+# connectorLib="/usr/local/lib/mariadb/libmariadb.a"
+# if [ -f $connectorLib ]; then
+#   echo "  The mariadb connector $connectorLib seems to be installed - skipping" | tee -a $outFile
+# else                                     # build and install the mariadb connector v3.3.1
+#   connectorVer="mariadb-connector-c-3.2.6-src"
+#   tarFile="$HOME/zlma/$connectorVer.tar.gz"
+#   # wget https://downloads.mariadb.org/connector-c/3.3.1/$tarFile - old file
+#   cd /tmp
+#   runCmd tar -xzf $tarFile 
+#   cd $connectorVer
+#   runCmd "cmake ." | tee -a $outFile
+#   runCmd "cmake --build ." | tee -a $outFile
+#   runCmd "sudo cmake --install ." | tee -a $outFile
+#   if [ ! -f $connectorLib ]; then
+#     echo "ERROR: Library $connectorLib not found - exiting" | tee -a $outFile
+#     exit 8
+#   fi	     
+# fi
+#}                                         # buildConnector()
+
+#+--------------------------------------------------------------------------+
+function pipPackages
+# Install pip packages 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  echo | tee -a $outFile
+  echo "Step 12): Installing pip packages ..." | tee -a $outFile
+  for nextPkg in certifi charset_normalizer idna "mariadb==1.1.4"  mysql-connector-python packaging ply requests setuptools; do
+    runCmd "$pythonCmd -m pip install $nextPkg"  | tee -a $outFile
+  done
+  if [ "$webUser" = apache ]; then         # RHEL-based system
+    runCmd "$pythonCmd -m pip install mariadb==1.1.4" # need older code to not pull in connector/C 3.3.1
+  else
+    runCmd "$pythonCmd -m pip install mariadb"
+  fi
+
+# THIS DID NOT WORK
+  # distutils is not included in Python 3.12, but mariadb still uses it - kludgy workaround:
+#  if [ "$webUser" = "www-data" ]; then     # Debian-based distro
+#   mariadbDir="/srv/venv/lib/python3.12/site-packages/mariadb"
+#   if [ ! -d $mariadbDir ]; then
+#     echo "ERROR: directory $mariadbDir not found" | tee -a $outFile
+#     exit 7
+#   fi
+#   cd $mariadbDir
+#   connFile="connections.py"
+#   if [ ! -f $connFile ]; then
+#     echo "ERROR: executable file $mariadbDir/$connFile not found" | tee -a $outFile
+#     exit 8
+#   fi
+#   runCmd sudo cp connections.py connections.py.orig
+#   runCmd sed -i -e "'s/from distutils.version import StrictVersion/from packaging import version/g'" connections.py
+# fi
+ }                                         # pipPackages()
+
+#+--------------------------------------------------------------------------+
+function confApache 
+# Configure Apache 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  echo | tee -a $outFile
+  echo "Step 13): Configuring Apache" | tee -a $outFile
+
+  if [ "$webUser" = "apache" ]; then      # RHEL-based: remove -DFOREGROUND and copy mime.types
+    svcFile="/usr/lib/systemd/system/httpd.service"
+    if [ ! -f $svcFile.orig ]; then         # no backup
+      runCmd sudo cp $svcFile $svcFile.orig # make a backup
+      runCmd sudo cp $HOME/zlma/httpd.service.RHEL /usr/lib/systemd/system/httpd.service
+      runCmd sudo systemctl daemon-reload   # reload modified file
+    fi
+    runCmd sudo cp /etc/mime.types /etc/httpd/conf # copy mime.types to Apache conf dir
+    runCmd sudo chgrp apache /run/httpd     # change group of run directory
+    runCmd sudo chmod 770 /run/httpd        # change mode to group write
+  else
+    svcFile="/usr/lib/systemd/system/apache2.service"
+    runCmd sudo chmod 770 /var/log/apache2  # change mode to group write
+  fi
+ }                                         # confApache()
+
+#+--------------------------------------------------------------------------+
+function mkCustom 
+# fix programs blocking communications such as firewalls and SE Linux 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  echo | tee -a $outFile
+  echo "Step 14): Customizing environment ..." | tee -a $outFile
+
+  runCmd sudo cp $HOME/zlma/bash_profile $HOME/.bash_profile
+  if [ "$webUser" = "apache" ]; then       # RHEL-based:
+    if [ ! -f /etc/vimrc.orig ]; then
+      runCmd sudo mv /etc/vimrc /etc/vimrc.orig                   
+      runCmd sudo cp $HOME/zlma/vimrc /etc/                       
+    fi
+    if [ -f /etc/zlma.conf ]; then         # already exists
+      echo "/etc/zlma.conf exists - not overwriting"
+    else                                   # copy it
+      runCmd sudo cp $HOME/zlma/zlma.conf /etc/                       
+    fi
+    cd /usr/share/vim/vim8*
+    if [ -f indent.vim ]; then             # turn off annoying indent rules
+      runCmd sudo mv indent.vim indent.vim.dontuse
+    fi
+  else                                     # assume Debian-based  
+    if [ ! -f /etc/vim/vimrc.orig ]; then
+      runCmd sudo mv /etc/vim/vimrc /etc/vim/vimrc.orig                   
+      runCmd sudo cp $HOME/zlma/vimrc /etc/vimrc                       
+    fi
+    cd /usr/share/vim/vim9*
+    if [ -f indent.vim ]; then             # turn off annoying indent rules
+      runCmd sudo mv indent.vim indent.vim.dontuse
+    fi	    
+    cd /usr/share/vim/vim9*/colors
+    if [ -f desert.vim -a ! -f desert.vim.orig ]; then      # replace desert.vim with strange colors
+      runCmd sudo cp desert.vim desert.vim.orig
+      runCmd sudo cp $HOME/zlma/desert.vim . 
+    fi
+  fi	    
+  runCmd sudo cp $HOME/zlma/zlma.conf /etc/                       
+ }                                         # mkCustom()
+
+#+--------------------------------------------------------------------------+
+function fixBlockers
+# fix programs blocking communications such as firewalls and SE Linux
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  echo | tee -a $outFile
+  echo "Step 15): Opening firewall and SE Linux ..." | tee -a $outFile
+
+  which firewall-cmd >/dev/null 2>&1
+  if [ $? = 0 ]; then                      # there is a firewall-cmd command
+    runCmd sudo firewall-cmd --zone=public --add-service=http --permanent # open port 80
+    runCmd sudo firewall-cmd --reload        # reload firewall
+  fi
+  if [ -f /etc/selinux/config ]; then      # SE Linux config file exists
+    grep "^SELINUX=enforcing" /etc/selinux/config >/dev/null 2>&1
+    if [ $? = 0 ]; then                    # SE Linux is enabled
+      runCmd sudo sed -e 's/SELINUX=enforcing/SELINUX=disabled/g' -i /etc/selinux/config
+      runCmd sudo setenforce 0             # turn SE Linux off for this session
+    fi
+  fi
+ }                                         # fixBlockers()
+
+#+--------------------------------------------------------------------------+
+function restartServices
+# Restart mariadb and Apache and show status 
+#+--------------------------------------------------------------------------+
+ {
+  : SOURCE: ${BASH_SOURCE}
+  : STACK:  ${FUNCNAME[@]}
+
+  echo | tee -a $outFile
+  echo "Step 16): restarting mariadb and Apache and checking status..." | tee -a $outFile
+
+  runCmd sudo systemctl restart mariadb
+  echo -n "  Status: "
+  service mariadb status | grep Active:
+  if [ "$webUser" == "apache" ]; then      # RHEL-based
+    runCmd sudo systemctl start httpd
+    echo -n "  Status: "
+    service httpd status | grep Active:
+  else                                     # assume Debian
+    runCmd sudo systemctl start apache2
+    echo -n "  Status: "
+    service apache2 status | grep Active:
+  fi
+ }                                         # restartServices()
+
+# main()
+repoDir="$HOME/zlma"                       # directory with zlma repo 
+timeStamp=`date +"%y-%m-%d-%H-%M-%S"`      # current date and time
+outFile="$HOME/$timeStamp-instzlma.out"    # log file
+pythonCmd="python3"                        # can be python3.11
+verbose=0                                  # 1 = verbose
+webDir="unknown"                           # either '/var/log/apache' or '/var/log/httpd'
+webUser="unknown"                          # either 'apache' or 'www-data'
+
+parseArgs $@                               # process arguments
+checkBase                                  # verify this is s390x
+echo "Running instzlma to install zlma at $timeStamp ..." > $outFile # create a new log file
+instPackages                               # install packages
+mkDirectories                              # make target directories
+copyFiles                                  # copy from repo to targets
+mkSymlinks                                 # create symlinks in /usr/local/sbin
+mkVenv                                     # make a virtual environment
+#buildConnector                             # create the mariadb Python connector
+pipPackages                                # install pip packages
+confApache                                 # set up Apache
+mkCustom                                   # customize environment and vim settings
+fixBlockers                                # fix blockers such as firewall and SE Linux
+restartServices                            # restart mariadb and Apache
+let min=$SECONDS/60
+let sec=$SECONDS%60
+if [ $sec -lt 10 ]; then                   # add a leading 0
+  sec="0$sec"
+fi
+echo
+echo "Successfully installed zlma co-reqs in $min:$sec" | tee -a $outFile
+echo "Log file: $outFile"
+

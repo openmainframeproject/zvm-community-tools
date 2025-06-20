@@ -1,0 +1,130 @@
+#!/bin/bash
+#
+# searchforcons - Search for consoles by user ID or host name 
+#
+#---------------------------------------------------------------------------
+function headerRow
+# create a table header row that spans columns and writes a title in large font
+# Arg 1:    number of columns to span
+# Args 2-n: title
+#---------------------------------------------------------------------------
+ {
+  local cols=$1                            # arg 1
+  shift                                    # get to remaining args
+  local text=$@                            # set the title
+
+  if [ "$cols" = 1 ]; then                 # no need for colspan
+    echo "<tr><th style=\"background-color:$color3;\"><font size=\"+1\">"
+  else
+    echo "<tr><th style=\"background-color:$color3;\" colspan=\"$cols\"><font size=\"+1\">"
+  fi
+  echo "$text</font></th></tr>"            # add text, end font, header and row
+ }                                         # headerRow()
+
+#+--------------------------------------------------------------------------+
+function drawClearButton
+# Draw a button to clear all search filters 
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  echo "<tr>" 
+  echo "<td style=\"text-align:center\"; colspan=\"3\">"
+  echo '<form method=GET action="/zlmarw/searchcons" accept-charset='utf-8'>'
+  echo "<input class=button type=submit style=\"background-color:$color1\"; value=\"Clear filters\">&nbsp;"
+  if [ ${#userIDflt} != 0 ]; then
+    echo "<input type=hidden name=hostFlt value=\"\">"
+  fi
+  if [ ${#systemIDflt} != 0 ]; then
+    echo "<input type=hidden name=systemIDflt value=\"\">"
+  fi
+  if [ ${#}attern} != 0 ]; then
+    echo "<input type=hidden name=pattern value=\"\">"
+  fi
+  echo "</form></td></tr>"  
+ }                                         # drawClearButton()
+
+#+--------------------------------------------------------------------------+
+function showOneRow
+# Show one row of hits 
+# Arg 1   : has the header been drawn? 
+# Arg 2   : LPAR
+# Args 3-n: User IDs
+#+--------------------------------------------------------------------------+
+ {
+  local headerDrawn=$1
+  local LPAR=$2
+  shift 2                                  # move to next arg
+  local userIDs="$@"                       # all remaining args
+
+  if [ "$headerDrawn" = no ]; then         # this is the first row
+#    echo "<h4 align=\"center\">Found $numHits matching servers</h4>"
+    echo '<table class="consolezTable">'   # start table 
+    echo "<tr><th>LPAR</th>"               # start header row
+    echo "<th>User ID 1 ... </th>"       
+    echo "</tr>"                           # end header row
+  fi
+
+  echo "<tr><td>$LPAR</td>"                # start row, show LPAR column
+  local nextUserID
+  for nextUserID in $userIDs; do           # loop through first $numCols user IDs
+    let numHits=$numHits+1                 # increment counter
+    echo "<td bgcolor=\"black\">"
+    echo "<a style=\"color:#40ff00; text-decoration:none;\" href=onecons?$nextUserID&amp;$LPAR>$nextUserID</a></td>"
+  done
+  echo "</tr>"                             # end row
+ }                                         # showOneRow()
+
+#+--------------------------------------------------------------------------+
+function showSavedConsoles
+# This function is  to search form and a 'Search consoles' button
+# Args: none
+#+--------------------------------------------------------------------------+
+ {
+  local envSysID 
+  local foundOne="no"                      # has there been one hit?
+  local nextLine
+  local nextUserID
+  local userID 
+  local hits=""                            # user IDs that match
+
+  if [ "$foundOne" = no ]; then            # no hits
+    echo "<h4>No consoles found matching '$searchString'</h4>"
+  else                                     # at least one hit
+    echo "<h4>Found $numHits consoles found matching '$searchString'</h4>"
+  fi
+ }                                         # showSavedConsoles()
+
+#+--------------------------------------------------------------------------+
+function drawMainTable
+# Draw a table with search criteria for user ID, system ID/environment 
+#   the text patter to search form and a 'Search consoles' button
+#+--------------------------------------------------------------------------+
+ {
+  if [ ${#searchString} != 0 ]; then       # a search string passed in
+    title="$title with pattern '$searchString'" # append pattern searched on
+  fi
+  startPage $title                         # start the Web page
+  echo '<link rel="stylesheet" href="/zlma.css">' # CSS's
+
+  drawSearchBar
+  if [ ${#searchString} = 0 ]; then        # no search string passed in
+    return                                 # all done
+  fi
+  if [ "$numHits" -gt 1 ]; then            # multiple servers found
+    echo "</table><br>"                    # end table, leave some room
+  fi
+ }                                         # drawMainTable()
+
+#+--------------------------------------------------------------------------+
+# global variables
+numHits=0                                  # number of servers matching pattern
+searchString=`echo "$QUERY_STRING" | sed -n 's/^.*searchString=\([^&]*\).*$/\1/p'`
+title="Search for z/VM console"            # page title
+
+# main()
+source /usr/local/sbin/consfuncs           # import common line command functions
+source consuifuncs                         # import common Web UI functions
+checkUser    
+drawMainTable                              # show table with all user IDs that have data 
+drawButtons using-consoles                 # add custom navigation buttons
+

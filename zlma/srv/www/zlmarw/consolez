@@ -1,0 +1,106 @@
+#!/bin/bash
+#
+# consolez - draw one Web page  
+#
+#+--------------------------------------------------------------------------+
+function drawUserIDcell
+# Draw a userID with hot link or an empty cell 
+# Arg 1: system ID it runs on
+# Arg 2: user ID to draw 
+#+--------------------------------------------------------------------------+
+ {
+  local systemID=$1                
+  local userID=$2                 
+ 
+  if [ ${#userID} = 0 ]; then              # no more saved consoles
+    echo "<td>&nbsp;</td>"                 # empty cell 
+  else                                     # show user ID as a hot link
+    echo "<td><a style=\"color:$color;\" href=onecons?$userID&amp;$systemID>$userID</a></td>"
+  fi
+ }                                         # drawUserIDcell()
+
+#+--------------------------------------------------------------------------+
+function drawOneRow
+# Draw one table row for one z/VM LPAR - each row gets max of 10 user IDs
+#   Arg 1    : System ID (LPAR) 
+#   Args 2-n : User IDs that have console data saved
+#+--------------------------------------------------------------------------+
+ {
+  local systemID=$1 
+  shift                                    # skip arg 1
+  local userIDs="$@"                       # remaining user IDs
+  
+  # draw LPAR column and up to $numCols more user IDs
+  local color="green"
+  echo "<tr><td><a style=\"color:$color;\" href=onelpar?$systemID>$systemID</a></td>" # column 1 - the LPAR
+  local nextUserID
+  let colNum=2                             # current column 
+  for nextUserID in $userIDs; do           # loop through max number of user IDs
+    let colNum=$colNum+1                   # increment counter
+    if [ $colNum = $numCols ]; then        # this is the last column 
+      echo "<td><a style=\"color:$color;\" href=onelpar?$systemID>More</a></td>"
+      break                                # out of for loop
+    fi
+    echo "<td bgcolor=\"black\"><a style=\"color:#40ff00; text-decoration:none;\" href=onecons?$nextUserID&amp;$systemID>$nextUserID</a></td>"
+  done
+
+  # draw empty cells, if needed 
+  while [ $colNum -lt $numCols ]; do       # need some empty cells 
+    echo "<td>&nbsp;</td>"                 # empty cell 
+    let colNum=$colNum+1                   # increment counter
+  done
+  echo "</tr>"                             # end row
+ }                                         # drawOneRow{}
+
+#+--------------------------------------------------------------------------+
+function drawMainTable
+# Produce a table with console data 
+# Args: none 
+#+--------------------------------------------------------------------------+
+ {
+  startPage $title                         # start the Web page
+  echo '<link rel="stylesheet" href="/zlma.css">'
+  drawButtons using-consoles
+
+  local consoleData
+  consoleData=`/usr/local/sbin/lscons`     # list all saved consoles from the Web UI
+  rc=$?
+  if [ "$rc" != 0 ]; then                  # not expected
+    startTable
+    startRow "#FF6666"                     # draw row in light red
+    if [ "$rc" = 1 ]; then
+      echo "<td><h3>ERROR!</h3><p>No data found by lscons</p>"
+    else
+      echo "<td><h3>Unexpected!</h3><p>/usr/local/sbin/lscons returned $rc</p>"
+    fi
+    echo "<p>$consoleData</p>"             # error message is the data
+    echo "</td></tr></table>"              # end cell, row and table
+    exit 3                                 # internal server error
+  fi  
+
+  # draw the table
+  echo "<h3 align='center'>$title</h3>"
+  drawSearchBar                            # enable searching for consoles
+  echo '<table class="consolezTable">'     # start a consolez table 
+  local nextRow                            # next row from test 
+  exec 3<&0                                # Link file descriptor #3 with stdin
+  while read -u 3 nextRow; do              # read from file descriptor 3
+    drawOneRow $nextRow
+  done 3< <(echo "$consoleData")           # all rows from last test are input
+  echo "</table>"       
+ }                                         # drawMainTable()
+
+#+--------------------------------------------------------------------------+
+# global variables
+consolezUser="none"                        # user this script is running as
+curCEC="none"                              # the current CEC being processed
+flags="-s"                                 # default is succinct output
+role="none"
+title="zlma Console data"                  # page title
+
+# main()
+source /usr/local/sbin/consfuncs           # import common line command functions
+source consuifuncs                         # import common Web UI functions
+#checkUser      
+drawMainTable                              # show table with all LPARs and tests 
+
