@@ -1,0 +1,1407 @@
+Marist 1996 VM Workshop Tools Tape Contribution, CP mods for VM/ESA 2.1.0                                                           
+                                                                                                                                    
+ADDR Command:                                                                                                                       
+This mod will add a new command to VM/ESA called ADDR. This command will                                                            
+display information about a "terminal", including its address, devicetype                                                           
+and other info depending on what kind of device it is.  It can be used on all                                                       
+types of workstations, including SNA devices and logical devices.  In the                                                           
+case of an SNA device, the LU name will be displayed.  If it is run on a                                                            
+logical device, the owner of the device will be displayed.                                                                          
+                                                                                                                                    
+The mod consists of a new module, HCPADR and minor changes to HCPCOM, HCPMDLAT                                                      
+COPY and HCPLDL.  The change to HCPCOM to define the new command, ADDR.  The                                                        
+changes to HCPMDLAT COPY and HCPLDL are to add the new module to the system.                                                        
+                                                                                                                                    
+This mod was developed on a VM/XA system, and later ported to VM/ESA.  The                                                          
+current version should run on all levels of VM/ESA ESA feature from 1.1.0                                                           
+through 2.1.0.  However, future levels shouldn't be a problem either.                                                               
+                                                                                                                                    
+Questions or problems with this mod should be directed to Martha McConaghy,                                                         
+Marist College, URMM@VM.MARIST.EDU (914) 575-3252.                                                                                  
+                                                                                                                                    
+FILE: HCPCOM   ADDRCMD  E1                                                                                                          
+./ I 02534991          $ 2535000 100                  10/31/89 18:31:26                                                             
+************************************************************** ADDRCMD   0582671                                                    
+*                                                            * ADDRCMD   0583470                                                    
+*  ADDR COMMAND                                              * ADDRCMD   0584269                                                    
+*                                                            * ADDRCMD   0585068                                                    
+************************************************************** ADDRCMD   0585867                                                    
+                                                       SPACE , ADDRCMD   0586666                                                    
+ADDR     DS    0F                                              ADDRCMD   0587465                                                    
+         COMMD COMMAND=(ADDR,4),FL=CMDALOG+CMDONLY,                    *05882640                                                    
+               CLASS=*,EP=HCPADRES                             ADDRCMD   0589063                                                    
+                                                       SPACE , ADDRCMD   0589862                                                    
+                                                                                                                                    
+                                                                                                                                    
+FILE: HCPMDLAT ADDRCMD  E1                                                     1                                                    
+./ I 61920002          $ 61920100 100                 10/30/89 10:51:36                                                             
+         AIF   ('&NAME'(1,6)     NE  'HCPADR'  AND   (NOT &HCPLLST)   )*31781000                                                    
+               .EHCPADR                                        ADDRCMD   3178200                                                    
+         HCPATTRB HCPADR,MODATTR=(PAG,MP,DYN),                         *31783000                                                    
+               EP=((HCPADRES,DYN))                             ADDRCMD   3178400                                                    
+         AIF   ('&HCPATTRC' EQ '0').MDLATEX     IF FOUND, EXIT ADDRCMD   3178500                                                    
+.EHCPADR ANOP  ,                                               ADDRCMD   3178600                                                    
+.**************************************************************ADDRCMD   3178000                                                    
+                                                                                                                                    
+FILE: HCPLDL   ADDRCMD  E1                                                                                                          
+./ * CO-REQ: HCPADR                                                                                                                 
+./ * IF-REQ: NONE                                                                                                                   
+./ * FORCE REASSEMBLY FOR HCPADR MOD FOR HCPMDLAT MACRO                                                                             
+                                                                                                                                    
+FILE: HCPADR   ASSEMBLE E1                                                                                                          
+ADR      TITLE 'HCPADR     (CP)        VM/ESA R 1.0'                    00000100                                                    
+         ISEQ  73,80          VALIDATE SEQUENCING OF INPUT              00000200                                                    
+         COPY  HCPOPTNS                                                 00000300                                                    
+HCPADR   HCPPROLG ATTR=(PAGEABLE,REENTERABLE),BASE=(R12)                00000400                                                    
+*                                                                       00000500                                                    
+* MODULE NAME - HCPADR                                                  00000600                                                    
+*                                                                       00000700                                                    
+* DESCRIPTIVE NAME - ADDR COMMAND                                       00000800                                                    
+*                                                                       00000900                                                    
+* STATUS - VM/ESA 1.0 ESA                                               00001000                                                    
+*                                                                       00001100                                                    
+* FUNCTION - To process the ADDR command.                               00001200                                                    
+*                                                                       00001300                                                    
+* NOTES -                                                               00001400                                                    
+*                                                                       00001500                                                    
+*    DEPENDENCIES - THIS MODULE REQUIRES THE USE OF THE IBM SYS         00001600                                                    
+*                   370 - XA SERIES OF PROCESSORS RUNNING IN 370        00001700                                                    
+*                   MODE.                                               00001800                                                    
+*                                                                       00001900                                                    
+*    REGISTER CONVENTIONS - SYMBOLIC REFERENCES TO REGISTERS AR         00002000                                                    
+*                           THE FORM "RX" WHERE X IS A NUMBER R         00002100                                                    
+*                           FROM 0 TO 15.                               00002200                                                    
+*                                                                       00002300                                                    
+* MODULE TYPE - PROCEDURE                                               00002400                                                    
+*                                                                       00002500                                                    
+*   PROCESSOR - ASSEMBLER H, VERSION 2 R1                               00002600                                                    
+*                                                                       00002700                                                    
+*   ATTRIBUTES - REENTRANT, PAGEABLE                                    00002800                                                    
+*                                                                       00002900                                                    
+* ENTRY POINT -                                                         00003000                                                    
+*                                                                       00003100                                                    
+*               HCPADRES - PROCESS THE ADDR COMMAND                     00003200                                                    
+*                                                                       00003300                                                    
+* EXTERNAL REFERENCES -                                                 00003400                                                    
+*                                                                       00003500                                                    
+*   ROUTINES -                                                          00003600                                                    
+*                                                                       00003700                                                    
+*        HCPCVTBH - To convert binary to hex                            00003800                                                    
+*        HCPLDAFE - Fetch the LDD for a logical device         LDEV     00003830                                                    
+*        HCPLDARE - Return LDD to system                       LDEV     00003860                                                    
+*        HCPLSOTR - Translate the device number into hex                00003900                                                    
+*                                                                       00004100                                                    
+*   DATA AREAS -                                                        00004200                                                    
+*                ADRMSG   - Message response DSECT                      00004300                                                    
+*                                                                       00004400                                                    
+*   CONTROL BLOCKS -                                                    00004500                                                    
+*                HCPCSLPL - REQUIRED FOR HCPCONSL MACRO                 00004550                                                    
+*                HCPEQUAT - SYSTEM EQUATES                              00004600                                                    
+*                HCPPFXPG - PREFIX AREA PAGE                            00004700                                                    
+*                HCPRDCBK - REAL DEVICE CHARACTERISTIC BLOCK            00004800                                                    
+*                HCPRDEV  - REAL DEVICE BLOCK                           00004900                                                    
+*                HCPSAVBK - SAVE AREA                                   00005000                                                    
+*                HCPSYSCM - SYSTEM COMMON AREA                          00005100                                                    
+*                HCPVMDBK - INVOKER'S VMDBK                             00005200                                                    
+*                                                                       00005300                                                    
+* MACROS -                                                              00005400                                                    
+*          HCPCALL  - STANDARD SYSTEM CALLING LINKAGE                   00005500                                                    
+*          HCPCONSL - Write results to the user's console      ADCONSL  00005550                                                    
+*          HCPDROP  - RELEASE ADDRESSABILITY                            00005600                                                    
+*          HCPENTER - DEFINITION OF EXECUTABLE ENTRY POINT              00005700                                                    
+*          HCPEPILG - GENERATE MODULE EPILOG                            00005800                                                    
+*          HCPEXIT  - RETURN TO CALLER                                  00005900                                                    
+*          HCPGETST - GET FREE STORAGE                                  00006000                                                    
+*          HCPRELST - RELEASE FREE STORAGE                              00006100                                                    
+*          HCPUSING - ESTABLISH ADDRESSABILITY                          00006200                                                    
+*                                                                       00006300                                                    
+* ABEND CODES -  NONE                                                   00006400                                                    
+*                                                                       00006500                                                    
+* RESPONSE -                                                            00006600                                                    
+*            DEVICE XXXXX ON SYSTEM VVVVVVVV TYPE TTTTTTTT              00006700                                                    
+*                 or                                           LDEV     00006860                                                    
+*     Device XXXXX on System VVVVVVVV Type TTTTTTTT Owner OOOOOLDEV     00006920                                                    
+*            for logical devices                               LDEV     00006980                                                    
+*                                                                       00007100                                                    
+*                                                                       00007200                                                    
+         SPACE 3                                                        00007300                                                    
+         EXTRN HCPLDAFE      Fetch LDD for logical devs        LDEV     00007450                                                    
+         EXTRN HCPLDARE      Return LDD for logical devs       LDEV     00007500                                                    
+         EXTRN HCPLSOTR      Translate raddr for printing      LDEV     00007550                                                    
+         EXTRN HCPCVTBH      Convert binary to ebcdic          LDEV     00007600                                                    
+*                                                                       00007700                                                    
+         COPY  HCPCSLPL      Console parameter list            LDEV     00007820                                                    
+         COPY  HCPPFXPG      Prefix page                       LDEV     00007890                                                    
+         COPY  HCPSYSCM      System common block               LDEV     00007960                                                    
+         COPY  HCPSAVBK      Save area                         LDEV     00008030                                                    
+         COPY  HCPEQUAT      Common equates                    LDEV     00008100                                                    
+         COPY  HCPVMDBK      VMDBK                             LDEV     00008170                                                    
+         COPY  HCPRDEV       Real Device block                 LDEV     00008240                                                    
+         COPY  HCPSNABK      SNA device block                  LDEV     00008310                                                    
+         COPY  HCPRDCBK      Real dev characteristics block    LDEV     00008380                                                    
+         EJECT                                                          00008600                                                    
+         HCPUSING PFXPG,0                                               00008700                                                    
+         HCPUSING VMDBK,R11                                             00008800                                                    
+         HCPUSING SAVBK,R13                                             00008900                                                    
+*                                                                       00009000                                                    
+HCPADRES HCPENTER CALL,SAVE=DYNAMIC                                     00009100                                                    
+*                                                                       00009200                                                    
+*  Get storage for response buffer and set up text.            LDEV     00009250                                                    
+         LA    R0,ADRMSGDL        GET SIZE OF RESPONSE                  00009300                                                    
+         HCPGETST LEN=(R0)        GET STORAGE BLOCK                     00009400                                                    
+         LR    R3,R1              Save address of block        LDEV     00009540                                                    
+         HCPUSING ADRMSG,R3                                             00009600                                                    
+         MVI   ADRMSG,C' '        CLEAR OUT RESPONSE BUFF               00009700                                                    
+         MVC   ADRMSG1(ADRMSGDL*8-1),ADRMSG                             00009800                                                    
+         MVC   TXT1,=C'Device '   Insert text into message     LDEV     00009940                                                    
+         MVC   TXT2,=C' on system  '                                    00010000                                                    
+         MVC   TXT3,=C'  type  '                                        00010100                                                    
+*                                                                       00010200                                                    
+* Now, find the RDEV block and determine if it is a SNA device.LDEV     00010250                                                    
+         L     R8,VMDRTERM        GET ADDRESS OF RDEVBLOK               00010300                                                    
+         HCPUSING RDEV,R8                                               00010400                                                    
+         ICM   R1,B'1111',RDEVSNA  IS THERE A SNABK BLOCK?              00010500                                                    
+         BNZ   SNADEV              Yes then get SNA info                00010600                                                    
+*                                                              LDEV     00010710                                                    
+* For non-SNA devices, get raddr and device type.              LDEV     00010720                                                    
+         LA    R1,RADDR            Set location of buffer      LDEV     00010730                                                    
+         HCPCALL HCPLSOTR          GET ADDRESS OF TERMINAL              00010800                                                    
+         L     R7,RDEVRDCA         GET DEVICE CHAR BLOCK                00010900                                                    
+         HCPUSING RDCBK,R7                                              00011000                                                    
+         SR    R1,R1               CLEAR OUT REG                        00011100                                                    
+         MVC   DEVTYP(2),RDCDVID   Get device type             LDEV     00011240                                                    
+         LH    R1,DEVTYP                                                00011300                                                    
+         HCPCALL HCPCVTBH          Convert it to EBCDIC        LDEV     00011410                                                    
+         STM   R0,R1,DEVTYP        Put back in buffer          LDEV     00011420                                                    
+*                                                              LDEV     00011430                                                    
+* Determine if we are on a logical device.  If so, then        LDEV     00011440                                                    
+*   get the owner of the device too.                           LDEV     00011450                                                    
+         L     R1,RDEVLSOP         Get pointer to LSOBJ        LDEV     00011460                                                    
+         LTR   R1,R1               Are we on a LDEV?           LDEV     00011470                                                    
+         BZ    SYSTEMID            NO, then finish up          LDEV     00011480                                                    
+         LH    R1,RDEVDEV          Get LDEV number             LDEV     00011490                                                    
+*  The call to HCPLDAFE locks the LDDBK for the logical device.LDEV     00011500                                                    
+*  It must be released before leaving the module.              LDEV     00011510                                                    
+         HCPCALL HCPLDAFE          Fetch LDDBK for device      LDEV     00011520                                                    
+         LTR   R15,R15             Did we find one?            LDEV     00011530                                                    
+         BNZ   SYSTEMID            NO, something's wrong       LDEV     00011540                                                    
+         LR    R4,R2               Save VMDBK addr for owner   LDEV     00011550                                                    
+         HCPCALL HCPLDARE          Release lock on LDDBK       LDEV     00011560                                                    
+         MVC   LOWNER,VMDUSER-VMDBK(R4) Get owner's ID         LDEV     00011570                                                    
+         MVC   TXT4,=C' Owner  '                               LDEV     00011580                                                    
+         B     SYSTEMID                                                 00011600                                                    
+*                                                                       00011700                                                    
+* If user is on a SNA device, set the device type to SNA       LDEV     00011730                                                    
+*  and set address to LU name.                                 LDEV     00011760                                                    
+SNADEV   L     R1,RDEVSNA          Get address of SNABK                 00011800                                                    
+         HCPUSING SNABK,R1                                              00011900                                                    
+         MVC   RADDR,SNALUN        Move in the LU name                  00012000                                                    
+         MVC   DEVTYP,=C' SNA    '                                      00012100                                                    
+         HCPDROP R1                                                     00012200                                                    
+*                                                                       00012300                                                    
+*  Finish up by setting the system ID field.                   LDEV     00012350                                                    
+SYSTEMID L     R1,PFXSYS                                                00012400                                                    
+         HCPUSING SYSCM,R1                                              00012500                                                    
+         MVC   SYSID,SYSTMID       Get system id from SYSCM    LDEV     00012640                                                    
+         HCPDROP R1                                                     00012700                                                    
+*                                                                       00012800                                                    
+*  Write the message to the user's console and release the     LDEV     00012860                                                    
+*  storage.                                                    LDEV     00012920                                                    
+PRTMSG   DS    0H                                              ADCONSL  00012990                                                    
+         HCPCONSL WRITE,DATA=((R3),ADRMSGL)                    ADCONSL  00013080                                                    
+         HCPRELST BLOCK=(R3)                                   ADCONSL  00013170                                                    
+         HCPEXIT  EP=(HCPADRES),SETCC=NO                                00013400                                                    
+         EJECT                                                          00013500                                                    
+*                                                              LDEV     00013530                                                    
+*  Define block for resulting message.                         LDEV     00013560                                                    
+ADRMSG   DSECT                                                          00013600                                                    
+TXT1     DS    CL8                "DEVICE "                    LDEV     00013740                                                    
+RADDR    DS    CL8                                                      00013800                                                    
+TXT2     DS    CL12               " ON SYSTEM "                         00013900                                                    
+SYSID    DS    CL8                                                      00014000                                                    
+TXT3     DS    CL8                " TYPE "                              00014100                                                    
+DEVTYP   DS    CL8                                                      00014300                                                    
+TXT4     DS    CL8                " OWNER  "                   LDEV     00014330                                                    
+LOWNER   DS    CL8                                             LDEV     00014360                                                    
+ADRMSGL  EQU   (*-ADRMSG)         LENGTH OF RESPONSE                    00014400                                                    
+ADRMSGDL EQU   (*-ADRMSG+7)/8     LENGTH OF RES IN DW                   00014500                                                    
+ADRMSG1  EQU   ADRMSG+1                                                 00014600                                                    
+         EJECT                                                          00014700                                                    
+HCPADR   CSECT                                                          00014800                                                    
+         LTORG                                                          00014900                                                    
+         HCPDROP R3,R7,R8,R11,R13                                       00015000                                                    
+         HCPEPILG                                                       00015100                                                    
+                                                                                                                                    
+*******************************************************************************                                                     
+Reformat QUERY NAMES command:                                                                                                       
+                                                                                                                                    
+The purpose of this mod is to reformat the output of the QUERY NAMES command.                                                       
+The results of this command on a vanilla system includes the address of                                                             
+where the virtual machine is running or 'DSC' for disconnected machines.                                                            
+On a large system, such as a 9672-R42E, this can generate several screens                                                           
+worth of data and is confusing to unsophisticated users.  This mod removes                                                          
+the address from the display, and shows 8 virtual machine names on each line.                                                       
+This greatly decreases the size of the display.                                                                                     
+                                                                                                                                    
+In addition, this mod adds several new options to the command.  The 'ALL'                                                           
+option shows all virtual machines running on the system, whether they                                                               
+are connected or not.  This is the default.  The 'DISCONNECT' option shows                                                          
+only those machines that are running disconnected, while 'CONNECT' shows                                                            
+only connected machines.  Finally, 'SNA' shows only those machines that                                                             
+are logged onto the system via a *VSM connection (ie. VTAM or TCPIP).                                                               
+                                                                                                                                    
+The following is an example of how the QUERY NAMES command looks after                                                              
+this mod:                                                                                                                           
+                                                                                                                                    
+query names all                                                                                                                     
+                                                                                                                                    
+STSS     KMMQ     STMQ     URCG     URBP     UICOMM   SYS$MMM  SYS$DKB                                                              
+URDB     UIHD     JZEM     MUSICB   URLS     URMJ     KK3R     HDPOPR1                                                              
+XAMWRITE MUSICC   MUSICA   SERVDIR  HDPCNTRL VMNET    MARISTA  MARISTC                                                              
+MARISTB  SPSSBAT  PRT3820  PDMREM1  PDMGRP3  SFCM     RSCS     MAILER                                                               
+LISTSERV SIM3278  SQL2DBA  NETSERV  RSCSX    GCS      AUTOLINK OPERSYMP                                                             
+URMM2                                                                                                                               
+                                                                                                                                    
+query names disconnect                                                                                                              
+                                                                                                                                    
+STSS     KMMQ     STMQ     JZEM     MUSICB   XAMWRITE MUSICC   MUSICA                                                               
+HDPCNTRL VMNET    MARISTA  MARISTC  MARISTB  SPSSBAT  PRT3820  PDMREM1                                                              
+PDMGRP3  SFCM     RSCS     MAILER   LISTSERV SIM3278  SQL2DBA  NETSERV                                                              
+RSCSX    GCS      AUTOLINK OPERSYMP                                                                                                 
+                                                                                                                                    
+query names connect                                                                                                                 
+                                                                                                                                    
+URCG     URBP     UICOMM   SYS$MMM  SYS$DKB  URDB     UIHD     URLS                                                                 
+URMJ     KK3R     HDPOPR1  SERVDIR  URMM2                                                                                           
+                                                                                                                                    
+query names sna                                                                                                                     
+                                                                                                                                    
+VSM     - VTAM                                                                                                                      
+URCG    -LM020B2A                                                                                                                   
+VSM     - TCPIPA                                                                                                                    
+VSM     - TCPIPB                                                                                                                    
+VSM     - TCPIP                                                                                                                     
+VSM     - TCPIPC                                                                                                                    
+                                                                                                                                    
+The mod contained in this file is running on VM/ESA ESA 1.0.                                                                        
+Problems, questions or comments should be sent to the mod developer,                                                                
+Martha McConaghy   URMM@MARIST (BITNET) or URMM@VM.MARIST.EDU (Internet)                                                            
+Senior VM Systems Programmer                                                                                                        
+Marist College                                                                                                                      
+Poughkeepsie, NY  12601                                                                                                             
+(914) 575-3252                                                                                                                      
+6/24/96                                                                                                                             
+                                                                                                                                    
+FILE: HCPCQU   QNAMES   E1                                                                                                          
+./ R 02540001          $ 2544991 4990                 02/15/96 10:54:59                                                             
+*        2. PLACE FIELD IN BUFFER EIGHT TO A LINE.           * QNAMES   02544991                                                    
+./ R 02612401 02616001 $ 2612691 290                  02/15/96 10:54:59                                                             
+*        +----------+--------------------+                   * QNAMES   02612691                                                    
+*        |  QUERY   |  NAMES   <ALL>     |                   * QNAMES   02612981                                                    
+*        |  QUERY   |          <DISCONN> |                   * QNAMES   02613271                                                    
+*        |  QUERY   |          <CONNECT> |                   * QNAMES   02613561                                                    
+*        |  QUERY   |          <SNA>     |                   * QNAMES   02613851                                                    
+*        +----------+--------------------+                   * QNAMES   02614141                                                    
+*    ALL   - PRINTS ALL CONNECTED AND DISCONNECTED USERS     * QNAMES   02614431                                                    
+*    DISCONN- PRINTS ONLY DISCONNECTED USERS                 * QNAMES   02614721                                                    
+*    CONNECT- PRINTS ONLY CONNECTED USERS                    * QNAMES   02615011                                                    
+*    SNA    - PRINTS ALL SNA USERS W/LUNAMES                 * QNAMES   02615301                                                    
+*                                                            * QNAMES   02615591                                                    
+./ R 02640001 02660001 $ 2646991 6990                 02/15/96 10:54:59                                                             
+* USERID USERID USERID USERID USERID USERID USERID USERID    * QNAMES   02646991                                                    
+* ...                                                        * QNAMES   02653981                                                    
+*   -                                                        * QNAMES   02660971                                                    
+./ I 02930001          $ 2932001 2000                 02/15/96 10:54:59                                                             
+         LA    R0,1(0)       GET BLOCK FOR QNAMOP              QNAMES   02932001                                                    
+         HCPGETST  LEN=(R0)                                    QNAMES   02934001                                                    
+         LR    R9,R1                                           QNAMES   02936001                                                    
+         HCPUSING  QNAMOP,R9                                   QNAMES   02938001                                                    
+./ R 02942001 02960001 $ 2942991 990                  02/15/96 10:54:59                                                             
+         BNZ   SETDEF        NO OPERANDS?  SET TO 'ALL'        QNAMES   02942991                                                    
+         LR    R6,R0         SAVE LENGTH                       QNAMES   02943981                                                    
+         BCTR  R6,0                                            QNAMES   02944971                                                    
+* CHECK OPERANDS                                               QNAMES   02945961                                                    
+         EX    R6,CLCALL                                       QNAMES   02946951                                                    
+         BE    SETDEF                                          QNAMES   02947941                                                    
+         EX    R6,CLCDISC    QUERY DISCONNECTED USERS?         QNAMES   02948931                                                    
+         BNE   CONNECT       NO, NEXT ONE                      QNAMES   02949921                                                    
+         MVI   QNAMFLG,QDISC  SET DISCONNECT FLAG              QNAMES   02950911                                                    
+         B     QRYSTRT       GO DO IT                          QNAMES   02951901                                                    
+CONNECT  EX    R6,CLCCONN    QUERY CONNECTED USERS?            QNAMES   02952891                                                    
+         BNE   SNAUSRS       NO, NEXT ONE                      QNAMES   02953881                                                    
+         MVI   QNAMFLG,QCONN  SET CONNECT FLAG                 QNAMES   02954871                                                    
+         B     QRYSTRT       GO DO IT                          QNAMES   02955861                                                    
+SNAUSRS  EX    R6,CLCSNA     QUERY SNA USERS?                  QNAMES   02956851                                                    
+         BNE   SETDEF        NO, THEN DO ALL ANYWAY            QNAMES   02957841                                                    
+         MVI   QNAMFLG,QSNA   SET SNA FLAG                     QNAMES   02958831                                                    
+         B     QRYSTRT       GO DO IT                          QNAMES   02959821                                                    
+SETDEF   MVI   QNAMFLG,QALL  SET ALL FLAG                      QNAMES   02960811                                                    
+QRYSTRT  DS    0H                                              QNAMES   02961801                                                    
+./ I 04180001          $ 4183001 3000                 02/15/96 10:54:59                                                             
+         TM    QNAMFLG,QSNA  DISPLAY SNA USERS                 QNAMES   04183001                                                    
+         BO    QRYSNA                                          QNAMES   04186001                                                    
+./ R 04310001 04320001 $ 4314991 4990                 02/15/96 10:54:59                                                             
+         BZ    CHKDISC    NO, SO THIS IS A NON-SNA USER        QNAMES   04314991                                                    
+         TM    VMDOSTAT,VMDDISC                                QNAMES   04319981                                                    
+         BO    CHKDISC                                         QNAMES   04324971                                                    
+./ R 04350001          $ 4354991 4990                 02/15/96 10:54:59                                                             
+         BZ    CHKCONN    NO, SO THIS IS A NON-SNA USER        QNAMES   04354991                                                    
+./ R 04370001 04380001 $ 4375991 5990                 02/15/96 10:54:59                                                             
+         BNE   CHKCONN        NOPE - REGULAR Q NAMES           QNAMES   04375991                                                    
+DONXT    C     R10,VMDORIG-VMDBK(,R11) END IF UNDER SYS VMDBK  QNAMES   04381981                                                    
+./ R 04430001 04480001 $ 4437991 7990                 02/15/96 10:54:59                                                             
+*QRYNISF1 DS    0H                                             QNAMES   04437991                                                    
+*        CL    R10,VMDORIG-VMDBK(,R11) BACK TO START?          QNAMES   04445981                                                    
+*        BE    QRYMSGL       YES - GO STACK GSDBK AND GET SNA  QNAMES   04453971                                                    
+*                            PART OF THE RESPONSE              QNAMES   04461961                                                    
+*        L     R10,VMDCYCLE  LOAD NEXT VMDBK ADDRESS           QNAMES   04469951                                                    
+*        B     QRYCONT       CHECK IF THIS IS A NON-SNA USER   QNAMES   04477941                                                    
+./ I 04500001          $ 4500901 900                  02/15/96 10:54:59                                                             
+CHKDISC  TM    QNAMFLG,QALL   CHECK FOR 'ALL' OR 'DISC'        QNAMES   04500901                                                    
+         BO    QRYGETID                                        QNAMES   04501801                                                    
+         TM    QNAMFLG,QDISC                                   QNAMES   04502701                                                    
+         BO    QRYGETID                                        QNAMES   04503601                                                    
+         B     DONXT                                           QNAMES   04504501                                                    
+CHKCONN  TM    QNAMFLG,QALL    CHECK FOR 'ALL' OR 'CONN'       QNAMES   04505401                                                    
+         BO    QRYGETID                                        QNAMES   04506301                                                    
+         TM    QNAMFLG,QCONN                                   QNAMES   04507201                                                    
+         BO    QRYGETID                                        QNAMES   04508101                                                    
+         B     DONXT                                           QNAMES   04509001                                                    
+./ R 04620001          $ 4620991 990                  02/15/96 10:54:59                                                             
+         CLC   VMDUSER(4),=C'LOGN'  IS IT A PRE-LOGON?         QNAMES   04620991                                                    
+         BE    QRYGTID3      YES, THEN GET NEXT USERID         QNAMES   04621981                                                    
+         CLC   VMDUSER(4),=C'LOGL' IS IT A PRE-LOGON?          QNAMES   04622971                                                    
+         BE    QRYGTID3                                        QNAMES   04623961                                                    
+         CLC   VMDUSER(4),=C'LOGV'  IS IT A SNA PRELOGON?      QNAMES                                                               
+         BE    QRYGTID3                                        QNAMES                                                               
+         MVC   0(L'VMDUSER,R6),VMDUSER    GET USERID           QNAMES   04624951                                                    
+./ R 04810001 04830001 $ 4816991 6990                 02/15/96 10:54:59                                                             
+*        BZ    QYGTID2A                LOCAL OR LOGICAL IS OK. QNAMES   04816991                                                    
+*        CL    R10,VMDORIG-VMDBK(,R11) BACK TO START?          QNAMES   04823981                                                    
+*        BE    QRYMSGL       YES - GO STACK GSDBK AND GET SNA          *04830971                                                    
+./ R 04990001 05000001 $ 4995991 5990                 02/15/96 10:54:59                                                             
+         MVI   L'VMDUSER(R6),C' '  SPACE OVER                  QNAMES   04995991                                                    
+         LA    R6,9(R6)        BUMP TO NEXT SEGMENT            QNAMES   05001981                                                    
+./ R 05210001          $ 5212991 2990                 02/15/96 10:54:59                                                             
+         TM    QNAMFLG,QSNA  DISPLAY SNA USERS?                QNAMES   05212991                                                    
+         BNO   QRYEXIT       GET SNA PART OF THE RESPONSE      QNAMES   05215981                                                    
+./ I 05250001          $ 5252001 2000                 02/15/96 10:54:59                                                             
+         TM    QNAMFLG,QSNA  DISPLAY SNA USERS?                QNAMES   05252001                                                    
+         BO    QRYSNA        GET SNA PART OF RESPONSE          QNAMES   05254001                                                    
+         HCPRELST BLOCK=(R9)                                   QNAMES   05256001                                                    
+         B     QRYEXIT                                         QNAMES   05258001                                                    
+./ I 05260001          $ 5265001 5000                 02/15/96 10:54:59                                                             
+         HCPDROP R9                                            QNAMES   05265001                                                    
+./ I 05370001          $ 5371001 1000                 02/15/96 10:54:59                                                             
+         HCPRELST BLOCK=(R9)                                   QNAMES   05371001                                                    
+./ I 05930001          $ 5935001 5000                 02/15/96 10:54:59                                                             
+         HCPUSING NRESP,R6                                     QNAMES   05935001                                                    
+./ I 06340001          $ 6342001 2000                 02/15/96 10:54:59                                                             
+CLCALL   CLC   0(*-*,R1),=C'ALL '                              QNAMES   06342001                                                    
+CLCDISC  CLC   0(*-*,R1),=C'DISCONN '                          QNAMES   06344001                                                    
+CLCCONN  CLC   0(*-*,R1),=C'CONNECT '                          QNAMES   06346001                                                    
+CLCSNA   CLC   0(*-*,R1),=C'SNA '                              QNAMES   06348001                                                    
+./ R 15680001          $ 15684991 4990                02/15/96 10:54:59                                                             
+QRYNCNT  EQU   8             8 QUERY NAMES PER LINE            QNAMES   15684991                                                    
+./ I 16290001          $ 16290801 800                 02/15/96 10:54:59                                                             
+************************************************************   QNAMES   16290801                                                    
+*    DSECT FOR DETERMINING TYPE OF Q NAMES OPERANDS        *   QNAMES   16291601                                                    
+************************************************************   QNAMES   16292401                                                    
+         SPACE 2                                               QNAMES   16293201                                                    
+QNAMOP   DSECT                                                 QNAMES   16294001                                                    
+QNAMFLG  DS    X               OPERAND FLAG                    QNAMES   16294801                                                    
+QALL     EQU   X'0F'           PRINT ALL OF THE USERS          QNAMES   16295601                                                    
+QDISC    EQU   X'08'           PRINT ONLY DISCONNECT USERS     QNAMES   16296401                                                    
+QCONN    EQU   X'04'           PRINT ONLY CONNECT USERS        QNAMES   16297201                                                    
+QSNA     EQU   X'82'           PRINT ONLY SNA USERS            QNAMES   16298001                                                    
+         EJECT                                                 QNAMES   16298801                                                    
+                                                                                                                                    
+*****************************************************************************                                                       
+Secure QUERY NAMES command:                                                                                                         
+                                                                                                                                    
+This mod implements a more 'secure' version of the QUERY NAMES command.                                                             
+It allows you to hide certain virtual machines from view in the results                                                             
+of the QUERY NAMES.  It does this by defining a new OPTION in the directory,                                                        
+SECURE.  When the QUERY NAMES command is processed, it will not display the                                                         
+names of virtual machines with the SECURE option, unless the invoker                                                                
+has class A, C or E.                                                                                                                
+                                                                                                                                    
+This mod has two benefits.  First, the less curious students see, the better.                                                       
+This is obviously not a foolproof security system and is not meant to prevent                                                       
+hackers from breaking into a guest machine.  However, it also does not present                                                      
+them with temptation.  The addition of the SECURE option also implies other                                                         
+future possibilities.  For example, the 'QUERY vmname' command could be                                                             
+modified to respect the option.                                                                                                     
+                                                                                                                                    
+A second, unexpected benefit was to 'clean up' the QUERY NAMES display.                                                             
+Normal, class G users, such as our students, use the QUERY NAMES to see if                                                          
+they friends are online.  This is made difficult when the results include                                                           
+dozens of service machines, guest systems, etc.  By using the SECURE option,                                                        
+the general users see only a list of other users or service machines to                                                             
+which they have access, ie. LISTSERV, etc.  We have had very positive                                                               
+feedback on this from our users.                                                                                                    
+                                                                                                                                    
+This mod consists of two parts.  First, it adds the SECURE parameter to                                                             
+the OPTION record in the directory.  Along with this, it utilizes one of                                                            
+the installation flags in the VMDBLK to indicate that the SECURE option                                                             
+is on.  The second part of the mod, modifies the QUERY NAMES command to                                                             
+skip those machines who have SECURE on.  This part of the mod is dependent                                                          
+on another Marist mod, QNAMES, which reformats the results of the                                                                   
+QUERY NAMES command.  However, the code could be rewritten to work on                                                               
+a vanilla version of HCPCQU.                                                                                                        
+                                                                                                                                    
+This mod was developed on VM/ESA ESA 1.0 service level 9202.  This level                                                            
+was modified to run on VM/ESA 2.1.0.  Questions                                                                                     
+or problems with it should be directed to the author,                                                                               
+                                                                                                                                    
+Martha McConaghy   URMM@MARIST or URMM@VM.MARIST.EDU                                                                                
+Senior VM Systems Programmer                                                                                                        
+Marist College                                                                                                                      
+Poughkeepsie, NY  12601                                                                                                             
+(914) 575-3252                                                                                                                      
+6/24/96                                                                                                                             
+                                                                                                                                    
+                                                                                                                                    
+Moduled changed:  HCPCQU                                                                                                            
+                  HCPDIR                                                                                                            
+                  HCPLGN                                                                                                            
+                                                                                                                                    
+Copy blocks changed:  HCPVMDBK                                                                                                      
+                      HCPDVMD                                                                                                       
+                                                                                                                                    
+                                                                                                                                    
+                                                                                                                                    
+FILE: HCPDIR   SECQNAM  E1                                                                                                          
+./ R 54601954          $ 54602000 50                  02/14/92 11:14:45                                                             
+OPTLEN3C DS    0H            LENGTH IS AT LEAST 3              SECQNAM  10339100                                                    
+         SPACE 1                                               SECQNAM  10339110                                                    
+         COMP  =C'SECURE   ',SCOPTCMP  IS IT 'SECURE'?         SECQNAM  10339120                                                    
+         BNE   OPTLEN3D                NO, CHECK NEXT OPTION   SECQNAM  10339130                                                    
+         SPACE 1                                               SECQNAM  10339140                                                    
+         OI    DVMDMARS,DVMDSEC   TURN ON SECURE   FLAG BIT    SECQNAM  10339150                                                    
+         B     OPTGET             Go scan for the next option  SECQNAM  10339160                                                    
+         SPACE 1                                               SECQNAM  10339170                                                    
+OPTLEN3D DS    0H                                              SECQNAM  10339180                                                    
+                                                                                                                                    
+FILE: HCPDVMD  SECQNAM  E1                                                                                                          
+./ R 02610002          $ 2611000 100                  05/13/94 10:41:29                                                             
+*        DS    X             RESERVED FOR FUTURE IBM USE       SECQNAM  01730001                                                    
+DVMDMARS DS    1X            USE FOR MARIST FLAGS              SECQNAM                                                              
+DVMDSEC  EQU   X'01'         MARIST SECURE OPTION IS ON        SECQNAM                                                              
+                                                                                                                                    
+FILE: HCPVMDBK SECQNAM  E1                                                                                                          
+./ R 23620002          $ 23621000 100                 05/13/94 10:37:17                                                             
+*MDUSER3 DS    F              RESERVED FOR INSTALLATION USE    SECQNAM  22340001                                                    
+VMDMARFL DS    X              MARIST FLAGS                     SECQNAM                                                              
+VMDSECUR EQU   X'01'          INDICATE SECURE USER             SECQNAM                                                              
+VMDUSER3 DS    3X             PLACE HOLDER FOR REST OF SPACE   SECQNAM                                                              
+                                                                                                                                    
+FILE: HCPLGN   SECQNAM  E1                                                                                                          
+./ R 07730001          $ 7730100 100                  02/14/92 11:16:31                                                             
+         BNO   LGNSETSC           BRANCH IF NOT                SECQNAM  08048300                                                    
+./ I 07740001          $ 7740100 100                  02/14/92 11:16:31                                                             
+LGNSETSC DS    0H                                              SECQNAM  08048890                                                    
+         TM    DVMDMARS,DVMDSEC   IS SECURE   OPTION SPECIFIED?SECQNAM  08048900                                                    
+         BNO   LGNSETOR           Branch if not                SECQNAM  08048910                                                    
+         OI    VMDMARFL,VMDSECUR  SET SECURE   BIT IN VMDBK    SECQNAM  08048920                                                    
+                                                                                                                                    
+FILE: HCPCQU   SECQNAM  E1                                                                                                          
+./ R 03760001          $ 3760100 100                  09/25/90 17:10:15                                                             
+*    DETERMINE IF THIS IS A PRIVILEDGED USER - CLASS A, C      SECQNAM  02420890                                                    
+*    OR E CAN SEE ALL USERS, REGARDLESS OF VMDSECUR FLAG       SECQNAM  02421780                                                    
+         TM    VMDPCLB0,CLASSA  IS THIS A CLASS A USER?        SECQNAM  02422670                                                    
+         BO    SETSECR          YES, SET SECURITY FLAG         SECQNAM  02423560                                                    
+         TM    VMDPCLB0,CLASSC  IS THIS A CLASS C USER?        SECQNAM  02424450                                                    
+         BO    SETSECR          YES, SET SECURITY FLAG         SECQNAM  02425340                                                    
+         TM    VMDPCLB1,CLASSO  IS THIS A CLASS O USER?        SECQNAM  02424450                                                    
+         BO    SETSECR          YES, SET SECURITY FLAG         SECQNAM  02425340                                                    
+         TM    VMDPCLB0,CLASSE  IS THIS A CLASS E USER?        SECQNAM  02426230                                                    
+         BNO   DOQRY            NO, THEN GO ON WITH IT         SECQNAM  02427120                                                    
+SETSECR  OI    QNAMFLG,QSECUR   SET SECURITY FLAG ON           SECQNAM  02428010                                                    
+DOQRY    L     R10,VMDORIG-VMDBK(,R11) FIRST VMDBK             SECQNAM  02428900                                                    
+./ R 04300001          $ 4300100 100                  09/25/90 17:10:15                                                             
+         TM    VMDMARFL,VMDSECUR   IS THIS A SECURE ACCOUNT?   SECQNAM  02546590                                                    
+         BNO   DOITNOW             NOPE, THEN DISPLAY IT       SECQNAM  02546680                                                    
+         TM    QNAMFLG,QSECUR      ARE WE PRIVILEDGED?         SECQNAM  02546770                                                    
+         BNO   DONXT               THEN SKIP IT.               SECQNAM  02546860                                                    
+DOITNOW  ICM   R8,B'1111',VMDRTERM  IS THERE AN RDEV?          SECQNAM  02546950                                                    
+./ R 16298001          $ 16298100 100                 09/25/90 17:10:15                                                             
+QSNA     EQU   X'12'           PRINT ONLY SNA USERS            SECQNAM  10478190                                                    
+QSECUR   EQU   X'80'           QUERY SECURE USERS              SECQNAM  10478380                                                    
+                                                                                                                                    
+******************************************************************************                                                      
+                                                                                                                                    
+Set FROM command:                                                                                                                   
+                                                                                                                                    
+          Modules affected: HCPFRM, HCPMSG, HCPQUY, HCPSET, HCPSFV,                                                                 
+                            HCPLDL, HCPMDLAT MACRO, HCPVMDBK COPY                                                                   
+          This mod creates the SET and QUERY FROM commands.  It creates                                                             
+          a field in the VMDBK from the VMDUSERx fields, which will hold                                                            
+          an 8 character text string.  This string is created by the                                                                
+          SET FROM command and can be displayed using QUERY FROM.  The                                                              
+          mod also changes spooling and message processing to make use                                                              
+          of this field when spooling a file to another vm or sending                                                               
+          a message.  Essentially, this mod allows a privileged user to                                                             
+          "fake" their userid when sending a file, or message.                                                                      
+                                                                                                                                    
+          This mod was developed for VM/XA and the current version will                                                             
+          on VM/ESA 2.1.0.  Martha McConaghy 6/24/96                                                                                
+                                                                                                                                    
+FILE: HCPSET   FROMCMD  E1                                                                                                          
+./ I 04010001          $ 4010100 100                  03/07/90 15:59:45                                                             
+************************************************************   FROMCMD  00396500                                                    
+*                                                          *   FROMCMD  00396550                                                    
+* SET FROM COMMAND                                         *   FROMCMD  00396600                                                    
+*                                                          *   FROMCMD  00396650                                                    
+************************************************************   FROMCMD  00396700                                                    
+                                                       SPACE , FROMCMD  00396750                                                    
+         COMMD COMMAND=(FROM,4),EP=HCPFRMST,IBMCLASS=A,                *00395450                                                    
+               CLASS=B                                         FROMCMD  00396800                                                    
+                                                       SPACE , FROMCMD  00396850                                                    
+         COMMD COMMAND=(FROM,4),EP=HCPFRMST,IBMCLASS=B,                *00395450                                                    
+               CLASS=B                                         FROMCMD  00396800                                                    
+                                                       SPACE , FROMCMD  00396850                                                    
+         COMMD COMMAND=(FROM,4),EP=HCPFRMST,IBMCLASS=C,                *00395450                                                    
+               CLASS=C                                         FROMCMD  00396800                                                    
+                                                       SPACE , FROMCMD  00396850                                                    
+                                                                                                                                    
+FILE: HCPQUY   FROMCMD  E1                                                                                                          
+./ I 06369991          $ 6370100 100                  03/07/90 15:55:16                                                             
+************************************************************   FROMCMD  00524220                                                    
+*                                                          *   FROMCMD  00524290                                                    
+* QUERY FROM COMMAND                                       *   FROMCMD  00524360                                                    
+*                                                          *   FROMCMD  00524430                                                    
+************************************************************   FROMCMD  00524500                                                    
+                                                       SPACE , FROMCMD  00524570                                                    
+         COMMD COMMAND=(FROM,4),EP=HCPFRMQU,                           *00524640                                                    
+               CLASS=A,IBMCLASS=A                              FROMCMD  00524710                                                    
+         COMMD COMMAND=(FROM,4),EP=HCPFRMQU,                           *00524780                                                    
+               CLASS=B,IBMCLASS=B                              FROMCMD  00524850                                                    
+         COMMD COMMAND=(FROM,4),EP=HCPFRMQU,                           *00524920                                                    
+               CLASS=C,IBMCLASS=C                              FROMCMD  00524990                                                    
+                                                                                                                                    
+FILE: HCPMSU   FROMCMD  E1                                                                                                          
+./ I 00845980          $ 846980 1000                  05/08/94 15:35:24                                                             
+         COPY  HCPVMDBK                                        FROMCMD  00846980                                                    
+./ I 02370000          $ 2371000 1000                 05/08/94 15:35:24                                                             
+*  Marist Comments:                                            FROMCMD                                                              
+*                                                              FROMCMD                                                              
+*     5/8/94:  Modifications to support the FROM command have  FROMCMD                                                              
+*              been added by Martha McConaghy.  This mod will  FROMCMD                                                              
+*              zap the userid portion of the message header    FROMCMD                                                              
+*              if a FROM value has been set using the SET      FROMCMD                                                              
+*              FROM command.                                   FROMCMD                                                              
+*                                                              FROMCMD                                                              
+./ R 02480000 02560000 $ 2485990 5990                 05/08/94 15:35:24                                                             
+         HCPUSING VMDBK,R11                                    FROMCMD  02486990                                                    
+         HCPUSING MSGPLIST,R1                                  FROMCMD  02493980                                                    
+         CLI   VMDFROM,C' '       Check if From is on?         FROMCMD  02500970                                                    
+         BE    LEAVEIT            No, then bye.                FROMCMD  02507960                                                    
+         CLI   VMDFROM,X'00'      Check this one too..         FROMCMD  02514950                                                    
+         BE    LEAVEIT            No, bye.                     FROMCMD  02521940                                                    
+*  SMSG and MSGNOH have no header field, so there is nothing   FROMCMD                                                              
+*  to zap.  Therefore, exit if its either of those two types.  FROMCMD                                                              
+         L     R2,MSGTYPPT        Now, check type of message   FROMCMD  02528930                                                    
+         CLI   0(R2),MESSAGE      Is it a message?             FROMCMD  02535920                                                    
+         BE    SETFROM            Good, zap it.                FROMCMD  02542910                                                    
+         CLI   0(R2),WARNING      Is it a warning?             FROMCMD  02549900                                                    
+         BE    SETFROM            Zap that too.                FROMCMD  02556890                                                    
+./ R 02586990          $ 2590980 3990                 05/08/94 15:35:24                                                             
+LEAVEIT  SLR   R15,R15                   SET RETURN CODE OF 0  FROMCMD  02590980                                                    
+./ I 02603940          $ 2604040 100                  05/08/94 15:35:24                                                             
+SETFROM  DS    0H                                              FROMCMD  02604040                                                    
+*  Zap the "from" part of the message header with our          FROMCMD                                                              
+*  version of "from".                                          FROMCMD                                                              
+         L     R2,MSGTXTPT        Get pointer to pointer       FROMCMD  02604140                                                    
+         L     R3,0(R2)           Get pointer to actual text   FROMCMD  02604240                                                    
+         MVC   12(8,R3),VMDFROM   Overlay USERID with from txt FROMCMD  02604340                                                    
+         B     LEAVEIT            All done here                FROMCMD  02604440                                                    
+./ R 02605920          $ 2606310 390                  05/08/94 15:35:24                                                             
+         HCPDROP R1,R11,R13                                    FROMCMD  02606310                                                    
+./ I 02612850          $ 2612950 100                  05/08/94 15:35:24                                                             
+*  These equates map the message type flag in the Plist        FROMCMD                                                              
+*  pointed to by MSGTYPPT.  See comments in beginning of       FROMCMD                                                              
+*  module for definitions.                                     FROMCMD                                                              
+MESSAGE  EQU   X'80'                                           FROMCMD  02612950                                                    
+MSGNOH   EQU   X'40'                                           FROMCMD  02613050                                                    
+SMSG     EQU   X'20'                                           FROMCMD  02613150                                                    
+WARNING  EQU   X'10'                                           FROMCMD  02613250                                                    
+./ I 02620000          $ 2620900 900                  05/08/94 15:35:24                                                             
+*  The following DSECT maps the Plist passed to this module    FROMCMD                                                              
+*  in R1.  The descriptions of each pointer in the Plist are   FROMCMD                                                              
+*  located at the beginning of this module.                    FROMCMD                                                              
+MSGPLIST DSECT                                                 FROMCMD  02621000                                                    
+MSGCTLPT DS    1F       Ptr to delivery control flags          FROMCMD  02622000                                                    
+MSGTYPPT DS    1F       Ptr to message type flag and class     FROMCMD  02623000                                                    
+MSGISSPT DS    1F       Ptr to Issuer userid, reference only   FROMCMD  02624000                                                    
+MSGLENPT DS    1F       Ptr to length of message               FROMCMD  02625000                                                    
+MSGTXTPT DS    1F       Ptr to Ptr to message text             FROMCMD  02626000                                                    
+MSGRECPT DS    1F       Ptr to userid of message               FROMCMD  02627000                                                    
+MSGHLNPT DS    1F       Ptr to length of header                FROMCMD  02628000                                                    
+                                                                                                                                    
+FILE: HCPSFV   FROMCMD  E1                                                                                                          
+./ I 04010000          $ 4010900 900                  11/06/89 13:24:22                                                             
+*                                                              FROMCMD  04010900                                                    
+*  TEST FOR VMDFROM FLAG - SET FROM USERID                     FROMCMD  04011800                                                    
+*                                                              FROMCMD  04012700                                                    
+         LTR   R8,R8         IS THERE AN ALTERNATE USER?       FROMCMD  04013600                                                    
+         BNZ   NOFRMSET      YES, THEN FORGET IT               FROMCMD  04014500                                                    
+         CLI   VMDFROM-VMDBK(R15),X'00' IS FROM SET?           FROMCMD  04015400                                                    
+         BE    NOFRMSET                                        FROMCMD  04016300                                                    
+         CLI   VMDFROM-VMDBK(R15),C' '  IS FROM SET?           FROMCMD  04017200                                                    
+         BE    NOFRMSET                                        FROMCMD  04018100                                                    
+         MVC   SPFORIG,VMDFROM-VMDBK(R15)                      FROMCMD  04019000                                                    
+./ R 04030000          $ 4034990 4990                 11/06/89 13:24:22                                                             
+NOFRMSET LA    R4,SPFOPUN    ASSUME PUNCH IS CREATING          FROMCMD  04034990                                                    
+                                                                                                                                    
+FILE: HCPLDL   FROMCMD  E1                                                                                                          
+./ * CO-REQ: HCPADR                                                                                                                 
+./ * IF-REQ: NONE                                                                                                                   
+./ * FORCE REASSEMBLY FOR HCPFRM MOD FOR HCPMDLAT MACRO                                                                             
+                                                                                                                                    
+FILE: HCPMDLAT FROMCMD  E1                                                                                                          
+./ I 66830002          $ 66830100 100                 11/05/89 16:15:53                                                             
+         AIF   ('&NAME'(1,6)     NE  'HCPFRM'  AND   (NOT &HCPLLST)   )*27692200                                                    
+               .EHCPFRM                                        FROMCMD  27692400                                                    
+         HCPATTRB HCPFRM,MODATTR=(PAG,MP,DYN),                         *27692600                                                    
+               EP=((HCPFRMST,DYN),(HCPFRMQU,DYN))              FROMCMD  27692800                                                    
+         AIF   ('&HCPATTRC' EQ '0').MDLATEX     IF FOUND, EXIT FROMCMD  27693000                                                    
+.EHCPFRM ANOP  ,                                               FROMCMD  27693200                                                    
+.**************************************************************FROMCMD  27693400                                                    
+                                                                                                                                    
+FILE: HCPVMDBK FROMCMD  E1                                                                                                          
+./ R 23600002 23610002 $ 23611000 100                 02/12/92 15:01:54                                                             
+*MDUSER1 DS    F              RESERVED FOR INSTALLATION USE    FROMCMD  18114990                                                    
+*MDUSER2 DS    F              RESERVED FOR INSTALLATION USE    FROMCMD  18119980                                                    
+VMDFROM  DS   2F              FROM FLAG WAS VMDUSER1 AND 2     FROMCMD  18124970                                                    
+                                                                                                                                    
+FILE: HCPFRM   ASSEMBLE E1                                                                                                          
+FRM      TITLE 'HCPFRM     (CP)        VM/XA SP 2'                 SPR3 00001000                                                    
+         ISEQ  73,80          VALIDATE SEQUENCING OF INPUT              00011000                                                    
+         COPY  HCPOPTNS                                                 00021000                                                    
+HCPFRM   HCPPROLG ATTR=(PAGEABLE,REENTERABLE),BASE=(R12)                00031000                                                    
+*.                                                                      00041000                                                    
+* MODULE NAME -                                                         00051000                                                    
+*                                                                       00061000                                                    
+*        DMKFRM                                                         00071000                                                    
+*                                                                       00081000                                                    
+* FUNCTION -                                                            00091000                                                    
+*                                                                       00101000                                                    
+*        TO PROCESS THE FOLLOWING USER-WRITTEN SET COMMAND              00111000                                                    
+*        FUNCTIONS:                                                     00121000                                                    
+*                                                                       00131000                                                    
+*              SET FROM                                                 00141000                                                    
+*              QUERY FROM                                               00151000                                                    
+*                                                                       00161000                                                    
+* ATTRIBUTES -                                                          00171000                                                    
+*                                                                       00181000                                                    
+*        REENTRANT, PAGEABLE, CALLED VIA SVC                            00191000                                                    
+*                                                                       00201000                                                    
+* ENTRY POINTS -                                                        00211000                                                    
+*                                                                       00221000                                                    
+*        HCPFRMST - PROCESS SET FROM COMMAND                            00231000                                                    
+*        HCPFRMQU - PROCESS QUERY FROM COMMAND                          00241000                                                    
+*                                                                       00251000                                                    
+* ENTRY CONDITIONS -                                                    00261000                                                    
+*                                                                       00271000                                                    
+*        R0, R1, R2, R3 - WORK                                          00281000                                                    
+*        R4, R5 - USED IN STACK                                         00291000                                                    
+*        R6  - FUNCTION INDEX,VMDBK ANCHOR                              00301000                                                    
+*        R7  - QUERY PARM ADDR                                          00311000                                                    
+*        R8  - QUERY PARM LENGTH                                        00321000                                                    
+*        R11 - VMDBK ADDRESS                                            00331000                                                    
+*        R12 - ENTRY POINT ADDRESS                                      00341000                                                    
+*        R13 - SAVEAREA ADDRESS                                         00351000                                                    
+*                                                                       00361000                                                    
+* EXIT CONDITIONS -                                                     00371000                                                    
+*                                                                       00381000                                                    
+*        NORMAL - R2 = 0                                                00391000                                                    
+*        ERROR  - R2 = ERROR MESSAGE CODE NUMBER                        00401000                                                    
+*                                                                       00411000                                                    
+* CALLS TO OTHER ROUTINES -                                             00421000                                                    
+*                                                                       00431000                                                    
+*         HCPSCCFD - FIND NEXT ENTRY IN INPUT BUFFER                    00451000                                                    
+*                                                                       00461000                                                    
+* EXTERNAL REFERENCES -                                                 00471000                                                    
+*                                                                       00481000                                                    
+* TABLES/WORKAREAS -                                                    00491000                                                    
+*                                                                       00501000                                                    
+*        SAVBK   WORK AREAS USED FOR SCRATCH DATA                       00511000                                                    
+*        VMDBK   The VMDBK for the caller.                     CONSOLE  00512000                                                    
+*                                                              CONSOLE  00513000                                                    
+*  MACROS -                                                    CONSOLE  00514000                                                    
+*                                                              CONSOLE  00515000                                                    
+*        HCPCONSL  WRITE TO USER'S TERMINAL                    CONSOLE  00516000                                                    
+*                                                                       00521000                                                    
+* REGISTER USAGE -                                                      00531000                                                    
+*                                                                       00541000                                                    
+*        R0 -  Work                                            CONSOLE  00556990                                                    
+*        R1 -  Work                                            CONSOLE  00562980                                                    
+*        R2 -  PARAMETER PASSING                                        00571000                                                    
+*        R3 -  Length of message                               CONSOLE  00586990                                                    
+*        R4 -  Address of message block                        CONSOLE  00592980                                                    
+*        R5-R10 - Work                                         CONSOLE  00598970                                                    
+*        R11 - VMDBLOK ADDRESS                                 CONSOLE  00604960                                                    
+*        R12 - BASE REGISTER                                            00611000                                                    
+*        R13 - SAVEAREA ADDRESS                                         00621000                                                    
+*        R14 - LINKAGE REGISTER                                         00631000                                                    
+*        R15 - LINKAGE REGISTER                                         00641000                                                    
+*                                                                       00651000                                                    
+*                                                                       00661000                                                    
+* NOTES -                                                               00671000                                                    
+*                                                                       00681000                                                    
+*        THE OPERATION OF EACH SET FUNCTION IS DESCRIBED IN ITS         00691000                                                    
+*        INDIVIDUAL PROLOGUE BELOW.                                     00701000                                                    
+*                                                                       00711000                                                    
+*.                                                                      00721000                                                    
+         EJECT                                                          00731000                                                    
+         EXTRN HCPSCCFD                                                 00751000                                                    
+         EJECT                                                          00761000                                                    
+         PUNCH 'SPB'         FORCE PAGE BOUNDARY ALIGNMENT             00771000                                                    
+         SPACE 3                                                        00781000                                                    
+*  HCPCSLPL is required for the HCPCONSL macro                 CONSOLE  00795990                                                    
+         COPY HCPCSLPL        console parm list                CONSOLE  00800980                                                    
+         COPY HCPEQUAT        commonly used equates            CONSOLE  00805970                                                    
+         COPY HCPPFXPG        prefix page, needed by macros    CONSOLE  00810960                                                    
+         COPY HCPSAVBK        module save area block           CONSOLE  00815950                                                    
+         COPY HCPVMDBK        VM data blocks                   CONSOLE  00820940                                                    
+*                                                                       00831000                                                    
+         HCPUSING VMDBK,R11                                             00851000                                                    
+         HCPUSING PFXPG,R0                                     CONSOLE  00856000                                                    
+         HCPUSING SAVBK,R13                                             00861000                                                    
+         SPACE 3                                                        00871000                                                    
+         EJECT                                                          00881000                                                    
+*.                                                                      00891000                                                    
+* FUNCTION -                                                            00901000                                                    
+*                                                                       00911000                                                    
+*        SET FROM                                                       00921000                                                    
+*                                                                       00931000                                                    
+* COMMAND FORMAT -                                                      00941000                                                    
+*                                                                       00951000                                                    
+*        CLASS A, B, OR C                                               00961000                                                    
+*                                                                       00971000                                                    
+*        +-------+-----------------+                                    00981000                                                    
+*        |  SET  |  FROM XXXXXXXX  |                                    00991000                                                    
+*        +-------+-----------------+                                    01001000                                                    
+*                                                                       01011000                                                    
+* OPERATION -                                                           01021000                                                    
+*                                                                       01031000                                                    
+FILE: HCPFRM   ASSEMBLE E1                VM/ESA                     3                                                              
+*        1.    CALL DMKSCCFD TO LOCATE THE USERID.  IF NO USERID        01041000                                                    
+*              FOUND, BLANK OUT VMDFROM                                 01051000                                                    
+*        2.    MOVE THE PARAMETER TO THE VMDBK.                         01061000                                                    
+*        3.    ISSUE THE 'COMMAND COMPLETE' MESSAGE AND EXIT.           01071000                                                    
+*                                                                       01081000                                                    
+* RESPONSES -                                                           01091000                                                    
+*                                                                       01101000                                                    
+*        COMMAND COMPLETE                                               01111000                                                    
+*                                                                       01121000                                                    
+* ERROR MESSAGES -                                                      01131000                                                    
+*                                                                       01141000                                                    
+*        DMKFRM002E INVALID OPERAND                                     01151000                                                    
+*                                                                       01161000                                                    
+*.                                                                      01171000                                                    
+         EJECT                                                          01181000                                                    
+HCPFRMST HCPENTER CALL,SAVE=DYNAMIC                              FROM   01191000                                                    
+         MVC   SETFROM,BLANKS Initialize save area             CONSOLE  01207990                                                    
+         CALL  HCPSCCFD       Scan for FROM parameter          CONSOLE  01214980                                                    
+         BNZ   CLRFRM         No parm?  Then set to blanks     CONSOLE  01221970                                                    
+         CL    R0,EIGHT       Is the parm length too long?     CONSOLE  01228960                                                    
+         BH    FRM002         Yes, then give error             CONSOLE  01235950                                                    
+         LR    R2,R0          Get length                       CONSOLE  01242940                                                    
+         BCTR  R2,0           less 1 for execute               CONSOLE  01249930                                                    
+         EX    R2,FROMSAVE    Store FROM parameter             CONSOLE  01256920                                                    
+*                                                              CONSOLE  01263910                                                    
+*  To get rid of previous FROM value, reset field              CONSOLE  01270900                                                    
+*  to blanks.  Blanks are the same as no FROM being set.       CONSOLE  01277890                                                    
+CLRFRM   DS    0H                                                       01291000                                                    
+         MVC   VMDFROM(8),SETFROM  Move FROM value to VMDBK    CONSOLE  01310990                                                    
+         B     FRMCOMSG        All done, then leave.           CONSOLE  01320980                                                    
+*.                                                                      01351000                                                    
+* FUNCTION -                                                            01361000                                                    
+*                                                                       01371000                                                    
+*        QUERY FROM                                                     01381000                                                    
+*                                                                       01391000                                                    
+* COMMAND FORMAT -                                                      01401000                                                    
+*                                                                       01411000                                                    
+*        CLASS A, B, OR C                                               01421000                                                    
+*                                                                       01431000                                                    
+*        +-------+--------+                                             01441000                                                    
+*        | QUERY |  FROM  |                                             01451000                                                    
+*        +-------+--------+-----+                                       01461000                                                    
+*        | QUERY |  FROM USERID |                                       01471000                                                    
+*        +-------+--------------+                                       01481000                                                    
+*                                                                       01491000                                                    
+* OPERATION -                                                           01501000                                                    
+*                                                                       01511000                                                    
+*        1.    PRINT THE MESSAGE AND EXIT                               01521000                                                    
+*                                                                       01531000                                                    
+* RESPONSES -                                                           01541000                                                    
+*                                                                       01551000                                                    
+*        COMMAND COMPLETE                                               01561000                                                    
+*                                                                       01571000                                                    
+* ERROR MESSAGES -                                                      01581000                                                    
+*                                                                       01591000                                                    
+*                                                                       01601000                                                    
+*.                                                                      01611000                                                    
+         EJECT                                                          01621000                                                    
+HCPFRMQU HCPENTER CALL,SAVE=DYNAMIC                             FROM    01631000                                                    
+QRYFROM  DS    0H                                                       01641000                                                    
+         CALL  HCPSCCFD           Are there more parameters?   CONSOLE  01660990                                                    
+         BZ    MASSQRY            Yes, must be mass query      CONSOLE  01670980                                                    
+         CLI   VMDFROM,C' '       Is there a FROM set for us?  CONSOLE  01680970                                                    
+         BE    NEGRESP            No, then say so.             CONSOLE  01690960                                                    
+         CLI   VMDFROM,X'00'      Same check.                  CONSOLE  01700950                                                    
+         BE    NEGRESP            No, then say so too.         CONSOLE  01710940                                                    
+*  Build response for QUERY FROM command                       CONSOLE  01720930                                                    
+         MVC   FROMC,FROM         Move in "From:"              CONSOLE  01730920                                                    
+         MVC   FROMID,VMDFROM     Move in From userid          CONSOLE  01740910                                                    
+         HCPCONSL WRITE,DATA=(FROMC,LMSGDS) Write it and leave CONSOLE  01750900                                                    
+         B     FRMCOMSG                                        CONSOLE  01760890                                                    
+         SPACE 1                                                        01871000                                                    
+*  If user specified a parameter, search VMDBK chain for any maCONSOLE  01885990                                                    
+*  that have that FROM value set.                              CONSOLE  01890980                                                    
+MASSQRY  DS    0H                                              CONSOLE  01895970                                                    
+         MVI   QRYFLAG,MSGCLEAR   Clear the flag before beginniCONSOLE  01900960                                                    
+         CL    R0,EIGHT       Is the parm length too long?     CONSOLE  01905950                                                    
+         BH    FRM002         Yes, then give error             CONSOLE  01910940                                                    
+         LR    R8,R0          Save the length                  CONSOLE  01915930                                                    
+         BCTR  R8,0           less 1 for execute               CONSOLE  01920920                                                    
+         LR    R7,R1          Save parameter                   CONSOLE  01925910                                                    
+         L     R10,VMDORIG    Point to system vmdbk            CONSOLE  01930900                                                    
+         L     R10,VMDCYCLE-VMDBK(R10)  POINT TO FIRST ACTIVE VNEWOUT   01941000                                                    
+         HCPDROP  R11                                                   01951000                                                    
+         HCPUSING VMDBK,R10                                             01961000                                                    
+         MVC   USERC,USERTXT   Move in "Userid:"               CONSOLE  01980990                                                    
+         MVC   FROMC,FROM      Move in "From:"                 CONSOLE  01990980                                                    
+*  Now loop through VMDBK chain looking for anyone who has     CONSOLE  02000970                                                    
+*  the specified FROM set, or whose USERID equals the FROM.    CONSOLE  02010960                                                    
+QRYNXT   DS    0H                                                       02041000                                                    
+         TM    VMDCFLAG,VMDLOGON  Is vm logging on?            CONSOLE  02058990                                                    
+         BO    QRYCHKEN           Yes, skip it.                CONSOLE  02066980                                                    
+         EX    R8,CLCUSR          Does USERID match FROM parm? CONSOLE  02074970                                                    
+         BE    QRYMSG             Yes, then print it           CONSOLE  02082960                                                    
+         EX    R8,CLCFROM         Does FROM field match parm?  CONSOLE  02090950                                                    
+         BE    QRYMSG             Yes, then print it           CONSOLE  02098940                                                    
+QRYCHKEN DS    0H                                                       02111000                                                    
+         CL    R10,VMDORIG-VMDBK(,R11)  ARE WE AT THE START?   NEWOUT   02121000                                                    
+         BE    QRYDONE            Yes, then finish             CONSOLE  02140990                                                    
+         L     R10,VMDCYCLE       Otherwise, get next VMDBK    CONSOLE  02150980                                                    
+         B     QRYNXT             Do it again.                 CONSOLE  02160970                                                    
+*                                                              CONSOLE  02170960                                                    
+*  Send negative msg or "complete" depending on outcome        CONSOLE  02180950                                                    
+QRYDONE  DS    0H                                              CONSOLE  02190940                                                    
+         TM    QRYFLAG,MSGSENT    Did we send a message?       CONSOLE  02200930                                                    
+         BO    FRMCOMSG           Yes, then send "complete"    CONSOLE  02210920                                                    
+NEGRESP  DS    0H                                              CONSOLE  02220910                                                    
+         HCPCONSL WRITE,DATA=(NOFROM)                          CONSOLE  02230900                                                    
+         B     FRMEXIT                 GO HOME                          02281000                                                    
+*                                                              CONSOLE  02300990                                                    
+*  Generate full message for user                              CONSOLE  02310980                                                    
+QRYMSG   DS    0H                                                       02321000                                                    
+         OI    QRYFLAG,MSGSENT    Say that message was printed CONSOLE  02336990                                                    
+         MVC   USERID,BLANKS      Clear out fields             CONSOLE  02342980                                                    
+         MVC   FROMID,BLANKS                                   CONSOLE  02348970                                                    
+         MVC   USERID,VMDUSER     Move in current USERID       CONSOLE  02354960                                                    
+         MVC   FROMID,VMDFROM     Move in from field           CONSOLE  02360950                                                    
+         HCPCONSL WRITE,DATA=(FROMC,LMSGD)                     CONSOLE  02366940                                                    
+         LTR   R15,R15            Did msg go through?          CONSOLE  02372930                                                    
+         BNZ   QRYDONE            No, then end it now.         CONSOLE  02378920                                                    
+         B     QRYCHKEN           Msg was OK, get next VMDBK   CONSOLE  02384910                                                    
+*                                                              CONSOLE  02390900                                                    
+*  The follwing will issue an error message if specified operanCONSOLE  02396890                                                    
+*  is invalid because its too long.  Max. of 8 chars. allowed. CONSOLE  02402880                                                    
+FRM002   DS    0H                                              CONSOLE  02408870                                                    
+         HCPCONSL WRITE,DATA=(TOOLONG)                         CONSOLE  02414860                                                    
+         LA    R2,002                                          CONSOLE  02420850                                                    
+*                                                              CONSOLE  02426840                                                    
+*  Print generic "complete" message when all done              CONSOLE  02432830                                                    
+FRMCOMSG DS    0H                                                       02451000                                                    
+         HCPCONSL WRITE,DATA=(COMPLETE)                        CONSOLE  02470990                                                    
+*                                                              CONSOLE  02480980                                                    
+*  Get out at last.....                                        CONSOLE  02490970                                                    
+FRMEXIT  DS    0H                                                       02511000                                                    
+         HCPEXIT  EP=(HCPFRMST,HCPFRMQU),SETCC=NO                       02521000                                                    
+         EJECT                                                          02661000                                                    
+***************************************************************CONSOLE  02661500                                                    
+*     Data areas for HCPFRM                                    CONSOLE  02662000                                                    
+*                                                              CONSOLE  02662500                                                    
+*  Code for execute instructions                               CONSOLE  02663000                                                    
+CLCUSR   CLC   VMDUSER(*-*),0(R7)      EXECUTED                CONSOLE  02663500                                                    
+CLCFROM  CLC   VMDFROM(*-*),0(R7)      EXECUTED                CONSOLE  02664000                                                    
+FROMSAVE MVC   SETFROM(*-*),0(R1)                              CONSOLE  02664500                                                    
+*                                                              CONSOLE  02665000                                                    
+*  Constants for messages, etc.                                CONSOLE  02665500                                                    
+TOOLONG  DC    C'Operand too long'                             CONSOLE  02666000                                                    
+COMPLETE DC    C'Command Complete'                             CONSOLE  02666500                                                    
+NOFROM   DC    C'No FROM Set'                                  CONSOLE  02667000                                                    
+USERTXT  DC    C' Userid: '                                    CONSOLE  02667500                                                    
+FROM     DC    C'From: '                                       CONSOLE  02668000                                                    
+BLANKS   DC    C'        '                                     CONSOLE  02668500                                                    
+EIGHT    DC    F'00000008'                                     CONSOLE  02669000                                                    
+         LTORG ,                                                        02671000                                                    
+*  Map of necessary work storage                               CONSOLE  02682990                                                    
+SAVBK    DSECT ,                                               CONSOLE  02684980                                                    
+         ORG   SAVEWRK0                                        CONSOLE  02686970                                                    
+FROMC    DS    CL6                     CONSTANT 'FROM: '                02691000                                                    
+FROMID   DS    CL8                     VMDFROM                          02701000                                                    
+LMSGDS   EQU   *-FROMC                 SHORT MESSAGE           CONSOLE  02720990                                                    
+USERC    DS    CL9                     CONSTANT ' USER: '      CONSOLE  02730980                                                    
+USERID   DS    CL8                     VMUSER                           02741000                                                    
+LMSGD    EQU   *-FROMC                                         CONSOLE  02754990                                                    
+QRYFLAG  DS    X                                               CONSOLE  02758980                                                    
+MSGCLEAR EQU   X'00'                                           CONSOLE  02762970                                                    
+MSGSENT  EQU   X'80'                                           CONSOLE  02766960                                                    
+SETFROM  DS    CL8                                             CONSOLE  02770950                                                    
+         HCPDROP R0,R10,R13                                    CONSOLE  02774940                                                    
+         HCPEPILG                                                       02781000                                                    
+                                                                                                                                    
+************************************************************************                                                            
+The Marist INFOFOX modification allows an installation to define a new command                                                      
+that will translate into a dial into a predetermined virtual machine beginning                                                      
+at a specified address.  This essentially allows you to define a synonym                                                            
+for "DIAL xxx cuu".  At Marist, this is used to implement our INFOFOX BBS,                                                          
+which resides on system, MUSICB.  A user issues the INFOFOX command, which                                                          
+will dial the MUSICB machine, at the first available port address above                                                             
+the address configured in the mod.                                                                                                  
+                                                                                                                                    
+The effect, therefore, enables you to reserve ports on a specific virtual                                                           
+machine for a specific application.                                                                                                 
+                                                                                                                                    
+The original modification was developed at McGill University, by Anne-Marie                                                         
+Marcoux (MARIE@VM1.McGill.CA).  It supported only one synonym definition                                                            
+and the starting address was hardcoded in the mod.  While the basic                                                                 
+design of the modification remains the same,                                                                                        
+Marist has extended the original by adding a table which allows you to define                                                       
+multiple synonyms, each with its own starting address.  It also                                                                     
+now supports the command, "DIAL INFOFOX" in addition to the standard                                                                
+"INFOFOX" format.  This was made necessary by a modification that Marist                                                            
+developed for the logo screen, which automatically places the DIAL command                                                          
+into the command stream.  It is also useful, however for users who are                                                              
+used to issuing "DIAL xxxxxx".                                                                                                      
+                                                                                                                                    
+The most important part of the mod is in HCPDIA.  This adds a new entry point                                                       
+to HCPDIA, HCPDIAIN.  This routine is described more fully in the comments                                                          
+at the entry point.  Its purpose is to compare the specified command with                                                           
+a pre-configured table.  This table contains the synonym definition, its                                                            
+true virtual machine name and the beginning port address.  If the specified                                                         
+command matches a synonym in the table, it is modified to contain the                                                               
+true virtual machine name and beginning address.  In addition, a flag is set                                                        
+indicating that this was a synonym command.  Control is then returned to                                                            
+the main part of HCPDIA.  HCPSCNVT is called to find the first available port                                                       
+on the true virtual machine.  HCPSCNVT has been modified to recognize that                                                          
+a synonym command was issued.  In this case, it ignores all ports until it                                                          
+reaches the configured beginning address.  It then returns the first available                                                      
+port.                                                                                                                               
+                                                                                                                                    
+Currently, the INFOFOX mod supports only one synonym per virtual machine.                                                           
+This is because HCPSCNVT does not stop searching until it reaches                                                                   
+the last port on the virtual machine.  Therefore, you can control the                                                               
+beginning address of the range, but not the ending address.  This should                                                            
+not be difficult to add, however, and is planned for the future.                                                                    
+                                                                                                                                    
+In addition to HCPDIA and HCPSCN, HCPCOM is modified to define the                                                                  
+new synonyms.  These should point to HCPDIAIN as the entry point                                                                    
+and should be available in the pre-logon state.                                                                                     
+                                                                                                                                    
+Also included are optional modifications to HCPBVM and HCPMES.  These                                                               
+are necessary if you also have the PFKDIAL modification installed.                                                                  
+They change the definition of the PF keys and the messages in the                                                                   
+pre-logon state.  These were required in the original mod from McGill                                                               
+but are no longer required.                                                                                                         
+                                                                                                                                    
+The mod in this file is for VM/ESA 2.1.0.  The original version of this                                                             
+mod was developed on VM/ESA ESA 1.0 SLC 9202.                                                                                       
+                                                                                                                                    
+As usual, you may alter this modification as you wish.  Any problems,                                                               
+comments and feedback (but no complaints) can be sent to Martha                                                                     
+McConaghy, Marist College (URMM@VM.MARIST.EDU) (914) 575-3252.                                                                      
+06/24/96                                                                                                                            
+                                                                                                                                    
+FILE: HCPDIA   INFOFOX  E1                                                                                                          
+./ I 04240001          $ 4242001 2000                 02/16/96 17:50:04                                                             
+*  The following indicates a normal dial.  The flag will       INFOFOX  04242001                                                    
+*  be set on if we are dialing to a userid in our INFOTAB.     INFOFOX  04244001                                                    
+*  See comments at HCPDIAIN.                                   INFOFOX  04246001                                                    
+         MVI   WHICHCMD,OTHERCMD   INDICATE NORMAL DIAL        INFOFOX  04248001                                                    
+./ I 04280001          $ 4285001 5000                 02/16/96 17:50:04                                                             
+MAINENTR DS    0H                 Join main code from DIAIN    INFOFOX  04285001                                                    
+./ I 05460001          $ 5463001 3000                 02/16/96 17:50:04                                                             
+         CLI   WHICHCMD,INFOCMD   Are we doing info cmd?       INFOFOX                                                              
+         BE    NOCHECK                                         INFOFOX                                                              
+./ I 05560001          $ 5565001 5000                 02/16/96 17:50:04                                                             
+NOCHECK  DS    0H                                              INFOFOX                                                              
+./ I 06010001          $ 6012001 2000                 02/16/96 17:50:04                                                             
+         LR    R15,R0             Ensure length in R15         INFOFOX  06012001                                                    
+         B     INFOCHK       Go check for synonyms             INFOFOX  06014001                                                    
+*                                                              INFOFOX  06016001                                                    
+GETVMDBK DS    0H            Rejoin HCPDIA in progress         INFOFOX  06018001                                                    
+./ I 07440001          $ 7443001 3000                 02/16/96 17:50:04                                                             
+         CLI   WHICHCMD,INFOCMD   Are we doing the info thing? INFOFOX  07443001                                                    
+         BE    FINDVDEV           Yes, then search for vdev    INFOFOX  07446001                                                    
+./ I 08020001          $ 8023001 3000                 02/16/96 17:50:04                                                             
+*  Set info flag for HCPSCNVT.                                 INFOFOX  08023001                                                    
+         ICM   R0,B'1000',WHICHCMD Pass flag for type of dial  INFOFOX  08026001                                                    
+./ I 16690001          $ 16690101 100                 02/16/96 17:50:04                                                             
+*START OF SPECIFICATIONS***************************************INFOFOX  16690101                                                    
+*                                                              INFOFOX  16690201                                                    
+* Entry point name - HCPDIAIN                                  INFOFOX  16690301                                                    
+*                                                              INFOFOX  16690401                                                    
+* Descriptive name - Dial processing for INFOFOX and related   INFOFOX  16690501                                                    
+*                    commands.                                 INFOFOX  16690601                                                    
+*                                                              INFOFOX  16690701                                                    
+*     Developed by Martha McConaghy for Marist College 8/6/92  INFOFOX  16690801                                                    
+*     for VM/ESA 1.0.                                          INFOFOX  16690901                                                    
+*     Based on a modification developed at McGill University.  INFOFOX  16691001                                                    
+*     Updated for VM/ESA 2.1 by Martha McConaghy 5/5/94.       INFOFOX  16691101                                                    
+*                                                              INFOFOX  16691201                                                    
+* Function - This routine allows you to define commands in CP  INFOFOX  16691301                                                    
+*            that are pseudonyms for a dial function.  For     INFOFOX  16691401                                                    
+*            example, INFOFOX, will really dial MUSICB using   INFOFOX  16691501                                                    
+*            a specific address range.  The pseudonym commands INFOFOX  16691601                                                    
+*            and the real DIALEE's name are kept in a table    INFOFOX  16691701                                                    
+*            along with the starting address.  The table is    INFOFOX  16691801                                                    
+*            INFOTAB, located in this module.  If you don't    INFOFOX  16691901                                                    
+*            care about the vaddr of the dial port, specify    INFOFOX  16692001                                                    
+*            x'0000' in the table.                             INFOFOX  16692101                                                    
+*                                                              INFOFOX  16692201                                                    
+*            There are two ways of entering this routine:      INFOFOX  16692301                                                    
+*            entering the vanilla command, ie. INFOFOX.  The   INFOFOX  16692401                                                    
+*            operation will enter this routine via HCPDIAIN.   INFOFOX  16692501                                                    
+*            The second                                        INFOFOX  16692601                                                    
+*            way is to issue DIAL xxxx, ie. DIAL INFOFOX.      INFOFOX  16692701                                                    
+*            In this case, operation will enter via HCPDIAL    INFOFOX  16692801                                                    
+*            and will be sent down to INFOCHK before going on. INFOFOX  16692901                                                    
+*                                                              INFOFOX  16693001                                                    
+*            Prior to entering HCPSCNVT at label SCANLOOP, we  INFOFOX  16693101                                                    
+*            will set a flag in R0 that indicates if we are    INFOFOX  16693201                                                    
+*            processing an INFO command or not.  If we are,    INFOFOX  16693301                                                    
+*            HCPSCNVT will check the vaddr of each port againstINFOFOX  16693401                                                    
+*            the address defined in INFOTAB.  HCPSCNVT will    INFOFOX  16693501                                                    
+*            reject all vaddrs below this address.             INFOFOX  16693601                                                    
+*                                                              INFOFOX  16693701                                                    
+*      R2, R3 and R4 are used.                                 INFOFOX  16693801                                                    
+*      R15 is expected to have the length of dialee's name     INFOFOX  16693901                                                    
+*          upon input.                                         INFOFOX  16694001                                                    
+*                                                              INFOFOX  16694101                                                    
+*END OF SPECIFICATIONS*****************************************INFOFOX  16694201                                                    
+HCPDIAIN HCPENTER CALL,SAVE=DYNAMIC                            INFOFOX  16694301                                                    
+*                                                              INFOFOX  16694401                                                    
+*  Enter here for one of the special commands and then join    INFOFOX  16694501                                                    
+*  the main HCPDIA for terminal checking.  We will come back   INFOFOX  16694601                                                    
+*  later on.                                                   INFOFOX  16694701                                                    
+         MVI   WHICHCMD,INFOCMD    Signal the info command     INFOFOX  16694801                                                    
+         B     MAINENTR            Rejoin HCPDIA               INFOFOX  16694901                                                    
+*                                                              INFOFOX  16695001                                                    
+INFOCHK  DS    0H            Main checking code                INFOFOX  16695101                                                    
+*                                                              INFOFOX  16695201                                                    
+*  The following code will check a table of pseudonym          INFOFOX  16695301                                                    
+*  commands.  If the userid matches one, then we will          INFOFOX  16695401                                                    
+*  will reset the DIALEUSR name to the table value and set the INFOFOX  16695501                                                    
+*  vaddr value for HCPSCNVT in VNUMBIN.                        INFOFOX  16695601                                                    
+*                                                              INFOFOX  16695701                                                    
+*  Restrictions:  We expect R15 to have length in it.          INFOFOX  16695801                                                    
+*                 Also, R1 should point to DIALEUSR.           INFOFOX  16695901                                                    
+*                                                              INFOFOX  16696001                                                    
+* Set a minimum length for R15.  This is to ensure that there  INFOFOX  16696101                                                    
+* is at least 3 characters in the command to be checked.       INFOFOX  16696201                                                    
+* Otherwise, send it back to HCPDIA to be handled normally.    INFOFOX  16696301                                                    
+         BCTR  R15,0         Got to sub 1 from length          INFOFOX  16696401                                                    
+         CL    R15,PFX2      Is length < 3?                    INFOFOX  16696501                                                    
+         BL    GETVMDBK      Yes, then skip check.             INFOFOX  16696601                                                    
+*                                                              INFOFOX  16696701                                                    
+         LA    R2,20         Set Table Increment               INFOFOX  16696801                                                    
+         LA    R3,EINFOTAB   Set ending address                INFOFOX  16696901                                                    
+         LA    R4,INFOTAB    Get addr of our table             INFOFOX  16697001                                                    
+COMPTAB  EX    R15,COMPINFO  Is it an entry in the table?      INFOFOX  16697101                                                    
+         BE    INFOSET       yes, then set the information     INFOFOX  16697201                                                    
+         BXLE  R4,R2,COMPTAB Get next entry and try again      INFOFOX  16697301                                                    
+         B     GETVMDBK      None found, go back to HCPDIA.    INFOFOX  16697401                                                    
+*                                                              INFOFOX  16697501                                                    
+INFOSET  MVI   WHICHCMD,INFOCMD  Indicate the info command     INFOFOX  16697601                                                    
+         MVC   DIALEUSR(8),8(R4) Set dialee name from table    INFOFOX  16697701                                                    
+         LA    R0,8               Hardcode length at 8         INFOFOX  16697801                                                    
+         MVC   VNUMSTRT,16(R4)    Set Vaddr for HCPSCNVT       INFOFOX  16697901                                                    
+         B     GETVMDBK           Rejoin HCPDIA                INFOFOX  16698001                                                    
+         EJECT                                                 INFOFOX  16698101                                                    
+./ I 27320971          $ 27321671 700                 02/16/96 17:50:04                                                             
+COMPINFO CLC   DIALEUSR(*-*),0(R4)   CHECK DIALED VM           INFOFOX  27321671                                                    
+*                                                              INFOFOX  27322371                                                    
+INFOTAB  DC    CL16'INFOFOX MUSICB  ' SYNONYM AND SYSTEM       INFOFOX  27323071                                                    
+         DC    X'000005E0'            BEGIN VADDR              INFOFOX  27323771                                                    
+         DC    CL16'DOBIS   MVS     ' SYNONYM AND SYSTEM       INFOFOX  27324471                                                    
+         DC    X'00000576'            BEGIN VADDR              INFOFOX  27325171                                                    
+         DC    CL16'TSO     MVS     ' SYNONYM AND SYSTEM       INFOFOX  27325871                                                    
+         DC    X'00000000'            BEGIN VADDR              INFOFOX  27326571                                                    
+         DC    CL16'IAPROD  MVS     ' SYNONYM AND SYSTEM       INFOFOX  27327271                                                    
+         DC    X'00000000'            BEGIN VADDR              INFOFOX  27327971                                                    
+EINFOTAB EQU   *-1                                             INFOFOX  27328671                                                    
+./ I 28520001          $ 28522001 2000                02/16/96 17:50:04                                                             
+         ORG   SAVEWRK9                                        INFOFOX  28522001                                                    
+WHICHCMD DS    XL1                is it INFO or normal DIAL ?  INFOFOX  28524001                                                    
+OTHERCMD EQU   X'00'                                           INFOFOX  28526001                                                    
+INFOCMD  EQU   X'01'                                           INFOFOX  28528001                                                    
+                                                                                                                                    
+FILE: HCPMES   INFOFOX  E1                                                                                                          
+./ R 61255400 61255450 $ 61255410 2                   08/11/92 09:51:19                                                             
+70600506     PF3  or  PF15:     LOGOFF                         INFOFOX  74808974                                                    
+70600507     PF4  or  PF16:     INFOFOX                        INFOFOX  74808976                                                    
+70600508     PF5  or  PF17:     DOBIS                          INFOFOX  74808978                                                    
+70600509     PF6  or  PF18:     IAPROD                         INFOFOX  74808980                                                    
+70600510     PF12 or  PF24:     ADDR                           INFOFOX  74808982                                                    
+70600511                                                       INFOFOX  74808982                                                    
+70600512     To access CMS, type: LOGON accountcode            INFOFOX  74808982                                                    
+./ R 61255900 61255950 $ 61255910 2                   08/11/92 09:51:19                                                             
+70600606     PF3:               LOGOFF                         INFOFOX  74809054                                                    
+70600607     PF4:               INFOFOX                        INFOFOX  74809056                                                    
+70600608     PF5:               DOBIS                          INFOFOX  74809058                                                    
+70600609     PF6:               IAPROD                         INFOFOX  74809060                                                    
+70600610     PF12:              ADDR                           INFOFOX  74809062                                                    
+                                                                                                                                    
+FILE: HCPCOM   INFOFOX  E1                                                                                                          
+./ I 06344991          $ 6345000 100                  08/06/92 15:11:26                                                             
+************************************************************** INFOFOX  00513910                                                    
+*                                                            * INFOFOX  00514900                                                    
+*  DOBIS COMMAND                                             * INFOFOX  00515890                                                    
+*                                                            * INFOFOX  00516880                                                    
+************************************************************** INFOFOX  00517870                                                    
+                                                       SPACE , INFOFOX  00518860                                                    
+         COMMD COMMAND=(DOBIS,5),FL=CMDONLY+CMDALOG+CMDOLOG,           *00519850                                                    
+               CLASS=*,EP=HCPDIAIN                             INFOFOX  00520840                                                    
+                                                       SPACE , INFOFOX  00521830                                                    
+./ I 07869991          $ 7870000 100                  08/06/92 15:11:26                                                             
+************************************************************** INFOFOX  00662410                                                    
+*                                                            * INFOFOX  00663400                                                    
+*  IAPROD COMMAND                                            * INFOFOX  00664390                                                    
+*                                                            * INFOFOX  00665380                                                    
+************************************************************** INFOFOX  00666370                                                    
+                                                       SPACE , INFOFOX  00667360                                                    
+         COMMD COMMAND=(IAPROD,6),FL=CMDONLY+CMDALOG+CMDOLOG,          *00668350                                                    
+               CLASS=*,EP=HCPDIAIN                             INFOFOX  00669340                                                    
+                                                       SPACE , INFOFOX  00670330                                                    
+./ I 08064991          $ 8065000 100                  08/06/92 15:11:26                                                             
+************************************************************** INFOFOX  00662410                                                    
+*                                                            * INFOFOX  00663400                                                    
+*  INFOFOX COMMAND                                           * INFOFOX  00664390                                                    
+*                                                            * INFOFOX  00665380                                                    
+************************************************************** INFOFOX  00666370                                                    
+                                                       SPACE , INFOFOX  00667360                                                    
+         COMMD COMMAND=(INFOFOX,4),FL=CMDONLY+CMDALOG+CMDOLOG,         *00668350                                                    
+               CLASS=*,EP=HCPDIAIN                             INFOFOX  00669340                                                    
+                                                       SPACE , INFOFOX  00670330                                                    
+./ I 14379991          $ 14380000 100                 08/06/92 15:11:26                                                             
+                                                       SPACE , INFOFOX  00670330                                                    
+************************************************************** INFOFOX  00662410                                                    
+*                                                            * INFOFOX  00663400                                                    
+*  TSO COMMAND                                               * INFOFOX  00664390                                                    
+*                                                            * INFOFOX  00665380                                                    
+************************************************************** INFOFOX  00666370                                                    
+                                                       SPACE , INFOFOX  00667360                                                    
+         COMMD COMMAND=(TSO,3),FL=CMDONLY+CMDALOG+CMDOLOG,             *00668350                                                    
+               CLASS=*,EP=HCPDIAIN                             INFOFOX  00669340                                                    
+                                                                                                                                    
+FILE: HCPBVM   INFOFOX  E1                                                                                                          
+./ R 12714401 12714801 $ 12714901 50                  08/06/92 15:00:32                                                             
+         DC    AL1(3),X'01',CL13'LOGOFF'                       INFOFOX  07977200                                                    
+         DC    AL1(4),X'01',CL13'INFOFOX'                      INFOFOX  07977200                                                    
+         DC    AL1(5),X'01',CL13'DOBIS'                        INFOFOX  07977200                                                    
+         DC    AL1(6),X'01',CL13'IAPROD'                       INFOFOX  07977800                                                    
+         DC    AL1(12),X'01',CL13'ADDR'                        INFOFOX  07978400                                                    
+                                                                                                                                    
+**********************************************************************                                                              
+The PFKDIAL modification allows you to define PF keys to be used in                                                                 
+the pre-logon state.  These PF keys can be assigned CP commands that                                                                
+are also valid in the pre-logon state to make them easier to use.                                                                   
+                                                                                                                                    
+The original PFKDIAL mod came from Anne-Marie Marcoux of McGill                                                                     
+University (MARIE@VM1.McGill.CA).  The mod in this file is essentially                                                              
+the same as the original.  A few serial numbers have been updated                                                                   
+to conform with my level of VM/ESA 2.1.0 and support for                                                                            
+other CP commands, besides DIAL, has been added.  These changes are                                                                 
+slight, however, and the mod remains essentially the McGill version.                                                                
+                                                                                                                                    
+The bulk of the work is done by HCPBVM, which processes the PF key                                                                  
+and contains a table of the key definitions.  The original mod                                                                      
+only allowed DIAL commands to be defined to each key, ie. it hardcoded                                                              
+DIAL into the processing of the key.  I have extended the mod to allow                                                              
+any valid pre-logon CP command to be placed in the table.                                                                           
+                                                                                                                                    
+HCPLOG and HCPLON are modified to allow PF keys to be used.  HCPMES                                                                 
+and HCPMXRBK are modified to change the messages on the pre-logon                                                                   
+screen.                                                                                                                             
+                                                                                                                                    
+My thanks to Anne-Marie for sharing her mod with me and her                                                                         
+permission to post in on the LISTSERV.                                                                                              
+                                                                                                                                    
+As usual, you are free to do with this what you will.  Questions,                                                                   
+comments and feedback (but no complaints) can be sent to Martha                                                                     
+McConaghy, Marist College (URMM@VM.MARIST.EDU) (914) 575-3252.                                                                      
+06/24/96                                                                                                                            
+                                                                                                                                    
+./ * HCPMES PFKDIAL                                                                                                                 
+./ * let users dial by hitting PF keys                                                                                              
+./ R 61254804 61414804 $ 61255000 50                  07/10/92 10:40:48                                                             
+*                                                              PFKDIAL  74808908                                                    
+*  Translation information for message 7060-05                 PFKDIAL  74808916                                                    
+*         No fields need to be translated                      PFKDIAL  74808924                                                    
+70600501R                                                      PFKDIAL  74808932                                                    
+70600502  Use a PFkey to access the desired system:            PFKDIAL  74808940                                                    
+70600503                                                       PFKDIAL  74808948                                                    
+70600504     PF1  or  PF13:     Dial MUSICA                    PFKDIAL  74808956                                                    
+70600505     PF2  or  PF14:     Dial MUSICB                    PFKDIAL  74808964                                                    
+70600506     PF11 or  PF23:     ADDR                           PFKDIAL  74808972                                                    
+70600507     PF12 or  PF24:     LOGOFF                         PFKDIAL  74808980                                                    
+*                                                              PFKDIAL  74808988                                                    
+*  Translation information for message 7060-06                 PFKDIAL  74808996                                                    
+*         No fields need to be translated                      PFKDIAL  74809004                                                    
+70600601R                                                      PFKDIAL  74809012                                                    
+70600602  Use a PFkey to access the desired system:            PFKDIAL  74809020                                                    
+70600603                                                       PFKDIAL  74809028                                                    
+70600604     PF1:               Dial MUSICA                    PFKDIAL  74809036                                                    
+70600605     PF2:               Dial MUSICB                    PFKDIAL  74809044                                                    
+70600606     PF11:              ADDR                           PFKDIAL  74809052                                                    
+70600607     PF12:              LOGOFF                         PFKDIAL  74809060                                                    
+*                                                              PFKDIAL  74809068                                                    
+*  Translation information for message 7060-07                 PFKDIAL  74809076                                                    
+*         No fields need to be translated                      PFKDIAL  74809084                                                    
+70600701R                                                      PFKDIAL  74809092                                                    
+70600702  Use a PFkey to access the desired system:            PFKDIAL  74809100                                                    
+70600703                                                       PFKDIAL  74809108                                                    
+70600704     PF1  or  PF13:  musicf                            PFKDIAL  74809116                                                    
+*                                                              PFKDIAL  74809124                                                    
+*  Translation information for message 7060-08                 PFKDIAL  74809132                                                    
+*         No fields need to be translated                      PFKDIAL  74809140                                                    
+70600801R                                                      PFKDIAL  74809148                                                    
+70600802  Use a PFkey to access the desired system:            PFKDIAL  74809156                                                    
+70600803                                                       PFKDIAL  74809164                                                    
+70600804     PF1:            musicf                            PFKDIAL  74809172                                                    
+*                                                              PFKDIAL  74809180                                                    
+                                                                                                                                    
+FILE: HCPBVM   PFKDIAL  E1                                                                                                          
+./ * HCPBVM PFKDIAL                                                                                                                 
+./ * let users dial by hitting PF keys                                                                                              
+./ * vmdpfunc points to a 24 fullword list which in turn points                                                                     
+./ * to gsdbloks for those pfkeys having settings                                                                                   
+./ * see module HCPPFK for pfk processing                                                                                           
+./ I 00935001          $ 937001 2000                  05/03/94 17:53:42                                                             
+*                    HCPGSDBK - General System Data Block      PFKDIAL                                                              
+./ I 00980001          $ 985001 5000                  05/03/94 17:53:42                                                             
+*                    HCPPFUNC - PF Keys Function block         PFKDIAL                                                              
+./ I 01965001          $ 1966000 1000                 05/03/94 17:53:42                                                             
+         COPY  HCPGSDBK - General system data block            PFKDIAL  01962001                                                    
+./ I 02000001          $ 2005001 5000                 05/03/94 17:53:42                                                             
+         COPY  HCPPFUNC - PF Keys Function Table               PFKDIAL  02005001                                                    
+./ I 10070001          $ 10070101 100                 05/03/94 17:53:42                                                             
+************************************************************** PFKDIAL  10070101                                                    
+*                                                            * PFKDIAL  10070201                                                    
+*    Now create PFK entries for menu to be shown at logon    * PFKDIAL  10070301                                                    
+*    Make sure R8 and R10 are unchanged                      * PFKDIAL  10070401                                                    
+*                                                            * PFKDIAL  10070501                                                    
+************************************************************** PFKDIAL  10070601                                                    
+         HCPUSING RDEV,R8                                      PFKDIAL  10070701                                                    
+PFKDIAL  CLI   RDEVCLAS,CLASGRAF   is this a local 3270?       PFKDIAL  10070801                                                    
+         BNE   PFKDONE             no, then no PFKs            PFKDIAL  10070901                                                    
+PFKDEFS  LA    R2,PFDEFS     R2 -> list of definitions         PFKDIAL  10071001                                                    
+         HCPUSING SYSDEF,R2                                    PFKDIAL  10071101                                                    
+         LA    R4,NPFDEFS    R4 = number of these definitions  PFKDIAL  10071201                                                    
+*        just covering here, an already defined function table PFKDIAL  10071301                                                    
+*        means it wasn't released properly last time around!   PFKDIAL  10071401                                                    
+*        and that's a BUG !!!                                  PFKDIAL  10071501                                                    
+         ICM   R1,B'1111',VMDPFUNC get the function table      PFKDIAL  10071601                                                    
+         BNZ   FILLKEYS      this is not the first time        PFKDIAL  10071701                                                    
+*  In VM/ESA 2.1, the PFUNC block was added to map the list    PFKDIAL                                                              
+*  of pointers to the PF key definitions.  We must use that    PFKDIAL                                                              
+*  block layout now.                                           PFKDIAL                                                              
+         LA    R0,PFUNSZD(R1) Let's get one then.              PFKDIAL  10071801                                                    
+         HCPGETST LEN=(R0),TYPE=GUESTPERM get free storage     PFKDIAL  10071901                                                    
+         ST    R1,VMDPFUNC   save that precious address        PFKDIAL  10072001                                                    
+         LR    R6,R1                                           PFKDIAL  10072101                                                    
+         HCPUSING PFUNC,R6                                     PFKDIAL  10072201                                                    
+         XC    0(PFUNSZD*8,R1),0(R1) Zero out the whole thing  PFKDIAL  10072501                                                    
+         LA    R6,PFUNGSDS     Get location of PF pointers     PFKDIAL  10072601                                                    
+         HCPDROP R6                                            PFKDIAL  10072701                                                    
+*  Now load the PFUNC table and create GSD's for each          PFKDIAL                                                              
+*  PF key to be defined.                                       PFKDIAL                                                              
+FILLKEYS SLR   R3,R3         clear to                          PFKDIAL  10072801                                                    
+         IC    R3,SYSKEY     ... load PF key number            PFKDIAL  10072901                                                    
+         LA    R0,PFDENTRY   size of block                     PFKDIAL  10073001                                                    
+         HCPGETST ID=GSDBK,LEN=(R0),TYPE=GUESTPERM  get it!    PFKDIAL  10073101                                                    
+         SLL   R3,2          Calculate the index into the      PFKDIAL  10073201                                                    
+         S     R3,PFX4       ...function table for this PF     PFKDIAL  10073301                                                    
+         AR    R3,R6         Add offset to table pointer       PFKDIAL  10073401                                                    
+         ST    R1,0(,R3)     store gsdbk into addr table slot  PFKDIAL  10073501                                                    
+         SPACE 1                                               PFKDIAL  10073601                                                    
+         HCPUSING GSDBK,R1   addressability to PF GSDBK        PFKDIAL  10073701                                                    
+         STH   R0,GSDFRESZ   save the double word size         PFKDIAL  10073801                                                    
+         LA    R5,L'SYSNAME         length of data to be moved PFKDIAL  10073901                                                    
+         STH   R5,GSDDCNT    save the pfdata data count        PFKDIAL  10074001                                                    
+         MVC   GSDDATA(L'SYSNAME),SYSNAME  move part 2         PFKDIAL  10074201                                                    
+         MVC   GSDFLAG,=AL1(GSDPFIMM)  immediate PF key        PFKDIAL  10074301                                                    
+         CLI   RDEVTYPE,TYP3278  got 24-PFkey terminal ?       PFKDIAL  10074401                                                    
+         BNE   NEXTSYS       nope, all done for this one then  PFKDIAL  10074501                                                    
+         SPACE 1                                               PFKDIAL  10074601                                                    
+         HCPGETST ID=GSDBK,LEN=(R0),TYPE=GUESTPERM  get one morPFKDIAL  10074701                                                    
+         LA    R3,4*12(,R3)  repeat at PF(n+12)                PFKDIAL  10074801                                                    
+         ST    R1,0(,R3)     store gsdbk into addr table slot  PFKDIAL  10074901                                                    
+         HCPUSING GSDBK,R1   addressability to PF GSDBK        PFKDIAL  10075001                                                    
+         STH   R0,GSDFRESZ   save the double word size         PFKDIAL  10075101                                                    
+         STH   R5,GSDDCNT    save the pfdata data count        PFKDIAL  10075201                                                    
+*        MVC   GSDDATA(L'DIAL),DIAL move pfdata part 1         PFKDIAL  10075301                                                    
+         MVC   GSDDATA(L'SYSNAME),SYSNAME  move part 2         PFKDIAL  10075401                                                    
+         MVC   GSDFLAG,=AL1(GSDPFIMM)  immediate PF key        PFKDIAL  10075501                                                    
+         SPACE 1                                               PFKDIAL  10075601                                                    
+NEXTSYS  LA    R2,SYSLEN(,R2)                                  PFKDIAL  10075701                                                    
+         BCT   R4,FILLKEYS   move on to next definition        PFKDIAL  10075801                                                    
+         HCPDROP  R1,R2,R8                                     PFKDIAL  10075901                                                    
+         SPACE 1                                               PFKDIAL  10076001                                                    
+PFKDONE  DS    0H                                              PFKDIAL  10076101                                                    
+./ I 12710001          $ 12710401 400                 05/03/94 17:53:42                                                             
+         EJECT                                                 PFKDIAL  12710301                                                    
+* PFdefs :                                                     PFKDIAL  12711201                                                    
+*          Byte 1 = PFK number                                 PFKDIAL  12711501                                                    
+*          Byte 2 = cpu number  X'01' --> VM1                  PFKDIAL  12711801                                                    
+*                               X'02' --> VM2                  PFKDIAL  12712101                                                    
+*                               X'00' --> system runs on both  PFKDIAL  12712401                                                    
+*          BYTE 3-15 = command to issue                        PFKDIAL  12712701                                                    
+*                                                              PFKDIAL  12713001                                                    
+PFDEFS   DC    AL1(1),X'01',CL13'DIAL MUSICA'                  PFKDIAL  12713301                                                    
+         DC    AL1(2),X'01',CL13'DIAL MUSICB'                  PFKDIAL  12713601                                                    
+         DC    AL1(11),X'01',CL13'ADDR'                        PFKDIAL  12713901                                                    
+         DC    AL1(12),X'01',CL13'LOGOFF'                      PFKDIAL  12714201                                                    
+         SPACE 1                                               PFKDIAL  12714501                                                    
+NPFDEFS  EQU   (*-PFDEFS)/15                                   PFKDIAL  12714801                                                    
+PFDENTRY EQU   (L'SYSNAME+7)/8+GSDHSIZE          double words  PFKDIAL  12715101                                                    
+*                            Size of each PFkey entry          PFKDIAL  12715401                                                    
+         SPACE 1                                               PFKDIAL  12715701                                                    
+SYSDEF   DSECT               initial PFK definition            PFKDIAL  12716001                                                    
+SYSKEY   DS    X             PFK number                        PFKDIAL  12716301                                                    
+SYSFLAG  DS    X             cpu flag                          PFKDIAL  12716601                                                    
+SYSNAME  DS    CL13          name of system to dial            PFKDIAL  12716901                                                    
+SYSLEN   EQU   *-SYSDEF      length of this dsect              PFKDIAL  12717201                                                    
+         SPACE 3                                               PFKDIAL  12717501                                                    
+                                                                                                                                    
+FILE: HCPLOG   PFKDIAL  E1                                                                                                          
+./ * HCPLOG PFKDIAL                                                                                                                 
+./ * let users dial by hitting PFkeys                                                                                               
+./ I 00970001 $ 00970100                                                                                                            
+*              HCPPFKPG - Deallocate PF key storage             PFKDIAL                                                             
+./ I 02820001 $ 02820100                                                                                                            
+         EXTRN HCPPFKPG                                         PFKDIAL                                                             
+./ * this part entered if new user is logging on                                                                                    
+./ * skeleton vmblok must reset pfkeys first                                                                                        
+./ I 11090001 $ 11090100 100                                                                                                        
+         HCPCALL HCPPFKPG    deallocate PF key storage          PFKDIAL                                                             
+         SPACE 1                                                PFKDIAL                                                             
+                                                                                                                                    
+FILE: HCPLON   PFKDIAL  E1                                                                                                          
+./ * HCPLON PFKDIAL                                                                                                                 
+./ * let users dial by hitting PF keys                                                                                              
+./ R 10030001          $ 10034991 4990                05/02/94 15:53:00                                                             
+         HCPDROP R3                                            PFKDIAL  10030005                                                    
+./ R 10060001          $ 10060991 990                 05/02/94 15:53:00                                                             
+         LA    R14,5             Hardcode version 5            PFKDIAL                                                              
+         CLI   RDEVTYPE,TYP3278  Do we have 24 PF keys?        PFKDIAL                                                              
+         BE    PTFOK             Yes, then we are cool.        PFKDIAL                                                              
+         HCPDROP R8                                            PFKDIAL                                                              
+         LA    R14,6             No, then use version 6        PFKDIAL                                                              
+PTFOK    BCTR  R14,0             Decrement for offset          PFKDIAL  10060001                                                    

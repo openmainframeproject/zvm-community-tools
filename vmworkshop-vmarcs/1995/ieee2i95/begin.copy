@@ -1,0 +1,107 @@
+         MACRO                  standard entrance                               
+.*                                                                              
+.*------------------------------------------------------------------- *         
+.*                                                                    *         
+.*  COPYRIGHT -  VAL GARGER, CORNELL NATIONAL SUPERCOMPUTE FACILITY,  *         
+.*               (JUNE 1990) CORNELL UNIVERSITY, ITHACA, N.           *         
+.*               CONTAINS RESTRICTED MATERIALS OF CORNELL NIVERSITY,  *         
+.*               (C) COPYRIGHT CORNELL UNIVERSITY 1990                *         
+.*                                                                    *         
+.*------------------------------------------------------------------- *         
+.*                                                                              
+&CSECT   BEGIN &BASE=13,&TEMP=2,&SAVEA=,&REQU=YES,&LABEL=,&DATE=                
+.*COPY                                                *** BEGIN ***             
+         GBLA  &M                                                               
+         LCLA  &L,&D,&T                                                         
+.*                                                                              
+.*   &CSECT = CSECT NAME                                                        
+.*   &BASE  = BASE REGISTER /INTEGER/                                           
+.*   &TEMP  = TEMP REGISTER (FOR SAVE AREA LINKAGE) /INTEGER/                   
+.*   &SAVEA = ADDRESS OF EXTERNALLY DEFINED SAVE AREA /SYMBOL/                  
+.*   &REQU  = REGISTER EQUATES INCLUSION /YES OR NO/                            
+.*   &LABEL = LABEL ON SAVEAREA /SYMBOL/                                        
+.*   &DATE  = ADDITIONAL INFORMATION: DATE, VERSION, ETC. /TEXT/                
+.*                                                                              
+&L       SETA  K'&CSECT                                                         
+&T       SETA  K'&DATE                                                          
+&D       SETA  ((&L+&T+2)/2)*2+4                                                
+.*                                                                              
+         AIF   ('&CSECT' EQ '').ERROR1                                          
+         AIF   ('&REQU' NE 'YES' AND '&REQU' NE 'NO').ERROR2                    
+         AIF   (&BASE EQ 13 AND '&SAVEA' NE '').ERROR3                          
+         AIF   (&TEMP GE 13 OR &TEMP LE 1).ERROR4                               
+.*                                                                              
+&CSECT   CSECT                                                                  
+         USING &CSECT,15                                                        
+         B     &D.(,15)           BRANCH AROUND IDENTIFIER                      
+         DC    AL1(&L+&T)         IDENTIFIER LENGTH                             
+         DC    CL&L.'&CSECT'      IDENTIFIER                                    
+         AIF   ('&DATE' EQ '').STM                                              
+         DC    CL&T.'&DATE'       DATE OF CODE PREPARATION                      
+.STM     ANOP                                                                   
+         STM   14,12,12(13)       SAVE REGISTERS                                
+         AIF   ('&SAVEA' EQ '').SAVE                                            
+         LA    &TEMP,&SAVEA        LOAD ROUTINE SAVE AREA ADDRESS               
+         AGO   .LINK                                                            
+.*                                                                              
+.SAVE    ANOP                                                                   
+         CNOP  0,4                                                              
+         BAS   &TEMP,*+76         LOAD SAVE AREA ADDRESS                        
+         AIF   (&BASE NE 13 OR '&LABEL' NE '').SAREA                            
+         AIF   ('&LABEL' NE '').SAREA                                           
+&M       SETA  &M+1                                                             
+$$SA00&M DC    18F'0'                                                           
+         AGO   .LINK                                                            
+.SAREA   ANOP                                                                   
+&LABEL   DC   18F'0'              SAVE AREA                                     
+.*                                                                              
+.LINK    ANOP                                                                   
+         ST    &TEMP,8(,13)       LINK ROUTINE SAVE AREA                        
+         ST    13,4(,&TEMP)       LINK CALLER'S SAVE AREA                       
+         LR    13,&TEMP           LOAD SAVE AREA ADDRESS                        
+         AIF   (&BASE EQ 15).REQU                                               
+         AIF   (&BASE NE 13).ALLSET                                             
+         AIF   ('&LABEL' NE '').GIVEN                                           
+         USING $$SA00&M,&BASE                                                   
+         AGO   .DROP                                                            
+.GIVEN   ANOP                                                                   
+         USING &LABEL,&BASE                                                     
+.DROP    ANOP                                                                   
+         DROP  15                                                               
+         AGO   .REQU                                                            
+.ALLSET  ANOP                                                                   
+         LR    &BASE,15           LOAD ROUTINE BASE REGISTER                    
+         DROP  15                                                               
+.*                                                                              
+.USING   ANOP                                                                   
+         USING &CSECT,&BASE       ESTABLISH ROUTINE BASE REGISTER               
+         SPACE                                                                  
+.REQU    ANOP                                                                   
+         AIF   ('&REQU' EQ 'NO').EXIT                                           
+R0       EQU   0                  SYMBOLIC REGISTER EQUATES                     
+R1       EQU   1                                                                
+R2       EQU   2                                                                
+R3       EQU   3                                                                
+R4       EQU   4                                                                
+R5       EQU   5                                                                
+R6       EQU   6                                                                
+R7       EQU   7                                                                
+R8       EQU   8                                                                
+R9       EQU   9                                                                
+R10      EQU   10                                                               
+R11      EQU   11                                                               
+R12      EQU   12                                                               
+R13      EQU   13                                                               
+R14      EQU   14                                                               
+R15      EQU   15                                                               
+         SPACE                                                                  
+.EXIT    MEXIT                                                                  
+.*                                                                              
+.ERROR1  MNOTE 30,'NO CSECT NAME PROVIDE'                                       
+         MEXIT                                                                  
+.ERROR2  MNOTE 30,'INVALID REQU SPECIFICATION'                                  
+         MEXIT                                                                  
+.ERROR3  MNOTE 50,'INVALID COMBINATION OF BASE AND SAVEA SPECICATIONS'          
+         MEXIT                                                                  
+.ERROR4  MNOTE 30,'ILLEGAL USE OF TEMP REGISTER'                                
+         MEND                                                                   

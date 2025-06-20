@@ -1,0 +1,52 @@
+/*----------------------------------------*/
+/* Display the checksum on an NSS or DCSS */
+/*                                        */
+/* Syntax:                                */
+/*    SPLCKSUM <nss_name>                 */
+/*             <dcss_name>                */
+/*                                        */
+/*                                        */
+/*                                        */
+/*----------------------------------------*/
+ 
+parse upper arg infile rest
+If rest <> '' then
+  Do
+   say 'ERROR:  Extra parameter was specified -- 'rest
+   exit 4
+  End
+ 
+'pipe CP QUERY PRIVCLAS           ',
+'       | drop first 1            ',
+'       | drop last 2             ',
+'       | spec w2 1               ',
+'       | var pclass              '
+Do l = 1 to length(pclass)
+ If substr(pclass,l,1) = 'E' then leave
+ If l = length(pclass) then
+  Do
+   say 'ERROR:  Privilege class E is required.'
+   say '        You have only the following classes -- 'pclass
+   exit 8
+  End
+End
+ 
+'pipe CP Q NSS | spec w2 1 w8 10 | stem outrec.'
+ 
+Do i = 2 to outrec.0
+ spid = word(outrec.i,1)
+ name = word(outrec.i,2)
+ If name = infile then leave
+ If i = outrec.0 then
+  Do
+    say 'ERROR:  Requested NSS or DCSS was not found -- 'infile
+    exit 12
+  End
+End
+ 
+'pipe CP LOCATE SPFBK *NSS 'spid ' | drop first 1 | spec w4 | var spf@'
+spfsha1s@ = d2x(x2d(spf@) + 112)
+'pipe CP DISPLAY HL' || spfsha1s@ || '.20  ',
+'       | join 1 | spec w2 1 w3 10 w4 19 w5 28 w8 37 | var cksm'
+say infile ' checksum: 'cksm
+exit 0
