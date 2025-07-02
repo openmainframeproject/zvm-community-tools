@@ -1,9 +1,9 @@
 #!/srv/venv/bin/python3
 """
-vifimgpower.py - create a web page to allow users to start or stop Linux images. It is called for:
-                 - vif image start:   8 columns with action button
-                 - vif image stop     8 columns with action button
-                 - vif image stopall  7 columns
+vifimgpower.py - create a web page to allow users to start or stop Linux VMs. It is called for:
+                 - vif vm start:   8 columns with action button
+                 - vif vm stop     8 columns with action button
+                 - vif vm stopall  7 columns
 """
 import os
 import subprocess
@@ -15,12 +15,12 @@ from zlma_buttons import Zlma_buttons
 class Vif_img_set:
   def __init__(self):
     """
-    get arguments to call the 'vif image set' command 
+    get arguments to call the 'vif vm set' command 
     """
     query_string = os.environ.get('QUERY_STRING', '') # get env var
     query_params = parse_qs(query_string)  # parse query string
     self.sub_cmd = query_params.get('sub_cmd', [''])[0] # get first element of 'sub_cmd' value
-    self.title = f"zlma vif image {self.sub_cmd} command"
+    self.title = f"zlma vif vm {self.sub_cmd} command"
     print('Content-Type: text/html')       # start the HTML page
     print()
     print('<!DOCTYPE html>')
@@ -35,7 +35,7 @@ class Vif_img_set:
     return proc.returncode                 # 0 = server pings
 
   def create_page(self):                   # make the HTML page
-    zlma_buttons = Zlma_buttons("using-vif-image") # add navigation buttons
+    zlma_buttons = Zlma_buttons("using-vif-vm") # add navigation buttons
     print(f'<h2>{self.title}</h2>')
     html = "<table id='zlma-table'>\n<tr>" # start table then add headers
     html += "<th>Host name</th><th>LPAR</th><th>User ID</th><th>IP address</th><th>CPUs</th><th>GB memory</th><th>Status</th>"
@@ -81,14 +81,14 @@ class Vif_img_set:
       if self.sub_cmd != 'stopall':        # extra column needed
         if self.sub_cmd == "start" and status == "down":
           html += f"<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
-          html += f"<input type='hidden' name='cmd' value='image'>\n"
+          html += f"<input type='hidden' name='cmd' value='vm'>\n"
           html += f"<input type='hidden' name='sub_cmd' value='{self.sub_cmd}'>\n"
           html += f"<input type='hidden' name='arg1' value='{user_id}'>\n"
           html += f"<input type='hidden' name='arg2' value='{lpar}'>\n"
           html += f"<button class='button green-button'>Start</button></form></td>\n"
         elif self.sub_cmd == "stop" and status == "up":
           html += f"<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
-          html += f"<input type='hidden' name='cmd' value='image'>\n"
+          html += f"<input type='hidden' name='cmd' value='vm'>\n"
           html += f"<input type='hidden' name='sub_cmd' value='{self.sub_cmd}'>\n"
           html += f"<input type='hidden' name='arg1' value='{user_id}'>\n"
           html += f"<input type='hidden' name='arg2' value='{lpar}'>\n"
@@ -101,7 +101,7 @@ class Vif_img_set:
       html = "<h2>Are you sure?</h2>"
       html += "<table><tr><td>"            # start table, row and cell
       html += f"<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
-      html += f"<input type='hidden' name='cmd' value='image'>\n"
+      html += f"<input type='hidden' name='cmd' value='vm'>\n"
       html += f"<input type='hidden' name='sub_cmd' value='stopall'>\n"
       html += f"<input type='hidden' name='arg1' value='{lpar}'>\n"
       html += f"<button class='button green-button'>Stop all</button></form></td>\n"

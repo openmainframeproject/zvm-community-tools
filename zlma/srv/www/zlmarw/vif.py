@@ -1,4 +1,4 @@
-#!/srv/venv/bin/python3
+#!/usr/bin/env python3
 import html
 import subprocess
 import sys
@@ -42,12 +42,16 @@ class Vif:
         if cell1 == "yes":                 # get args if needed else call call vif 
           if vif_cmd == "hypervisor" and cell == "disk":
             script = "vifhypdisk.py"
+          elif vif_cmd == "vm" and cell == "create":
+            script = "vifimgcreate.py?sub_cmd=create"      
+          elif vif_cmd == "vm" and (cell == "delete" or cell == "set" or cell == "network"):
+            script = f"vifimgset.py?sub_cmd={cell}"      
+          elif vif_cmd == "vm" and (cell == "start" or cell == "stop" or cell == "stopall"):
+            script = f"vifimgpower.py?sub_cmd={cell}"      
           elif vif_cmd == "image" and cell == "create":
             script = "vifimgcreate.py"      
-          elif vif_cmd == "image" and (cell == "delete" or cell == "set"):
+          elif vif_cmd == "image" and cell == "delete":
             script = f"vifimgset.py?sub_cmd={cell}"      
-          elif vif_cmd == "image" and (cell == "start" or cell == "stop" or cell == "stopall"):
-            script = f"vifimgpower.py?sub_cmd={cell}"      
           elif vif_cmd == "disk":
             script = f"vifdisk.py?sub_cmd={cell}"      
           else:                            # no arguments needed
@@ -63,7 +67,7 @@ class Vif:
     html_code += "</tbody></table>&nbsp;\n"
     return html_code
   
-  def create_page(self):                   # Create page body with 4 tables: hypervisor, image, disk, and query
+  def create_page(self):                   # Create page body with 4 tables: hypervisor, vm, disk, and query
     hyper_data = [["collect", "Gather problem determination info"], 
                   ["disk", "Add paging or Linux disk space"],
                   ["errors", "Report on hardware errors"], 
@@ -72,26 +76,24 @@ class Vif:
                   ["shutdown", "SHUTDOWN z/VM"],
                   ["verify", "Perform consistency checks"]
                  ]
-    image_data = [["create", "Define a new Linux image"], 
-                  ["delete", "Delete an existing image"],
-                  ["set", "Change memory or #CPUs of a image"],
-                  ["start", "Boot a Linux image"],
-                  ["stop", "Shut down a Linux image"],
-                  ["stopall", "Shutdown all images on an LPAR"]
+    vm_data = [["create", "Clone a Linux VM"], 
+               ["delete", "Delete Linux VM (no PURGE just yet)"],
+               ["network", "Add OSA triplet - need VSWITCH name as an arg?"],
+               ["set", "Change memory size or number of CPUs of a VM"],
+               ["start", "Start a VM"],
+               ["stop", "Stop a VM"],
+               ["stopall", "Stop all VMs on LPAR"]
+              ]
+    image_data = [["create", "Create a new Linux golden image"], 
+                  ["delete", "Delete a Linux golden image"]
                  ]
     disk_data =  [["copy", "Copy source disk to newly added target disk"], 
                   ["create", "Add a new minidisk"], 
                   ["delete", "Delete an existing minidisk"],
                   ["share", "Give R/O access to a disk of another image"]
                  ]
-    query_data = [["all", "Invoke all other query subcommands"], 
-                  ["disks", "Display image DASD utilization"], 
-                  ["errors", "Report on hardware errors"], 
-                  ["level", "Show the z/VM level or version"], 
-                  ["network", "Display network configuration"], 
-                  ["paging", "Report used/available page space"],
-                  ["performance", "Display CPU, paging and I/O utilization"],
-                  ["volumes", "Display image and paging DASD volumes"]
+    query_data = [["errors", "Report on hardware errors"],
+                  ["paging", "Report used/available page space"]
                  ]
   
     html_code = f"<h2>{self.title}</h2>\n"
@@ -100,8 +102,10 @@ class Vif:
     html_code += "</td><td>\n"             # start new cell
     html_code += self.create_table("query", query_data)
     html_code += "</td></tr><tr><td>"      # end cell and row, start new row
-    html_code += self.create_table("image", image_data)
+    html_code += self.create_table("vm", vm_data)
     html_code += "</td><td>\n"             # start new cell
+    html_code += self.create_table("image", image_data)
+    html_code += "</td></tr><tr><td colspan='2'>"      # end cell and row, start new row spanning both columns
     html_code += self.create_table("disk", disk_data)
     html_code += "</td></tr></table>\n"    # end cell, row and table
     html_code += "</body>\n</html>"

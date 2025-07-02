@@ -1,6 +1,6 @@
 #!/srv/venv/bin/python3
 """
-vifimgset.py - allow user to modify number of CPUs or amount of memory
+vifimgset.py - handle VM operations (delete, set, network) and image delete
 """
 import os
 import subprocess
@@ -11,10 +11,21 @@ from zlma_buttons import Zlma_buttons
 sys.path.append('/usr/local/sbin')
 from zlma_srvrs import Zlma_srvrs
 
-class Vif_img_set:                         # get arguments to call the 'vif image set' command 
+class Vif_img_set:                         # handle VM and image operations
   def __init__(self):
+    query_string = os.environ.get('QUERY_STRING', '') # get env var
+    query_params = parse_qs(query_string)  # parse query string
+    self.sub_cmd = query_params.get('sub_cmd', ['set'])[0] # get first element of 'sub_cmd' value
+    self.cmd = query_params.get('cmd', ['vm'])[0]   # get command type (vm or image)
+    
+    if self.cmd == 'vm':
+      self.title = f"zlma vif vm {self.sub_cmd}"
+      self.nav_context = "using-vif-vm"
+    else:
+      self.title = f"zlma vif image {self.sub_cmd}"
+      self.nav_context = "using-vif-image"
+      
     self.srvrs = Zlma_srvrs()              # get s390x servers in the CMDB
-    self.title = "zlma vif image set"
     print('Content-Type: text/html')       # start the HTML page
     print()
     print('<!DOCTYPE html>')
@@ -24,8 +35,33 @@ class Vif_img_set:                         # get arguments to call the 'vif imag
     print('</head><body>')
 
   def create_page(self):                   # make the page body
-    zlma_buttons = Zlma_buttons("using-vif-image") # add navigation buttons
+    zlma_buttons = Zlma_buttons(self.nav_context) # add navigation buttons
     print(f'<h2>{self.title}</h2>')
+    
+    # Handle different sub-commands
+    if self.sub_cmd == 'delete':
+      self.handle_delete()
+    elif self.sub_cmd == 'network':
+      self.handle_network()
+    else:  # 'set' command
+      self.handle_set()
+
+  def handle_delete(self):
+    html = "<table><tr><td><pre>"           # start table, row, cell and preformatted text
+    if self.cmd == 'vm':
+      html += "TODO: gather args to call 'vif vm delete' - VM name?\n"
+    else:
+      html += "TODO: gather args to call 'vif image delete' - image name?\n"
+    html += "</pre></td></tr></table></body></html>"
+    print(html)
+
+  def handle_network(self):
+    html = "<table><tr><td><pre>"           # start table, row, cell and preformatted text
+    html += "TODO: gather args to call 'vif vm network' - VM name, device, VSWITCH name?\n"
+    html += "</pre></td></tr></table></body></html>"
+    print(html)
+
+  def handle_set(self):
     html = "<table id='zlma-table'><tr>\n" # start table then add headers
     html += "<th>Host name</th><th>LPAR</th><th>User ID</th><th>IP address</th><th>CPUs</th>\n"
     html += "<th>Set</th><th>GB memory</th><th>Set</th>"
@@ -54,24 +90,26 @@ class Vif_img_set:                         # get arguments to call the 'vif imag
             html += f"<td>{cell}</td>\n"
           case 5:                          # CPUs - add button to modify them
             html += f"<td>&nbsp;{cell}</td>\n"
-            html += "<td><form action='/zlmarw/vifdoset.py' accept-charset='utf-8'>\n"
-            html += f"<input type='hidden' name='host_name' value='{host_name}'>\n"
-            html += f"<input type='hidden' name='lpar' value='{lpar}'>\n"
-            html += f"<input type='hidden' name='user_id' value='{user_id}'>\n"
-            html += f"<input type='hidden' name='cpus' value='{cell}'>\n"
+            html += "<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
+            html += f"<input type='hidden' name='cmd' value='{self.cmd}'>\n"
+            html += f"<input type='hidden' name='sub_cmd' value='set'>\n"
+            html += f"<input type='hidden' name='arg1' value='{user_id}'>\n"
+            html += f"<input type='hidden' name='arg2' value='cpus'>\n"
+            html += f"<input type='hidden' name='arg3' value='{cell}'>\n"
             html += "<button class='button green-button'>CPUs</button></form></td>\n"
           case 6:                          # memory - add button to modify it
             html += f"<td>&nbsp;{cell} GB</td>\n"
-            html += "<td><form action='/zlmarw/vifdoset.py' accept-charset='utf-8'>\n"
-            html += f"<input type='hidden' name='host_name' value='{host_name}'>\n"
-            html += f"<input type='hidden' name='lpar' value='{lpar}'>\n"
-            html += f"<input type='hidden' name='user_id' value='{user_id}'>\n"
-            html += f"<input type='hidden' name='memory' value='{cell}'>\n"
+            html += "<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
+            html += f"<input type='hidden' name='cmd' value='{self.cmd}'>\n"
+            html += f"<input type='hidden' name='sub_cmd' value='set'>\n"
+            html += f"<input type='hidden' name='arg1' value='{user_id}'>\n"
+            html += f"<input type='hidden' name='arg2' value='memory'>\n"
+            html += f"<input type='hidden' name='arg3' value='{cell}'>\n"
             html += "<button class='button green-button'>memory</button></form></td>\n"
           case _:                         
             html += f"<td>{cell}</td>\n"
       html += "</tr>\n"                    # end row
-    html += "</table>"
+    html += "</table></body></html>"
     print(html)
 
 # main()

@@ -1,6 +1,6 @@
 #!/srv/venv/bin/python3
 """
-vifdisk.py: perform 'vif image disk' commands
+vifdisk.py: perform 'vif disk' commands
 'sub_cmd' passed with QUERY_STRING can be 'copy', 'create', 'delete' or 'share'
 """
 import os 
