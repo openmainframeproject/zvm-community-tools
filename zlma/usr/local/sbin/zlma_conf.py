@@ -15,7 +15,7 @@ class Zlma_conf:
     try:
       self.user = os.getenv('USER')         # user running command
     except KeyError:
-      self.log.error("USER environment variable is not set")
+      # self.log.error("USER environment variable is not set")
       self.user = "unknown"
 
   def load_config_file(self):
@@ -25,7 +25,8 @@ class Zlma_conf:
     try:
       conf_file = open("/etc/zlma.conf", 'r')
     except Exception as e:
-      self.log.error("load_config_file(): could not open configuration file /etc/zlma.conf - using defaults")
+      # self.log.error("load_config_file(): could not open configuration file /etc/zlma.conf - using defaults")
+      print(f"Error: {e}")
       return
     confJSON = json.loads(conf_file.read())
     self.db_user = confJSON['db_user']

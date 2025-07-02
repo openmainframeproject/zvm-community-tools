@@ -26,7 +26,7 @@ except ImportError as e:
     sys.exit(1)
 
 # Global variables
-confFile = "/etc/consolez.conf"  # configuration file
+confFile = "/etc/zlma.conf"  # configuration file
 consolezUser = "none"  # user this script is running as
 flags = "-s"  # default is succinct output
 systemID = ""  # arg 1

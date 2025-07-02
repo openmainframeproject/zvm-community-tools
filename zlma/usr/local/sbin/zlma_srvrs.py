@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import requests
+import subprocess
 sys.path.append('/usr/local/sbin')
 from zlma_conf import Zlma_conf            # to read /etc/zlma.conf
 
