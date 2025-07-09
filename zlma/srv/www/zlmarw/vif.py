@@ -78,6 +78,7 @@ class Vif:
                  ]
     vm_data = [["create", "Clone a Linux VM"], 
                ["delete", "Delete Linux VM (no PURGE just yet)"],
+               ["list", "List all VMs and their status"],
                ["network", "Add OSA triplet - need VSWITCH name as an arg?"],
                ["set", "Change memory size or number of CPUs of a VM"],
                ["start", "Start a VM"],

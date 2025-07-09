@@ -126,6 +126,7 @@ class VmParser(CommandParser):
     VALID_ACTIONS = {
         'create': 'Clone a Linux',
         'delete': 'Delete Linux but no PURGE just yet',
+        'list': 'List all VMs and their status',
         'network': 'Add OSA triplet - need VSWITCH name as an arg?',
         'set': 'Set VM properties (storage/cpus)',
         'start': 'Start VM',
@@ -453,6 +454,8 @@ class Vif:
         self.handle_vm_create(cmd.target, cmd.arguments)
       case 'delete':
         self.handle_vm_delete(cmd.target, cmd.arguments)
+      case 'list':
+        self.handle_vm_list(cmd.arguments)
       case 'network':
         self.handle_vm_network(cmd.target, cmd.options, cmd.arguments)
       case 'set':
@@ -552,6 +555,8 @@ class Vif:
     print("               Syntax: vif vm create <vm_name>")
     print("       delete: delete Linux VM (no PURGE just yet)")
     print("               Syntax: vif vm delete <vm_name>")
+    print("         list: list all VMs and their status")
+    print("               Syntax: vif vm list")
     print("      network: add OSA triplet - need VSWITCH name as an arg?")
     print("               Syntax: vif vm network <vm_name> add <device>")
     print("          set: change memory size or number of CPUs of a VM")
@@ -686,6 +691,44 @@ class Vif:
   def handle_vm_stopall(self):
     self.log.debug(f"handle_vm_stopall(): user: {self.conf.user} stop all VMs")
     print(f"call: 'VIFCMS vm stopall' => better: loop through all images and call 'vm stop' on them")
+
+  def handle_vm_list(self, args: List[str]):
+    """List all VMs and their status using Feilong API"""
+    self.log.debug(f"handle_vm_list(): user: {self.conf.user} list all VMs")
+    
+    import requests
+    import json
+    
+    feilong_url = "http://feilong-mike-wg:8080"
+    
+    try:
+      # Call Feilong API to get guests list
+      response = requests.get(f"{feilong_url}/guests", timeout=10)
+      
+      if response.status_code == 200:
+        data = response.json()
+        guests = data.get('output', [])
+        
+        if guests:
+          for guest in guests:
+            print(guest)
+        else:
+          print("No VMs found.")
+        
+      else:
+        print(f"Error: Failed to connect to Feilong API")
+        print(f"HTTP Status Code: {response.status_code}")
+        print(f"Response: {response.text}")
+        
+    except requests.exceptions.ConnectTimeout:
+      print("Error: Connection to Feilong API timed out")
+      print(f"URL: {feilong_url}/guests")
+    except requests.exceptions.ConnectionError:
+      print("Error: Unable to connect to Feilong API")
+      print(f"URL: {feilong_url}/guests")
+    except Exception as e:
+      print(f"Error calling Feilong API: {e}")
+      print(f"URL: {feilong_url}/guests")
 
   # New disk command handlers for the new format
   def handle_disk_copy_new(self, options: Dict[str, Any]):
