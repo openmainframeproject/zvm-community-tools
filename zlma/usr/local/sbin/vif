@@ -261,8 +261,18 @@ class QueryParser(CommandParser):
     """Parser for query commands"""
     
     VALID_ACTIONS = {
+        'active': 'Report which VMs are running',
+        'all': 'Invoke all other query subcommands',
+        'configuration': 'Display current vif settings',
+        'disks': 'Display VM DASD utilization',
         'errors': 'Write errors to /var/log/zlma/errors.report.<timestamp>',
-        'paging': 'Show page space and % used'
+        'level': 'Report the vif level (version)',
+        'network': 'Display network configuration',
+        'paging': 'Show page space and % used',
+        'performance': 'Display current CPU, paging and I/O utilization',
+        'shared': 'Display VMs that share disks',
+        'vm': 'Display configuration of a VM',
+        'volumes': 'Display image and paging DASD volumes'
     }
     
     def can_parse(self, tokens: List[str]) -> bool:
@@ -488,10 +498,34 @@ class Vif:
   def handle_query_command(self, cmd: ParsedCommand):
     """Handle query commands"""
     match cmd.action:
+      case 'active':
+        self.handle_query_active()
+      case 'all':
+        self.handle_query_all()
+      case 'configuration':
+        self.handle_query_configuration()
+      case 'disks':
+        self.handle_query_disks()
       case 'errors':
         self.handle_query_errors()
+      case 'level':
+        self.handle_query_level()
+      case 'network':
+        self.handle_query_network()
       case 'paging':
         self.handle_query_paging()
+      case 'performance':
+        self.handle_query_performance()
+      case 'shared':
+        self.handle_query_shared()
+      case 'vm':
+        if cmd.arguments:
+          self.handle_query_vm(cmd.arguments[0])
+        else:
+          self.log.error("Query vm requires a VM name")
+          sys.exit(1)
+      case 'volumes':
+        self.handle_query_volumes()
       case _:
         self.log.error(f"Unknown query action: {cmd.action}")
         sys.exit(1) 
@@ -573,30 +607,30 @@ class Vif:
     print("vif disk: manage disks")
     print("  Subcommands:")
     print("         copy: copy source disk to newly added target disk")
-    print("               Syntax: vif disk copy <image1> <device1> [to] <image2> <device2>")
+    print("               Syntax: vif disk copy <vm1> <device1> [to] <vm2> <device2>")
     print("       create: add a new disk")
-    print("               Syntax: vif disk create <image> <device> <size>")
+    print("               Syntax: vif disk create <vm> <device> <size>")
     print("       delete: delete an existing disk")
-    print("               Syntax: vif disk delete <image1> <device1>")
-    print("        share: give read-only access to the disk of another Linux image")
-    print("               Syntax: vif disk share <image1> <device1> [with] <image2> <device2>")
+    print("               Syntax: vif disk delete <vm1> <device1>")
+    print("        share: give read-only access to the disk of another VM")
+    print("               Syntax: vif disk share <vm1> <device1> [with] <vm2> <device2>")
    
   def handle_help_query(self):
     self.log.debug(f"handle_help_query(): user: {self.conf.user}")
     print("vif query    : display many types of z/VM information")
     print("  Subcommands:")
-    print("       active: report which Linux images are running")
+    print("       active: report which VMs are running")
     print("          all: invoke all other query subcommands")
     print("configuration: display current vif settings")
-    print("        disks: display Linux image DASD utilization")
+    print("        disks: display VM DASD utilization")
     print("       errors: report on hardware errors")
-    print("        image: display configuration of a Linux image")
-    print("               Syntax: vif query image <image>")
     print("        level: report the vif level (version)")
     print("      network: display network configuration")
     print("       paging: report on amount of page space and how much is being used")
     print("  performance: display current CPU, paging and I/O utilization")
-    print("       shared: display Linux images that share disks")
+    print("       shared: display VMs that share disks")
+    print("           vm: display configuration of a VM")
+    print("               Syntax: vif query vm <vm_name>")
     print("      volumes: display image and paging DASD volumes")
 
   def handle_help(self):
@@ -730,6 +764,49 @@ class Vif:
       print(f"Error calling Feilong API: {e}")
       print(f"URL: {feilong_url}/guests")
 
+  def handle_query_vm(self, vm_name: str):
+    """Display configuration of a specific VM"""
+    self.log.debug(f"handle_query_vm() user: {self.conf.user} query VM {vm_name}")
+    print(f"Querying VM configuration for: {vm_name}")
+    # TODO: Call Feilong API to get VM details
+    print("TODO: Implement VM configuration query via Feilong API")
+
+  def handle_query_all(self):
+    """Invoke all other query subcommands"""
+    self.log.debug(f"handle_query_all() user: {self.conf.user} run all query commands")
+    print("Running all query commands:")
+    self.handle_query_active()
+    print()
+    self.handle_query_configuration()
+    print()
+    self.handle_query_disks()
+    print()
+    self.handle_query_errors()
+    print()
+    self.handle_query_level()
+    print()
+    self.handle_query_network()
+    print()
+    self.handle_query_paging()
+    print()
+    self.handle_query_performance()
+    print()
+    self.handle_query_shared()
+    print()
+    self.handle_query_volumes()
+
+  def handle_query_configuration(self):
+    """Display current vif settings"""
+    self.log.debug(f"handle_query_configuration() user: {self.conf.user} display vif configuration")
+    print("VIF Configuration:")
+    print("TODO: Display current VIF settings and configuration")
+
+  def handle_query_performance(self):
+    """Display current CPU, paging and I/O utilization"""
+    self.log.debug(f"handle_query_performance(): user: {self.conf.user} display performance metrics")
+    print("Performance metrics:")
+    print("TODO: Implement performance query")
+
   # New disk command handlers for the new format
   def handle_disk_copy_new(self, options: Dict[str, Any]):
     if options:
@@ -843,7 +920,7 @@ class Vif:
   # vif query command handlers
   def handle_query_active(self):
     """
-    Get a list of all zLinux servers in this LPAR
+    Get a list of all VMs in this LPAR
     Ping each server (1 packet, 500 ms max) and show which are up and which are down
     """
     self.get_lpar_userid()                 # save LPAR and user ID we are running on
@@ -871,8 +948,8 @@ class Vif:
       row = " ".join(fields)
       print(row)
     print(" ")
-    print(f"Servers up  : {up_count}") 
-    print(f"Servers down: {down_count}") 
+    print(f"VMs up  : {up_count}") 
+    print(f"VMs down: {down_count}") 
 
   def handle_query_all(self):
     self.log.debug(f"handle_query_all() user: {self.conf.user} run all other query commands")
@@ -909,17 +986,16 @@ class Vif:
     #  print("You don't have the privilege to query paging")
 
   def handle_query_disks(self):
-    self.log.debug(f"handle_query_disks() user: {self.conf.user} run 'query disks'")
-    print("run: CP QUERY DASD and QUERY DASD FREE")
+    self.log.debug(f"handle_query_disks() user: {self.conf.user} display VM DASD utilization")
+    print("VM DASD Utilization:")
+    print("TODO: Implement VM disk utilization query")
     #self.run_vm_cmd("QUERY DASD")
     #self.run_vm_cmd("QUERY DASD FREE")
-     
-
-  def handle_query_performance(self):
-    self.log.debug(f"vif.handle_query_performance(): user: {self.conf.user} run 'query performance'")
 
   def handle_query_shared(self):
-    self.log.debug(f"handle_query_shared(): user: {self.conf.user} run 'query shared'")
+    self.log.debug(f"handle_query_shared(): user: {self.conf.user} display VMs that share disks")
+    print("VMs sharing disks:")
+    print("TODO: Implement shared disk query")
 
   def handle_query_volumes(self):
     self.log.debug(f"handle_query_volumes(): user: {self.conf.user} run 'query volumes'")

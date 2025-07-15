@@ -52,6 +52,8 @@ class Vif:
             script = "vifimgcreate.py"      
           elif vif_cmd == "image" and cell == "delete":
             script = f"vifimgset.py?sub_cmd={cell}"      
+          elif vif_cmd == "query" and cell == "vm":
+            script = f"vifimgset.py?sub_cmd={cell}"      
           elif vif_cmd == "disk":
             script = f"vifdisk.py?sub_cmd={cell}"      
           else:                            # no arguments needed
@@ -93,8 +95,18 @@ class Vif:
                   ["delete", "Delete an existing minidisk"],
                   ["share", "Give R/O access to a disk of another image"]
                  ]
-    query_data = [["errors", "Report on hardware errors"],
-                  ["paging", "Report used/available page space"]
+    query_data = [["active", "Report which VMs are running"],
+                  ["all", "Invoke all other query subcommands"],
+                  ["configuration", "Display current vif settings"],
+                  ["disks", "Display VM DASD utilization"],
+                  ["errors", "Report on hardware errors"],
+                  ["level", "Report the vif level (version)"],
+                  ["network", "Display network configuration"],
+                  ["paging", "Report on amount of page space and how much is being used"],
+                  ["performance", "Display current CPU, paging and I/O utilization"],
+                  ["shared", "Display VMs that share disks"],
+                  ["vm", "Display configuration of a VM"],
+                  ["volumes", "Display image and paging DASD volumes"]
                  ]
   
     html_code = f"<h2>{self.title}</h2>\n"
