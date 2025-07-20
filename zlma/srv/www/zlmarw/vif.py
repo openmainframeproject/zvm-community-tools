@@ -43,7 +43,7 @@ class Vif:
           if vif_cmd == "hypervisor" and cell == "disk":
             script = "vifhypdisk.py"
           elif vif_cmd == "vm" and cell == "create":
-            script = "vifimgcreate.py?sub_cmd=create"      
+            script = "vifvmcreate.py"      
           elif vif_cmd == "vm" and (cell == "delete" or cell == "set" or cell == "network"):
             script = f"vifimgset.py?sub_cmd={cell}"      
           elif vif_cmd == "vm" and (cell == "start" or cell == "stop" or cell == "stopall"):

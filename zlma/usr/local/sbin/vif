@@ -12,7 +12,10 @@ from dataclasses import dataclass
 from typing import List, Optional, Dict, Any, Union
 from enum import Enum
 from zlma_conf import Zlma_conf
+import requests
+import json
 
+feilong_url = "http://feilong-mike-wg:8080"
 
 class CommandType(Enum):
     """Enumeration of main command types"""
@@ -685,8 +688,156 @@ class Vif:
 
   # New VM command handlers
   def handle_vm_create(self, vm_name: str, args: List[str]):
+    """Enhanced VM creation handler with image deployment support"""
     self.log.debug(f"handle_vm_create(): user: {self.conf.user} clone Linux vm: {vm_name}")
-    print(f"call: 'VIFCMS vm create {vm_name}' => clone a Linux")
+    
+    # Parse additional arguments from the web form
+    params = {}
+    i = 0
+    while i < len(args):
+      if args[i] == '--memory' and i + 1 < len(args):
+        params['memory'] = args[i + 1]
+        i += 2
+      elif args[i] == '--cpus' and i + 1 < len(args):
+        params['cpus'] = args[i + 1]
+        i += 2
+      elif args[i] == '--image' and i + 1 < len(args):
+        params['image'] = args[i + 1]
+        i += 2
+      elif args[i] == '--architecture' and i + 1 < len(args):
+        params['architecture'] = args[i + 1]
+        i += 2
+      else:
+        i += 1
+    
+    # Set defaults if not provided
+    cpus = int(params.get('cpus', '1'))
+    memory = params.get('memory', '1024')  # in MB
+    image = params.get('image', 'sles15sp6-minimal')
+    architecture = params.get('architecture', 's390x')
+    
+    # Validate inputs
+    if architecture != 's390x':
+      print(f"Error: Only s390x architecture is supported, got: {architecture}")
+      return
+      
+    if cpus < 1 or cpus > 4:
+      print(f"Error: CPU count must be between 1 and 4, got: {cpus}")
+      return
+      
+    try:
+      memory_mb = int(memory)
+      if memory_mb < 512 or memory_mb > 4096:
+        print(f"Error: Memory must be between 512MB and 4096MB, got: {memory_mb}MB")
+        return
+    except ValueError:
+      print(f"Error: Invalid memory value: {memory}")
+      return
+    
+    print(f"Creating VM '{vm_name}' with {cpus} CPUs, {memory_mb}MB memory...")
+    print(f"Base image: {image}")
+    
+    # Step 1: Create the VM definition
+    vm_config = {
+      "guest": {
+        "userid": vm_name.upper(),
+        "vcpus": cpus,
+        "memory": f"{memory_mb}M",
+        "max_cpu": cpus,
+        "max_mem": f"{memory_mb}M",
+        "user_profile": "LINDFLT",
+        "disk_list": [
+        {
+          "size": "1g",
+          "is_boot_disk": True,
+          "disk_pool": "ECKD:VMPOOL"
+        },
+        {
+          "size": "4g",
+          "disk_pool": "ECKD:VMPOOL",
+          "format": "ext3"
+        }
+     ],
+
+      }
+    }
+    
+    try:
+      # Create the VM
+      print("Step 1: Creating VM definition...")
+      response = requests.post(
+        f"{feilong_url}/guests",
+        json=vm_config,
+        headers={'Content-Type': 'application/json'},
+        timeout=60
+      )
+      
+      if response.status_code not in [200, 201]:
+        print(f"✗ VM creation failed with status code: {response.status_code}")
+        try:
+          error_details = response.json()
+          print(f"Error details: {json.dumps(error_details, indent=2)}")
+        except:
+          print(f"Error response: {response.text}")
+        return
+      
+      print(f"✓ VM '{vm_name}' definition created successfully!")
+      
+      # Step 2: Deploy the image to the VM
+      print("Step 2: Deploying base image to VM...")
+      deploy_config = {
+        "image": image,
+      }
+      
+      deploy_response = requests.put(
+        f"{feilong_url}/guests/{vm_name.upper()}/action",
+        json={
+          "action": "deploy", 
+          **deploy_config
+        },
+        headers={'Content-Type': 'application/json'},
+        timeout=300  # Image deployment can take longer
+      )
+      
+      if deploy_response.status_code == 200:
+        print(f"✓ Base image '{image}' deployed successfully to VM '{vm_name}'!")
+      else:
+        print(f"⚠ Image deployment failed with status code: {deploy_response.status_code}")
+        try:
+          error_details = deploy_response.json()
+          print(f"Deploy error details: {json.dumps(error_details, indent=2)}")
+        except:
+          print(f"Deploy error response: {deploy_response.text}")
+        print("VM created but without base image. You may need to deploy manually.")
+        return
+      
+      # Step 3: Start the VM
+      print("Step 3: Starting VM...")
+      start_response = requests.put(
+        f"{feilong_url}/guests/{vm_name.upper()}/action",
+        json={"action": "start"},
+        headers={'Content-Type': 'application/json'},
+        timeout=60
+      )
+      
+      if start_response.status_code == 200:
+        print(f"✓ VM '{vm_name}' started successfully!")
+        print(f"")
+        print(f"VM '{vm_name}' is now ready for use!")
+        print(f"- CPUs: {cpus}")
+        print(f"- Memory: {memory_mb}MB")
+        print(f"- Base Image: {image}")
+        print(f"- Status: Running")
+      else:
+        print(f"⚠ VM created and image deployed, but failed to start automatically.")
+        print(f"You can start it manually with: vif vm start {vm_name}")
+          
+    except requests.exceptions.ConnectTimeout:
+      print("✗ Connection to Feilong API timed out")
+    except requests.exceptions.ConnectionError:
+      print("✗ Cannot connect to Feilong API. Please check if the service is running.")
+    except Exception as e:
+      print(f"✗ Unexpected error: {e}")
 
   def handle_vm_delete(self, vm_name: str, args: List[str]):
     self.log.debug(f"handle_vm_delete(): user: {self.conf.user} delete Linux vm: {vm_name}")
@@ -729,11 +880,6 @@ class Vif:
   def handle_vm_list(self, args: List[str]):
     """List all VMs and their status using Feilong API"""
     self.log.debug(f"handle_vm_list(): user: {self.conf.user} list all VMs")
-    
-    import requests
-    import json
-    
-    feilong_url = "http://feilong-mike-wg:8080"
     
     try:
       # Call Feilong API to get guests list
