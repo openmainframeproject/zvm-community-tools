@@ -742,9 +742,9 @@ class Vif:
       "guest": {
         "userid": vm_name.upper(),
         "vcpus": cpus,
-        "memory": f"{memory_mb}M",
-        "max_cpu": cpus,
-        "max_mem": f"{memory_mb}M",
+        "memory": memory_mb,
+        "max_cpu": 4,
+        "max_mem": "4G",
         "user_profile": "LINDFLT",
         "disk_list": [
         {
@@ -769,7 +769,7 @@ class Vif:
         f"{feilong_url}/guests",
         json=vm_config,
         headers={'Content-Type': 'application/json'},
-        timeout=60
+        timeout=300
       )
       
       if response.status_code not in [200, 201]:

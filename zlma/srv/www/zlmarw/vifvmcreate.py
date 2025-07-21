@@ -18,11 +18,16 @@ class VifVmCreate:
         print(f'<html><head><title>{self.title}</title>')
         print('<link rel="icon" type="image/png" href="/zlma.ico">')
         print('<link rel="stylesheet" href="/zlma.css">')
+        print('<style>')
+        print('input[type="radio"] { margin-right: 5px; }')
+        print('label { cursor: pointer; margin-right: 15px; }')
+        print('input[type="radio"]:disabled + label { color: #999; cursor: not-allowed; }')
+        print('</style>')
         print('<script>')
         print('''
         function validateForm() {
             const vmName = document.getElementById('vm_name').value.trim();
-            const arch = document.getElementById('architecture').value;
+            const arch = document.querySelector('input[name="architecture"]:checked').value;
             
             if (!vmName) {
                 alert('VM name is required');
@@ -71,49 +76,53 @@ class VifVmCreate:
         
         # Architecture Selector
         print('<tr>')
-        print('<td><label for="architecture">Architecture:</label></td>')
+        print('<td><label>Architecture:</label></td>')
         print('<td>')
-        print('<select id="architecture" name="architecture" required>')
-        print('<option value="s390x" selected>s390x (IBM Z)</option>')
-        print('<option value="intel" disabled style="color: #999;">Intel x86_64 (Not supported yet)</option>')
-        print('</select>')
+        print('<input type="radio" id="arch_s390x" name="architecture" value="s390x" checked required>')
+        print('<label for="arch_s390x">s390x (IBM Z)</label><br>')
+        print('<input type="radio" id="arch_intel" name="architecture" value="intel" disabled>')
+        print('<label for="arch_intel" style="color: #999;">Intel x86_64 (Not supported yet)</label>')
         print('</td>')
         print('</tr>')
         
         # CPU Count
         print('<tr>')
-        print('<td><label for="cpus">CPU Count:</label></td>')
+        print('<td><label>CPU Count:</label></td>')
         print('<td>')
-        print('<select id="cpus" name="cpus" required>')
-        print('<option value="1" selected>1 CPU</option>')
-        print('<option value="2">2 CPUs</option>')
-        print('<option value="3">3 CPUs</option>')
-        print('<option value="4">4 CPUs</option>')
-        print('</select>')
+        print('<input type="radio" id="cpu_1" name="cpus" value="1" checked required>')
+        print('<label for="cpu_1">1 CPU</label>&nbsp;&nbsp;')
+        print('<input type="radio" id="cpu_2" name="cpus" value="2" required>')
+        print('<label for="cpu_2">2 CPUs</label>&nbsp;&nbsp;')
+        print('<input type="radio" id="cpu_3" name="cpus" value="3" required>')
+        print('<label for="cpu_3">3 CPUs</label>&nbsp;&nbsp;')
+        print('<input type="radio" id="cpu_4" name="cpus" value="4" required>')
+        print('<label for="cpu_4">4 CPUs</label>')
         print('</td>')
         print('</tr>')
         
         # Memory Size
         print('<tr>')
-        print('<td><label for="memory">Memory:</label></td>')
+        print('<td><label>Memory:</label></td>')
         print('<td>')
-        print('<select id="memory" name="memory" required>')
-        print('<option value="512">512 MB</option>')
-        print('<option value="1024" selected>1 GB (1024 MB)</option>')
-        print('<option value="2048">2 GB (2048 MB)</option>')
-        print('<option value="3072">3 GB (3072 MB)</option>')
-        print('<option value="4096">4 GB (4096 MB)</option>')
-        print('</select>')
+        print('<input type="radio" id="mem_512" name="memory" value="512" required>')
+        print('<label for="mem_512">512 MB</label>&nbsp;&nbsp;')
+        print('<input type="radio" id="mem_1024" name="memory" value="1024" checked required>')
+        print('<label for="mem_1024">1 GB (1024 MB)</label>&nbsp;&nbsp;')
+        print('<input type="radio" id="mem_2048" name="memory" value="2048" required>')
+        print('<label for="mem_2048">2 GB (2048 MB)</label><br>')
+        print('<input type="radio" id="mem_3072" name="memory" value="3072" required>')
+        print('<label for="mem_3072">3 GB (3072 MB)</label>&nbsp;&nbsp;')
+        print('<input type="radio" id="mem_4096" name="memory" value="4096" required>')
+        print('<label for="mem_4096">4 GB (4096 MB)</label>')
         print('</td>')
         print('</tr>')
         
         # Image Selector (hardcoded for now)
         print('<tr>')
-        print('<td><label for="image">Base Image:</label></td>')
+        print('<td><label>Base Image:</label></td>')
         print('<td>')
-        print('<select id="image" name="image" required>')
-        print('<option value="sles15sp6-minimal" selected>SLES 15 SP6 Minimal</option>')
-        print('</select>')
+        print('<input type="radio" id="img_sles15sp6" name="image" value="sles15sp6-minimal" checked required>')
+        print('<label for="img_sles15sp6">SLES 15 SP6 Minimal</label>')
         print('<br><small>Currently only SLES 15 SP6 Minimal is available</small>')
         print('</td>')
         print('</tr>')
@@ -192,7 +201,7 @@ class VifVmCreate:
         
         try:
             # Execute the VIF command
-            result = subprocess.run(vif_cmd, capture_output=True, text=True, timeout=120)
+            result = subprocess.run(vif_cmd, capture_output=True, text=True, timeout=620)
             
             print('<pre class="output">')
             if result.stdout:
