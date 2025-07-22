@@ -151,6 +151,21 @@ If this is a fresh install of Linux, it is best to update your system. To do so,
     sudo dnf update 
     ```
 
+# Install basic packages
+To install this ``zlma`` repository, some basic packages are first needed.
+
+- Install git, vim and Apache.
+
+  - For Debian-based:
+    ```
+    sudo apt install -y git vim apache2
+    ```
+
+  - For RHEL-based:
+    ```
+    sudo dnf install -y git vim httpd 
+    ```
+
 ## Configure sudo
 Set ``sudo`` so authorized users are not challenged first:
 
@@ -181,19 +196,6 @@ sudo visudo
     ```
 
 ## Install this repository
-To install this ``zlma`` repository, some basic packages are first needed.
-
-- Install git, vim and Apache.
-
-  - For Debian-based:
-    ```
-    sudo apt install -y git vim apache2
-    ```
-
-  - For RHEL-based:
-    ```
-    sudo dnf install -y git vim httpd 
-    ```
 
 - Clone this repo to your home directory:
 
