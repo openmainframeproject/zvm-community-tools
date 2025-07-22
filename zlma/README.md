@@ -260,7 +260,73 @@ The script ``instzlma`` is provided to save you time and improve reliability.
 - Run the script 
 
 ```
-$HOME/zlma/instzlma 
+cd ~/zvm-community-tools/zlma/
+./instzlma
+Detected s390x (mainframe) architecture
+
+Step 1): Installing packages ...
+  Running: sudo apt install -y apache2 cifs-utils cmake curl gcc git jq locate make libmariadb-dev mariadb-server net-tools pandoc python3 python3-dev python3-pip
+...
+
+Step 2): Setting Apache and mariadb to start at boot time ...
+  Running: sudo systemctl enable apache2
+...
+
+Step 3): Creating directories ...
+  directory /srv/www/zlma already exists
+  directory /srv/www/zlmarw already exists
+  directory /var/log/zlma already exists
+  directory /srv/consolez already exists
+
+Step 4): Modifying directory /var/log//var/log/apache2 ...
+  Running: sudo chown www-data:www-data /var/log/apache2
+  Running: sudo chmod 750 /var/log/apache2
+
+Step 5): Copying CGI files from repo to /srv/www ...
+  Running: sudo cp * /srv/www/zlma
+  Running: sudo chown www-data.www-data *
+  Running: sudo cp * /srv/www/zlmarw
+  Running: sudo chown www-data.www-data *
+
+Step 6): Copying scripts from repo to /usr/local/sbin ...
+...
+
+Step 7): Creating symbolic links ...
+ ...
+
+Step 8): Creating virtual environment ...
+  Running: sudo python3 -m venv venv
+  Running: sudo chown -R www-data:www-data /srv/venv
+  Running: sudo chmod -R g+w /srv/venv
+
+Step 9): Activating venv ...
+  Running: source /srv/venv/bin/activate
+
+Step 10): Upgrading pip ...
+  Running: python3 -m pip install --upgrade pip
+...
+
+Step 12): Installing pip packages ...
+...
+
+Step 13): Configuring Apache
+  Running: sudo chmod 770 /var/log/apache2
+
+Step 14): Customizing environment ...
+  Running: sudo cp /home/mikemac/zlma/bash_profile /home/mikemac/.bash_profile
+  Running: sudo mv indent.vim indent.vim.dontuse
+  Running: sudo cp /home/mikemac/zlma/zlma.conf /etc/
+
+Step 15): Opening firewall and SE Linux ...
+
+Step 16): restarting mariadb and Apache and checking status...
+  Running: sudo systemctl restart mariadb
+  Status:      Active: active (running) since Tue 2025-07-22 13:14:17 EDT; 409ms ago
+  Running: sudo systemctl start apache2
+  Status:      Active: active (running) since Tue 2025-07-22 09:29:02 EDT; 3h 45min ago
+
+Successfully installed zlma co-reqs in 4:21
+Log file: /home/mikemac/25-07-22-13-09-57-instzlma.out
 ```
 
 Output will be written to a file of the form ``$HOME/<yr-mon-day-hr-min-sec>-instzlma.out``.  It is recommended you review the output file checking for warnings or errors.
