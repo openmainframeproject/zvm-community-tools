@@ -131,7 +131,7 @@ This code has been tested on Debian-based (Ubuntu server 22.04) and RHEL-based (
 ## Set up SSH access
 Key-based authentication, or *Passwordless* SSH access is needed for one user from the zlma server to all systems that will be managed.  ``zlma`` commands must be run by that user and they must have ``sudo`` access.  
 
-Details on it are outside the scope of this document, howerver, there is a script, ``sshall``, which tests SSH connectivity: https://github.com/mike99mac/zlma/blob/main/usr/local/sbin/sshall
+Details on it are outside the scope of this document, howerver, there is a script, ``sshall``, which tests SSH connectivity in the directory /usr/local/sbin/sshall
 
 Once SSH access is set up, the solution can be installed. 
 
@@ -198,7 +198,7 @@ To install this ``zlma`` repository, some basic packages are first needed.
 - Clone this repo to your home directory:
 
 ```
-git clone https://github.com/mike99mac/zlma
+git clone https://github.com/openmainframeproject/zvm-community-tools
 ```
 
 ## Update the main user 
