@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+#import warnings
+#warnings.filterwarnings("ignore", category=DeprecationWarning)
 import cgi
 import html
 import subprocess
@@ -81,24 +81,24 @@ class VifVmCreate:
         print('<td><label>Architecture:</label></td>')
         print('<td>')
         print('<input type="radio" id="arch_s390x" name="architecture" value="s390x" checked required>')
-        print('<label for="arch_s390x">s390x (IBM Z)</label><br>')
+        print('<label for="arch_s390x">s390x</label><br>')
         print('<input type="radio" id="arch_intel" name="architecture" value="intel" disabled>')
-        print('<label for="arch_intel" style="color: #999;">Intel x86_64 (Not supported yet)</label>')
+        print('<label for="arch_intel" style="color: #999;">x86_64</label>')
         print('</td>')
         print('</tr>')
         
-        # CPU Count
+        # CPUs
         print('<tr>')
-        print('<td><label>CPU Count:</label></td>')
+        print('<td><label>CPUs:</label></td>')
         print('<td>')
         print('<input type="radio" id="cpu_1" name="cpus" value="1" checked required>')
-        print('<label for="cpu_1">1 CPU</label>&nbsp;&nbsp;')
+        print('<label for="cpu_1">1</label><br>')
         print('<input type="radio" id="cpu_2" name="cpus" value="2" required>')
-        print('<label for="cpu_2">2 CPUs</label>&nbsp;&nbsp;')
+        print('<label for="cpu_2">2</label><br>')
         print('<input type="radio" id="cpu_3" name="cpus" value="3" required>')
-        print('<label for="cpu_3">3 CPUs</label>&nbsp;&nbsp;')
+        print('<label for="cpu_3">3</label><br>')
         print('<input type="radio" id="cpu_4" name="cpus" value="4" required>')
-        print('<label for="cpu_4">4 CPUs</label>')
+        print('<label for="cpu_4">4</label>')
         print('</td>')
         print('</tr>')
         
@@ -107,15 +107,15 @@ class VifVmCreate:
         print('<td><label>Memory:</label></td>')
         print('<td>')
         print('<input type="radio" id="mem_512" name="memory" value="512" required>')
-        print('<label for="mem_512">512 MB</label>&nbsp;&nbsp;')
+        print('<label for="mem_512">512 MB</label><br>')
         print('<input type="radio" id="mem_1024" name="memory" value="1024" checked required>')
-        print('<label for="mem_1024">1 GB (1024 MB)</label>&nbsp;&nbsp;')
+        print('<label for="mem_1024">1 GB</label><br>')
         print('<input type="radio" id="mem_2048" name="memory" value="2048" required>')
-        print('<label for="mem_2048">2 GB (2048 MB)</label><br>')
+        print('<label for="mem_2048">2 GB</label><br>')
         print('<input type="radio" id="mem_3072" name="memory" value="3072" required>')
-        print('<label for="mem_3072">3 GB (3072 MB)</label>&nbsp;&nbsp;')
+        print('<label for="mem_3072">3 GB</label><br>')
         print('<input type="radio" id="mem_4096" name="memory" value="4096" required>')
-        print('<label for="mem_4096">4 GB (4096 MB)</label>')
+        print('<label for="mem_4096">4 GB</label>')
         print('</td>')
         print('</tr>')
         
@@ -125,7 +125,7 @@ class VifVmCreate:
         print('<td>')
         print('<input type="radio" id="img_sles15sp6" name="image" value="sles15sp6-minimal" checked required>')
         print('<label for="img_sles15sp6">SLES 15 SP6 Minimal</label>')
-        print('<br><small>Currently only SLES 15 SP6 Minimal is available</small>')
+        # print('<br><small>Currently only SLES 15 SP6 Minimal is available</small>')
         print('</td>')
         print('</tr>')
         
