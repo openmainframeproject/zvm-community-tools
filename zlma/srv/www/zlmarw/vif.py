@@ -40,7 +40,8 @@ class Vif:
       cell1 = "yes"
       for cell in row:
         if cell1 == "yes":                 # get args if needed else call call vif 
-          if vif_cmd == "hypervisor" and cell == "disk":
+          # if vif_cmd == "hypervisor" and cell == "disk":
+          if vif_cmd == "hyp" and cell == "disk":
             script = "vifhypdisk.py"
           elif vif_cmd == "vm" and cell == "create":
             script = "vifvmcreate.py"      
@@ -79,10 +80,10 @@ class Vif:
                   ["verify", "Perform consistency checks"]
                  ]
     vm_data = [["create", "Clone a Linux VM"], 
-               ["delete", "Delete Linux VM (no PURGE just yet)"],
+               ["delete", "Delete Linux VM"],
                ["list", "List all VMs and their status"],
-               ["network", "Add OSA triplet - need VSWITCH name as an arg?"],
-               ["set", "Change memory size or number of CPUs of a VM"],
+               ["network", "Add OSA triplet"],
+               ["set", "Change memory or number of CPUs"],
                ["start", "Start a VM"],
                ["stop", "Stop a VM"],
                ["stopall", "Stop all VMs on LPAR"]
@@ -100,9 +101,9 @@ class Vif:
                   ["configuration", "Display current vif settings"],
                   ["disks", "Display VM DASD utilization"],
                   ["errors", "Report on hardware errors"],
-                  ["level", "Report the vif level (version)"],
+                  ["level", "Show vif version"],
                   ["network", "Display network configuration"],
-                  ["paging", "Report on amount of page space and how much is being used"],
+                  ["paging", "Report on page space"],
                   ["performance", "Display current CPU, paging and I/O utilization"],
                   ["shared", "Display VMs that share disks"],
                   ["vm", "Display configuration of a VM"],
@@ -111,7 +112,8 @@ class Vif:
   
     html_code = f"<h2>{self.title}</h2>\n"
     html_code += "<table id='surroundingTable'><tr><td>\n" 
-    html_code += self.create_table("hypervisor", hyper_data)
+    # html_code += self.create_table("hypervisor", hyper_data)
+    html_code += self.create_table("hyp", hyper_data)
     html_code += "</td><td>\n"             # start new cell
     html_code += self.create_table("query", query_data)
     html_code += "</td></tr><tr><td>"      # end cell and row, start new row

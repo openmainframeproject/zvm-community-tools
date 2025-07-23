@@ -1,0 +1,146 @@
+#!/bin/bash
+#
+# hypcollect - gather information about z/VM and Linux 
+#
+#+--------------------------------------------------------------------------+
+function vmInfo 
+# Collect important z/VM info 
+#+--------------------------------------------------------------------------+
+ {
+  echo
+  echo $dashes
+  echo "         z/VM info"
+  echo $dashes
+  if [ -e /dev/vmcp ]; then
+    echo "Q CPLEVEL:"
+    sudo vmcp q cplevel
+    echo
+    echo "Q STOR:"
+    sudo vmcp q storage
+    echo
+    echo "Q PROC:"
+    sudo vmcp q proc
+    echo
+    echo "Q ALLOC MAP:"
+    sudo vmcp q alloc map
+    echo
+    echo "Q NAMES:"
+    sudo vmcp q names
+    echo
+    echo "IND:"
+    sudo vmcp ind
+    echo
+    echo "Q VSWITCH DETAILS:"
+    sudo vmcp q vswitch details
+    echo
+  else
+    echo "/dev/vmcp not found. CP interface not available."
+  fi
+ }                                         # zvmInfo()
+
+#+--------------------------------------------------------------------------+
+function linuxInfo 
+# Collect important Linux info 
+#+--------------------------------------------------------------------------+
+ {
+  echo
+  echo $dashes
+  echo "          LINUX INFORMATION"
+  echo $dashes
+  echo "Hostname: $(hostname)"
+  echo
+  echo "OS Release:"
+  cat /etc/os-release
+  echo
+  echo "Kernel Version:"
+  uname -a
+  echo
+  echo "System Uptime:"
+  uptime
+  echo
+  echo $dashes
+  echo "          CPU & MEMORY INFO"
+  echo $dashes
+  echo "CPU Info:"
+  lscpu
+  echo
+  echo "Memory Info:"
+  free -h
+  echo
+  echo $dashes
+  echo "          DISK & STORAGE"
+  echo $dashes
+  echo "Block Devices:"
+  lsblk
+  echo
+  echo "Mounted Filesystems:"
+  df -hT
+  echo
+  echo "DASD Devices (if any):"
+  if command -v lsdasd >/dev/null; then
+    lsdasd
+  else
+    echo "lsdasd not installed"
+  fi
+  echo
+  echo "FCP LUNs (if applicable):"
+  if command -v lszdev >/dev/null; then
+    lszdev 
+  else
+    echo "lszdev not installed"
+  fi
+  echo
+  echo $dashes
+  echo "          NETWORKING"
+  echo $dashes
+  echo "Network Interfaces:"
+  ip addr
+  echo
+  echo "Routing Table:"
+  ip route
+  echo
+  echo "DNS Configuration in /etc/resolv.conf:"
+  cat /etc/resolv.conf | egrep -v '^$|^#'
+  echo $dashes
+  echo "        INSTALLED PACKAGES"
+  echo $dashes
+  if command -v rpm >/dev/null; then       # detect package manager
+    echo "RPM Packages:"
+    rpm -qa
+  elif command -v dpkg >/dev/null; then
+    echo "Dpkg Packages:"
+    dpkg -l --no-pager
+  else
+    echo "WARNING: Neither rpm nor dpkg command found"
+  fi
+  echo
+  echo $dashes
+  echo "         SERVICES & PROCESSES"
+  echo $dashes
+  echo "Active Services:"
+  systemctl list-units --type=service --state=running
+  echo
+  echo "Systemd Failed Services:"
+  systemctl --failed
+ }                                         # linuxInfo() 
+  
+#+--------------------------------------------------------------------------+
+# global variables
+dashes="================================================="
+outFile="/tmp/hypcollect-$(date +%Y-%m-%d-%H-%M-%S).log"
+script=`basename $0`                       # just file name
+
+# main()
+echo
+echo $dashes | tee -a $outFile
+echo "         START REPORT" | tee -a $outFile
+echo "Output file: $outFile" | tee -a $outFile   # log file name at top
+echo "$script run on: $(date)" | tee -a $outFile # show date and time
+echo $dashes| tee -a $outFile
+vmInfo | tee -a $outFile                         # capture important z/VM info
+linuxInfo | tee -a $outFile                      # capture important Linux info
+echo $dashes | tee -a $outFile
+echo "         END REPORT" | tee -a $outFile
+echo $dashes | tee -a $outFile
+echo "Output file: $outFile" | tee -a $outFile # and at bottom 
+
