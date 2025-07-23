@@ -67,12 +67,12 @@ class VifVmCreate:
         print('<thead><tr><th colspan="2">VM Creation Parameters</th></tr></thead>')
         print('<tbody>')
         
-        # VM Name (required)
+        # Host name 
         print('<tr>')
-        print('<td><label for="vm_name">VM Name:</label></td>')
+        print('<td><label for="vm_name">Host name:</label></td>')
         print('<td>')
-        print('<input type="text" id="vm_name" name="vm_name" required placeholder="Enter VM name (max 8 chars)" maxlength="8" pattern="[A-Za-z0-9]+">')
-        print('<br><small>Only letters and numbers, max 8 characters (z/VM limitation)</small>')
+        print('<input type="text" id="vm_name" name="vm_name" required placeholder="max 8 chars" maxlength="8" pattern="[A-Za-z0-9]+">')
+        # print('<br><small>Only letters and numbers, max 8 characters (z/VM limitation)</small>')
         print('</td>')
         print('</tr>')
         
