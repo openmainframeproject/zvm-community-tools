@@ -548,8 +548,8 @@ function restartServices
   fi
  }                                         # restartServices()
 
-# main()
-repoDir="$HOME/zlma"                       # directory with zlma repo 
+# global variables
+repoDir="$HOME/zvm-community-tools/zlma"   # directory with zlma repo 
 timeStamp=`date +"%y-%m-%d-%H-%M-%S"`      # current date and time
 outFile="$HOME/$timeStamp-instzlma.out"    # log file
 pythonCmd="python3"                        # can be python3.11
@@ -557,6 +557,7 @@ verbose=0                                  # 1 = verbose
 webDir="unknown"                           # either '/var/log/apache' or '/var/log/httpd'
 webUser="unknown"                          # either 'apache' or 'www-data'
 
+# main()
 parseArgs $@                               # process arguments
 checkBase                                  # verify this is s390x
 echo "Running instzlma to install zlma at $timeStamp ..." > $outFile # create a new log file
