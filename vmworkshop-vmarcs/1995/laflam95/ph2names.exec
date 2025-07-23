@@ -1,0 +1,212 @@
+/* Look up an entry in ph, build a userid() NAMES entry       */
+/* Nick Laflamme - U. of Notre Dame                           */
+/* Dominique.P.Laflamme.1@nd.edu                              */
+/* UDM/Nick                                                   */
+/*                                                            */
+/* July, 1992                                                        */
+ 
+signal prologue                         /* skip to start of code      */
+ 
+/* SYNTAX: and NOVALUE: come first so REXX can always find them       */
+ 
+syntax:                                 /* in case of syntax error    */
+erc = rc                                /* preserve error code        */
+$error='REXX error' erc 'in line' sigl':' errortext(erc)
+say $error                              /* get excited                */
+say "Line" sigl':' sourceline(sigl)     /* show offending line        */
+trace '?r'; nop                         /* start trace mode for debug */
+rc = Socket('Terminate')
+exit erc
+ 
+novalue:
+$error='Novalue error in line' sigl
+say $error                              /* get excited                */
+say sourceline(sigl)                    /* show offending line        */
+trace '?r'; nop                         /* start trace mode for debug */
+rc = Socket('Terminate')
+exit 100
+ 
+prologue:                               /* start of real code         */
+signal on novalue             /* complain about missing vairables     */
+signal on syntax              /* semi-graceful exit for syntax errors */
+parse source . invocation progfn progft progfm calledas addressee
+ 
+parse arg wanthelp .          /* check first argument                 */
+select
+when wanthelp='?' then
+signal somehelp        /* break to explanation                 */
+when wanthelp='??' then
+signal morehelp        /* break to long explanation            */
+otherwise
+nop                    /* on with life                         */
+end   /* of select on wanthelp      */
+ 
+/* trace i */
+ 
+/************* START OF CODE *************************/
+ 
+Address "COMMAND"
+ 
+progid = "PH to NAMES .9"              /*    .9 - getting close now. */
+ 
+Signal on SYNTAX
+ 
+'STATE PIPE MODULE *'
+If rc ^= 0 Then Do
+Say "You must have CMS Pipelines to run" progid
+Exit rc
+End  /*  If  ..  Do  */
+ 
+host = ''
+namesfile = ''
+parse arg whom '(' optstring ')' .
+optstring = translate(optstring,' ','=') /* allow "=" as whitespace  */
+do while optstring /= ''
+parse var optstring thisopt optstring
+select 
+when translate(thisopt) = 'HOST' then
+parse var optstring host optstring
+when translate(thisopt) = 'FILE' then
+parse var optstring namesfile optstring
+otherwise
+say "Unknown option:" thisopt". Making this the NAMES file name"
+namesfile = thisopt
+end                                                      /* select */
+end                                 /* do while optstring isn't null */
+if namesfile = '' then 
+namesfile = userid()
+ 
+if whom = '' then 
+do
+say "You must specify who you're looking up."
+exit 100
+end
+ 
+if host = '' then
+"EXEC PH" whom "( STACK"             /* new - call ph API          */
+else
+'EXEC PH' whom "( STACK HOST" host
+QRC = rc
+phdata.0 = 0
+select /* on outcome of QueryCSO */
+when QRC = 5 then                    /* -1: Read or Write failed   */
+call QSAY("Read or write failure on CSO Query.")
+when QRC = 0 then                    /*  0: no problem             */
+"PIPE STACK | stem PHDATA."      /* read from stack            */
+when QRC = 4 then                    /*  4: no end of data?        */
+call qsay("Data end never received.")
+when QRC = 3 then                    /*  3: bad parameters         */
+call qsay("Bad parameters passed.")
+when QRC = 7 then                    /*  7: User wants out         */
+nop
+otherwise                  /*  1: no matches, 2: too many matches  */
+call qsay("No luck on" whom". RC=" QRC)
+phdata.0 = 0
+end /* select on QRC */
+ 
+if (QRC /= 0) | (phdata.0 = 0) then              /* no answer        */
+exit
+ 
+"PIPE (end \) STEM PHDATA.",
+"| strip leading",
+"| a: nfind name",
+"| find email:",     
+"| specs w2 1",
+"| c: chop after @",
+"| chop @",
+"| var userid",
+"\ a:",
+"| b: chop after :",
+"| hole",                                  /* don't want prefix*/
+"\ b:",
+"| strip",
+"| var name",
+"\ c:",
+"| var node"
+say "What nickname shall you give" name||"?"
+parse upper pull nick .
+line = ":nick."||nick ":userid."||userid ":node."||node ":name."||name
+"PIPE var line | >>" namesfile "NAMES A"
+ 
+Exit
+ 
+somehelp:
+say 'Build CMS Nicknames entries from PH.'
+exit 100                      /* non-zero RC for explanation mode     */
+ 
+morehelp:
+say 'Build CMS Nicknames entries from PH.'
+say 
+say 
+say 'Syntax:' progfn "whom {( namesfile }"
+exit 100
+ 
+Qsay:                        /* cheap SAY command for fullscreen     */
+procedure
+parse arg message
+ 
+"QUERY DISPLAY (LIFO"
+parse pull . lines cols devtype addrtype dbcs color exthi pss pssets
+wlines = (lines * .75)%1
+wcols = (cols * .75)%1
+Wpsline = lines%8
+Wpscol = cols%8
+Vlines = wlines - 2
+Vcols = wcols - 1
+VProtTop = 0                          /* protected lines at top     */
+VProtBot = 1                          /* protected lines at bottom  */
+"WINDOW DEFINE  QUICKIE" Wlines Wcols Wpsline Wpscol "(BOR VAR"
+"VSCREEN DEFINE QUICKIE" Vlines Vcols VProtTop VProtBot "(PROT"
+"WINDOW SHOW QUICKIE ON QUICKIE"
+PFMenu = 'Hit <ENTER> to Continue'
+a=(vcols-length(pfmenu))%2
+"VSCREEN WRITE QUICKIE -1" a length(PFMenu)+1 "(RES FIELD" PFMenu
+fields = 1
+Field.Row.1   = 1
+Field.title.1 = "Quick Message"
+Field.len.1   = length(Field.title.1) + 1
+Field.col.1   = (vcols-field.len.1)%2
+Field.opts.1  = "HI PROT"
+ 
+parse var message nextword message
+fields = fields + 1
+field.title.fields = ''
+ 
+do while nextword ^= ''
+if length(nextword) > vcols then
+do
+say "Too long word:" nextword
+say "No message sent."
+return
+end
+if length(nextword) + length(field.title.fields) < vcols then
+do
+field.title.fields = field.title.fields nextword
+parse var message nextword message
+end
+else
+do
+fields = fields+1
+field.title.fields = ''
+end
+end
+do i = 2 to fields
+Field.Row.i   = i
+Field.len.i   = length(Field.title.i) + 1
+Field.col.i   = 1
+Field.opts.i  = "HI PROT"
+end
+ 
+do i = 1 to fields
+"VSCREEN WRITE QUICKIE"  Field.row.i Field.col.i Field.len.i,
+"(" Field.opts.i "FIELD" Field.title.i
+if length(field.title.i) >= field.len.i then
+say "Trouble: field" i
+end
+"VSCREEN WAITREAD QUICKIE"           /* wait for user input        */
+ 
+"VSCREEN CLEAR QUICKIE"
+"WINDOW  DELETE QUICKIE"
+"VSCREEN DELETE QUICKIE"
+ 
+return
