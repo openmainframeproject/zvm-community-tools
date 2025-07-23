@@ -648,8 +648,16 @@ class Vif:
 
   # 'vif hypervisor' command handlers
   def handle_hyp_collect(self):
+    # call script hypcollect to collect z/VM and Linux data
     self.log.debug(f"handle_hyp_collect(): user: {self.conf.user}  Write problem determination data to <timestamp>")
-    print("call: 'VIFCMS hyp collect' => return problem determination data to /var/log/zlma/problem.report.<timestamp>")
+    print("calling hypcollect ...")
+    cmd = "/usr/local/sbin/hypcollect"
+    try:
+      result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    except Exception as e:
+      print(f"handle_hyp_collect(): Exception calling zlma: {e}")
+      exit(3)
+    print(f"{result.stdout}")              # show the output
 
   def handle_hyp_disk(self, args: str):
     cmd = f"VIFCMS hyp {args}"
