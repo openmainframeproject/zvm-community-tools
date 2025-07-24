@@ -94,20 +94,20 @@ class Vif:
     disk_data =  [["copy", "Copy source disk to newly added target disk"], 
                   ["create", "Add a new minidisk"], 
                   ["delete", "Delete an existing minidisk"],
-                  ["share", "Give R/O access to a disk of another image"]
+                  # ["share", "Give R/O access to a disk of another image"]
                  ]
     query_data = [["active", "Report which VMs are running"],
-                  ["all", "Invoke all other query subcommands"],
+                  # ["all", "Invoke all other query subcommands"],
                   ["configuration", "Display current vif settings"],
-                  ["disks", "Display VM DASD utilization"],
-                  ["errors", "Report on hardware errors"],
-                  ["level", "Show vif version"],
+                  ["disks", "Display Linux and z/VM disks"],
+                  # ["errors", "Report on hardware errors"],
+                  ["version", "Show vif version"],
                   ["network", "Display network configuration"],
-                  ["paging", "Report on page space"],
+                  # ["paging", "Report on page space"],
                   ["performance", "Display current CPU, paging and I/O utilization"],
-                  ["shared", "Display VMs that share disks"],
+                  # ["shared", "Display VMs that share disks"],
                   ["vm", "Display configuration of a VM"],
-                  ["volumes", "Display image and paging DASD volumes"]
+                  # ["volumes", "Display image and paging DASD volumes"]
                  ]
   
     html_code = f"<h2>{self.title}</h2>\n"

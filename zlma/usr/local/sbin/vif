@@ -269,7 +269,7 @@ class QueryParser(CommandParser):
         'configuration': 'Display current vif settings',
         'disks': 'Display VM DASD utilization',
         'errors': 'Write errors to /var/log/zlma/errors.report.<timestamp>',
-        'level': 'Report the vif level (version)',
+        'version': 'Report the vif version',
         'network': 'Display network configuration',
         'paging': 'Show page space and % used',
         'performance': 'Display current CPU, paging and I/O utilization',
@@ -511,8 +511,8 @@ class Vif:
         self.handle_query_disks()
       case 'errors':
         self.handle_query_errors()
-      case 'level':
-        self.handle_query_level()
+      case 'version':
+        self.handle_query_version()
       case 'network':
         self.handle_query_network()
       case 'paging':
@@ -627,7 +627,7 @@ class Vif:
     print("configuration: display current vif settings")
     print("        disks: display VM DASD utilization")
     print("       errors: report on hardware errors")
-    print("        level: report the vif level (version)")
+    print("       version: report the vif version")
     print("      network: display network configuration")
     print("       paging: report on amount of page space and how much is being used")
     print("  performance: display current CPU, paging and I/O utilization")
@@ -937,7 +937,7 @@ class Vif:
     print()
     self.handle_query_errors()
     print()
-    self.handle_query_level()
+    self.handle_query_version()
     print()
     self.handle_query_network()
     print()
@@ -1120,8 +1120,8 @@ class Vif:
     self.log.debug(f"handle_query_image() user: {self.conf.user} query image {image}")
     print("TO DO: write this!")
 
-  def handle_query_level(self):
-    self.log.debug(f"handle_query_level() user: {self.conf.user} calling CP QUERY CPLEVEL")
+  def handle_query_version(self):
+    self.log.debug(f"handle_query_version() user: {self.conf.user} calling CP QUERY CPLEVEL")
     self.run_vm_cmd("QUERY CPLEVEL")
 
   def handle_query_network(self):
