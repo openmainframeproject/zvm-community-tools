@@ -797,14 +797,14 @@ class Vif:
         "image": image,
       }
       
-      deploy_response = requests.put(
+      deploy_response = requests.post(
         f"{feilong_url}/guests/{vm_name.upper()}/action",
         json={
           "action": "deploy", 
           **deploy_config
         },
         headers={'Content-Type': 'application/json'},
-        timeout=300  # Image deployment can take longer
+        timeout=600  # Image deployment can take longer
       )
       
       if deploy_response.status_code == 200:
@@ -821,7 +821,7 @@ class Vif:
       
       # Step 3: Start the VM
       print("Step 3: Starting VM...")
-      start_response = requests.put(
+      start_response = requests.post(
         f"{feilong_url}/guests/{vm_name.upper()}/action",
         json={"action": "start"},
         headers={'Content-Type': 'application/json'},
