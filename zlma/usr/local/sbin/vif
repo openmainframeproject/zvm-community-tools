@@ -269,7 +269,7 @@ class QueryParser(CommandParser):
         'configuration': 'Display current vif settings',
         'disks': 'Display VM DASD utilization',
         'errors': 'Write errors to /var/log/zlma/errors.report.<timestamp>',
-        'version': 'Report the vif version',
+        'version': 'Report the zlma & feilong version',
         'network': 'Display network configuration',
         'paging': 'Show page space and % used',
         'performance': 'Display current CPU, paging and I/O utilization',
@@ -627,7 +627,7 @@ class Vif:
     print("configuration: display current vif settings")
     print("        disks: display VM DASD utilization")
     print("       errors: report on hardware errors")
-    print("       version: report the vif version")
+    print("       version: report the zlma & feilong version")
     print("      network: display network configuration")
     print("       paging: report on amount of page space and how much is being used")
     print("  performance: display current CPU, paging and I/O utilization")

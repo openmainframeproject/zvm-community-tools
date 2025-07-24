@@ -101,7 +101,7 @@ class Vif:
                   ["configuration", "Display current vif settings"],
                   ["disks", "Display Linux and z/VM disks"],
                   # ["errors", "Report on hardware errors"],
-                  ["version", "Show vif version"],
+                  ["version", "Show zlma & feilong versions"],
                   ["network", "Display network configuration"],
                   # ["paging", "Report on page space"],
                   ["performance", "Display current CPU, paging and I/O utilization"],
