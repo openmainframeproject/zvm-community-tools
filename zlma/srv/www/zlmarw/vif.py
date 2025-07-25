@@ -101,15 +101,16 @@ class Vif:
                   ["configuration", "Display current vif settings"],
                   ["disks", "Display Linux and z/VM disks"],
                   # ["errors", "Report on hardware errors"],
-                  ["version", "Show zlma & feilong versions"],
+                  ["version", "Show code versions"],
                   ["network", "Display network configuration"],
                   # ["paging", "Report on page space"],
-                  ["performance", "Display current CPU, paging and I/O utilization"],
+                  ["performance", "Display current CPU, paging and I/O rates"],
                   # ["shared", "Display VMs that share disks"],
                   ["vm", "Display configuration of a VM"],
                   # ["volumes", "Display image and paging DASD volumes"]
                  ]
   
+    # 2 x 2 surrounding table with two small tables in lower right cell
     html_code = f"<h2>{self.title}</h2>\n"
     html_code += "<table id='surroundingTable'><tr><td>\n" 
     # html_code += self.create_table("hypervisor", hyper_data)
@@ -120,7 +121,7 @@ class Vif:
     html_code += self.create_table("vm", vm_data)
     html_code += "</td><td>\n"             # start new cell
     html_code += self.create_table("image", image_data)
-    html_code += "</td></tr><tr><td colspan='2'>"      # end cell and row, start new row spanning both columns
+    html_code += "<br>"                    # disk table goes below image table
     html_code += self.create_table("disk", disk_data)
     html_code += "</td></tr></table>\n"    # end cell, row and table
     html_code += "</body>\n</html>"

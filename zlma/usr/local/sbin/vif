@@ -18,7 +18,7 @@ import json
 feilong_url = "http://feilong-mike-wg:8080"
 
 class CommandType(Enum):
-    """Enumeration of main command types"""
+    # Enumeration of main command types
     HYP = "hyp"
     IMAGE = "image"
     VM = "vm"
@@ -28,7 +28,7 @@ class CommandType(Enum):
 
 @dataclass
 class ParsedCommand:
-    """Data class representing a parsed VIF command"""
+    # Data class representing a parsed VIF command
     command_type: CommandType
     action: str
     target: Optional[str] = None
@@ -43,21 +43,21 @@ class ParsedCommand:
 
 
 class CommandParser(ABC):
-    """Abstract base class for command parsers"""
+    # Abstract base class for command parsers
     
     @abstractmethod
     def can_parse(self, tokens: List[str]) -> bool:
-        """Check if this parser can handle the given tokens"""
+        # Check if this parser can handle the given tokens
         pass
     
     @abstractmethod
     def parse(self, tokens: List[str]) -> ParsedCommand:
-        """Parse the tokens into a ParsedCommand"""
+        # Parse the tokens into a ParsedCommand
         pass
 
 
 class HypParser(CommandParser):
-    """Parser for hypervisor commands"""
+    # Parser for hypervisor commands
     
     VALID_ACTIONS = {
         'collect': 'Return problem determination',
@@ -98,7 +98,7 @@ class HypParser(CommandParser):
 
 
 class ImageParser(CommandParser):
-    """Parser for image commands"""
+    # Parser for image commands
     
     VALID_ACTIONS = {
         'create': 'Create a new Linux golden image',
@@ -124,7 +124,7 @@ class ImageParser(CommandParser):
 
 
 class VmParser(CommandParser):
-    """Parser for VM commands"""
+    # Parser for VM commands
     
     VALID_ACTIONS = {
         'create': 'Clone a Linux',
@@ -187,7 +187,7 @@ class VmParser(CommandParser):
 
 
 class DiskParser(CommandParser):
-    """Parser for disk commands"""
+    # Parser for disk commands
     
     VALID_ACTIONS = {
         'copy': 'Copy a disk from one VM to another',
@@ -261,7 +261,7 @@ class DiskParser(CommandParser):
 
 
 class QueryParser(CommandParser):
-    """Parser for query commands"""
+    # Parser for query commands
     
     VALID_ACTIONS = {
         'active': 'Report which VMs are running',
@@ -269,7 +269,7 @@ class QueryParser(CommandParser):
         'configuration': 'Display current vif settings',
         'disks': 'Display VM DASD utilization',
         'errors': 'Write errors to /var/log/zlma/errors.report.<timestamp>',
-        'version': 'Report the zlma & feilong version',
+        'version': 'Report the vif version',
         'network': 'Display network configuration',
         'paging': 'Show page space and % used',
         'performance': 'Display current CPU, paging and I/O utilization',
@@ -295,9 +295,8 @@ class QueryParser(CommandParser):
             arguments=tokens[2:] if len(tokens) > 2 else []
         )
 
-
 class VifCommandParser:
-    """Main VIF command parser that coordinates all sub-parsers"""
+    # Main VIF command parser that coordinates all sub-parsers
     
     def __init__(self):
         self.parsers = [
@@ -309,12 +308,12 @@ class VifCommandParser:
         ]
     
     def tokenize(self, command: str) -> List[str]:
-        """Tokenize a command string into a list of tokens"""
+        # Tokenize a command string into a list of tokens
         # Simple whitespace tokenization for now
         return command.strip().split()
     
     def parse(self, command: str) -> ParsedCommand:
-        """Parse a complete VIF command string"""
+        # Parse a complete VIF command string
         # Handle the 'vif' prefix if present
         if command.strip().startswith('vif '):
             command = command[4:].strip()
@@ -332,7 +331,7 @@ class VifCommandParser:
         raise ValueError(f"No parser found for command: {' '.join(tokens)}")
     
     def validate_command(self, command: str) -> bool:
-        """Validate if a command can be parsed without raising exceptions"""
+        # Validate if a command can be parsed without raising exceptions
         try:
             self.parse(command)
             return True
@@ -341,9 +340,7 @@ class VifCommandParser:
 
 
 class Vif:
-  """
-  Process all VIF commands using modern object-oriented parser
-  """
+  # Process all VIF commands using modern object-oriented parser
   
   def __init__(self):
     self.conf = Zlma_conf()                # configuration variables
@@ -403,9 +400,7 @@ class Vif:
   #  return int(result.returncode)
 
   def dispatch_command(self, parsed_cmd: ParsedCommand):
-    """
-    Dispatch parsed command to appropriate handler based on command type and action
-    """
+    # Dispatch parsed command to appropriate handler based on command type and action
     if parsed_cmd.command_type == CommandType.HYP:
       self.handle_hyp_command(parsed_cmd)
     elif parsed_cmd.command_type == CommandType.IMAGE:
@@ -421,7 +416,7 @@ class Vif:
       sys.exit(1)
 
   def handle_hyp_command(self, cmd: ParsedCommand):
-    """Handle hypervisor commands"""
+    # Handle hypervisor commands
     match cmd.action:
       case 'collect':
         self.handle_hyp_collect()
@@ -446,7 +441,7 @@ class Vif:
         sys.exit(1)
 
   def handle_image_command(self, cmd: ParsedCommand):
-    """Handle image commands"""
+    # Handle image commands
     match cmd.action:
       case 'create':
         self.handle_image_create(cmd.arguments)
@@ -461,7 +456,7 @@ class Vif:
         sys.exit(1)
 
   def handle_vm_command(self, cmd: ParsedCommand):
-    """Handle VM commands"""
+    # Handle VM commands
     match cmd.action:
       case 'create':
         self.handle_vm_create(cmd.target, cmd.arguments)
@@ -484,7 +479,7 @@ class Vif:
         sys.exit(1)
 
   def handle_disk_command(self, cmd: ParsedCommand):
-    """Handle disk commands"""
+    # Handle disk commands
     match cmd.action:
       case 'copy':
         self.handle_disk_copy_new(cmd.options)
@@ -499,7 +494,7 @@ class Vif:
         sys.exit(1)
 
   def handle_query_command(self, cmd: ParsedCommand):
-    """Handle query commands"""
+    # Handle query commands
     match cmd.action:
       case 'active':
         self.handle_query_active()
@@ -627,7 +622,7 @@ class Vif:
     print("configuration: display current vif settings")
     print("        disks: display VM DASD utilization")
     print("       errors: report on hardware errors")
-    print("       version: report the zlma & feilong version")
+    print("       version: report the vif version")
     print("      network: display network configuration")
     print("       paging: report on amount of page space and how much is being used")
     print("  performance: display current CPU, paging and I/O utilization")
@@ -674,21 +669,12 @@ class Vif:
     print("call: 'VIFCMS hyp service' => z/VM Dvlpmnt needs to enable this to modernize z/VM")
 
   def handle_hyp_shutdown(self, flavor: str):
-    """
-    hypervisor 'restart' and 'shutdown' both invoke CP SHUTDOWN
-    """
+    # hypervisor 'restart' and 'shutdown' both invoke CP SHUTDOWN
     self.log.debug(f"handle_hyp_shutdown(): user: {self.conf.user} run 'CP SHUTDOWN'")
     if flavor == "restart":
-      print(f"call: 'VIFCMS hyp restart' => SHUTDOWN REIPL")
+      print(f"ERROR: You cannot SHUTDOWN REIPL z/VM from a browser!!!")
     else:
-      print(f"call: 'VIFCMS hyp shutdown' => SHUTDOWN")
-    #rc = self.check_privclas("A")          # SHUTDOWN requires privilege class A
-    #if rc == 1:                            # is privileged
-    #  self.log.debug(f"handle_hyp_shutdown(): user: {self.conf.user} running SHUTDOWN REIPL")
-    #  self.run_vm_cmd("SHUTDOWN")
-    #elif rc == 0:                          # is not privileged
-    #  self.log.debug(f"handle_hyp_shutdown(): user: {self.conf.user} does not have A privclas")
-    #  print("You don't have the privilege to do a 'restart'")
+      print(f"ERROR: You cannot SHUTDOWN z/VM from a browser!!!")
 
   def handle_hyp_verify(self):
     self.log.debug(f"handle_hyp_verify(): user: {self.conf.user} do consistency checks, args FULL, BRIef, or NETwork <image>'")
@@ -696,7 +682,7 @@ class Vif:
 
   # New VM command handlers
   def handle_vm_create(self, vm_name: str, args: List[str]):
-    """Enhanced VM creation handler with image deployment support"""
+    # Enhanced VM creation handler with image deployment support
     self.log.debug(f"handle_vm_create(): user: {self.conf.user} clone Linux vm: {vm_name}")
     
     # Parse additional arguments from the web form
@@ -886,7 +872,7 @@ class Vif:
     print(f"call: 'VIFCMS vm stopall' => better: loop through all images and call 'vm stop' on them")
 
   def handle_vm_list(self, args: List[str]):
-    """List all VMs and their status using Feilong API"""
+    # List all VMs and their status using Feilong API
     self.log.debug(f"handle_vm_list(): user: {self.conf.user} list all VMs")
     
     try:
@@ -919,14 +905,14 @@ class Vif:
       print(f"URL: {feilong_url}/guests")
 
   def handle_query_vm(self, vm_name: str):
-    """Display configuration of a specific VM"""
+    # Display configuration of a specific VM
     self.log.debug(f"handle_query_vm() user: {self.conf.user} query VM {vm_name}")
     print(f"Querying VM configuration for: {vm_name}")
     # TODO: Call Feilong API to get VM details
     print("TODO: Implement VM configuration query via Feilong API")
 
   def handle_query_all(self):
-    """Invoke all other query subcommands"""
+    # Invoke all other query subcommands
     self.log.debug(f"handle_query_all() user: {self.conf.user} run all query commands")
     print("Running all query commands:")
     self.handle_query_active()
@@ -950,13 +936,19 @@ class Vif:
     self.handle_query_volumes()
 
   def handle_query_configuration(self):
-    """Display current vif settings"""
+    # Display current vif settings
     self.log.debug(f"handle_query_configuration() user: {self.conf.user} display vif configuration")
-    print("VIF Configuration:")
-    print("TODO: Display current VIF settings and configuration")
+    print("VIF Configuration file /etc/zlma.conf:")
+    cmd = "cat /etc/zlma.conf"
+    try:
+      result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    except Exception as e:
+      print(f"handle_query_configuration(): Exception calling zlma: {e}")
+      exit(3)
+    print(f"{result.stdout}")              # show the output
 
   def handle_query_performance(self):
-    """Display current CPU, paging and I/O utilization"""
+    # Display current CPU, paging and I/O utilization
     self.log.debug(f"handle_query_performance(): user: {self.conf.user} display performance metrics")
     print("Performance metrics:")
     print("TODO: Implement performance query")
@@ -1073,10 +1065,8 @@ class Vif:
 
   # vif query command handlers
   def handle_query_active(self):
-    """
-    Get a list of all VMs in this LPAR
-    Ping each server (1 packet, 500 ms max) and show which are up and which are down
-    """
+    # Get a list of all VMs in this LPAR
+    # Ping each server (1 packet, 500 ms max) and show which are up and which are down
     self.get_lpar_userid()                 # save LPAR and user ID we are running on
     cmd = "/usr/local/sbin/zlma webdata"
     try:
@@ -1108,9 +1098,6 @@ class Vif:
   def handle_query_all(self):
     self.log.debug(f"handle_query_all() user: {self.conf.user} run all other query commands")
     print("handle_query_all() TO DO: call all other query commands")
-
-  def handle_query_configuration(self):
-    self.log.debug(f"handle_query_configuration() user: {self.conf.user} z/VM information, golden image(?) and Linux installation values")
 
   def handle_query_errors(self):
     self.log.debug(f"handle_query_errors() user: {self.conf.user} report hardware errors => HMC RESTful API?")

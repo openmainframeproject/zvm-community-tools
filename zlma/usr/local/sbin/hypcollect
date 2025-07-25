@@ -33,6 +33,9 @@ function vmInfo
     echo "Q VSWITCH DETAILS:"
     sudo vmcp q vswitch details
     echo
+    echo "User Directory:"
+    sudo smcli Query_All_DM -T maint -k format=no
+    echo
   else
     echo "/dev/vmcp not found. CP interface not available."
   fi
