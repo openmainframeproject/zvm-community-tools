@@ -35,6 +35,10 @@ function vmInfo
     echo
     echo "User Directory:"
     sudo smcli Query_All_DM -T maint -k format=no
+    rc=$?
+    if [ $rc != 0 ]; then
+      echo "WARNING: 'smcli Query_All_DM -T maint -k format=no' returned $rc"
+    fi
     echo
   else
     echo "/dev/vmcp not found. CP interface not available."
