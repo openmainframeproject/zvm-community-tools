@@ -1,0 +1,345 @@
+./ I 00200000          $ 201000 1000                  07/28/25 15:53:44         
+*                                                                       00201000
+* To build:                                                             00202000
+*        VMFHLASM DMSCMD DMSVM                                          00203000
+*        LOAD DMSCMD (ORIGIN TRANS                                      00204000
+*        GENMOD DMSCMD (SYSTEM                                          00205000
+*                                                                       00206000
+./ R 00355990 00450000 $ 356980 990                   07/28/25 15:53:44         
+         SPACE ,                                                        00356980
+**********************************************************************  00357970
+*                                                                       00358960
+* Go parse any arguments, looking for "HISTORY n" to override the       00359950
+* default history buffer size.                                          00360940
+*                                                                       00361930
+* PARSE may not return if it doesn't like what it finds.                00362920
+*                                                                       00363910
+**********************************************************************  00364900
+         LR    R3,R1                   Move plist pointer               00365890
+         BAL   R7,PARSE                Go parse any arguments           00366880
+         EJECT ,                                                        00367870
+**********************************************************************  00368860
+*                                                                       00369850
+*        Allocate history buffer of CHISTORY entries (L'ONECMD bytes    00370840
+*        per entry) and store pointer NUCEXT userword and AHISTORY.     00371830
+*        Also initialize the header information in that                 00372820
+*        structure so an external caller can parse the info.            00373810
+*                                                                       00374800
+**********************************************************************  00375790
+         SPACE ,                                                        00376780
+         L     R2,CHISTORY             Get # of HISTORY buffers         00377770
+         MH    R2,=AL2(LONECMD)        Get full size to allocate        00378760
+         LA    R2,HISTORYO(,R2)        Add in overhead                  00379750
+         ST    R2,SHISTORY             Save size for later release      00380740
+         CMSSTOR OBTAIN,BYTES=(R2),                                    *00381730
+               SUBPOOL='NUCLEUS',                                      *00382720
+               ERROR=NOSTORE,                                          *00383710
+               TYPCALL=BRANCH,                                         *00384700
+               LOC=BELOW                                                00385690
+         SPACE ,                                                        00386680
+         ST    R1,AHISTORY             Remember where it is             00387670
+         LR    R0,R1                   Copy pointer                     00388660
+         LR    R14,R1                  Also here                        00389650
+         LR    R1,R2                   Move length for MVCL             00390640
+         XR    R15,R15                 No input                         00391630
+         MVCL  R0,R14                  Clear it all out                 00392620
+         L     R1,AHISTORY             Point to it again                00393610
+         SPACE ,                                                        00394600
+         USING HISTORY,R1              Address it                       00395590
+         SPACE ,                                                        00396580
+         MVC   HISTORYV(4),=F'1'       This is version 1                00397570
+         LA    R15,HISTORYX            Point to first buffer            00398560
+         ST    R15,HISTORY1            Remember it                      00399550
+         ST    R15,HISTORYC            Also current cursor              00400540
+         L     R3,CHISTORY             Get # of HISTORY buffers         00401530
+         ST    R3,HISTORYN             Externalize number of buffers    00402520
+         BCTR  R3,0                    Decrement                        00403510
+         XR    R2,R2                   Clear for multiply               00404500
+         M     R2,=A(LONECMD)          Get offset to last buffer        00405490
+         AR    R3,R15                  Get address of last buffer       00406480
+         ST    R3,HISTORYZ             And set pointer to last buffer   00407470
+         MVC   HISTORYL(4),=A(LONECMD)  Set size of each buffer         00408460
+         SPACE ,                                                        00409450
+         DROP  R1                      Done with HISTORY now            00410440
+         EJECT ,                                                        00411430
+**********************************************************************  00412420
+*                                                                       00413410
+*        Now define the NUCEXT, with the userword pointing to our       00414400
+*        HISTORY buffer structure.                                      00415390
+*                                                                       00416380
+**********************************************************************  00417370
+         SPACE ,                                                        00418360
+         CMSSTOR OBTAIN,DWORDS=CMDSIZED,                               *00419350
+               SUBPOOL='NUCLEUS',                                      *00420340
+               ERROR=NOSTORE,                                          *00421330
+               TYPCALL=BRANCH,                                         *00422320
+               LOC=BELOW                                       CMS12    00423310
+         ST    R1,NUCXADDR             SET ENTRY ADDRESS IN PLIST       00424300
+         ST    R1,NUCXORG              SET ADDRESS IN NUCEXT PLIST      00425290
+         LA    R15,CMDSIZEB            GET SIZE OF NUCEXT IN BYTES      00426280
+         ST    R15,NUCXSIZE            SET IT IN NUCEXT PLIST           00427270
+         LR    R0,R1                   Move entry address               00428260
+         LR    R1,R15                  Output size = input size         00429250
+         LA    R14,DMSCMD              Point to DMSCMD (code to load)   00430240
+./ I 00466000          $ 468000 2000                  07/28/25 15:53:44         
+         MVC   NUCXUWRD(4),AHISTORY    Set pointer to history buffers   00468000
+./ I 00820000          $ 825000 5000                  07/28/25 15:53:44         
+         BAL   R7,RHISTORY             Go release any history buffer    00825000
+./ I 00850000          $ 850100 100                   07/28/25 15:53:44         
+         EJECT ,                                                        00850100
+**********************************************************************  00850200
+*                                                                       00850300
+* PARSE --                                                              00850400
+*                                                                       00850500
+*        Parse any arguments passed on the initial load.                00850600
+*                                                                       00850700
+* Called by:                                                            00850800
+*                                                                       00850900
+*  BAL  R7,PARSE                                                        00851000
+*                                                                       00851100
+*                                                                       00851200
+*        The only supported arguments are HISTORY <n>                   00851300
+*        where n is a number of command entries from 1 to 255. If       00851400
+*        HISTORY is not specified, or is specified with no value,       00851500
+*        the default value of 25 is used.                               00851600
+*                                                                       00851700
+* NOTE:  This is not a full-featured parser: no abbreviations for       00851800
+*        the HISTORY keyword, etc.                                      00851900
+*                                                                       00852000
+*                                                                       00852100
+* Entry conditions:                                                     00852200
+*                                                                       00852300
+*  R3  -- Is the CMS parameter list pointer (R1 from input)             00852400
+*                                                                       00852500
+* Modifies:                                                             00852600
+*                                                                       00852700
+*  WORKSAVE -- registers saved and restored                             00852800
+*  WORKAREA -- used as a workarea for CVB                               00852900
+*  CHISTORY -- receives numeric value if one is found after HISTORY     00853000
+*                                                                       00853100
+*                                                                       00853200
+* Note:                                                                 00853300
+*                                                                       00853400
+*  Error exits via EXIT if parsing fails.                               00853500
+*                                                                       00853600
+**********************************************************************  00853700
+         SPACE ,                                                        00853800
+PARSE    DS    0H                                                       00853900
+         CLI   8(R3),X'FF'             No arguments??                   00854000
+         BER   R7                      Yeah, nothing to do here         00854100
+         CLC   8(8,R3),=CL8'HISTORY '  Setting history size??           00854200
+         JNE   PARSEUNK                 No, unsupported argument        00854300
+         CLI   16(R3),X'FF'            Nothing after HISTORY??          00854400
+         BER   R7                      Yeah, nothing to do here         00854500
+         SPACE ,                                                        00854600
+         STM   R0,R15,WORKSAVE         Save all regs                    00854700
+         SPACE ,                                                        00854800
+         LA    R3,16(,R3)              Point past HISTORY token         00854900
+         LR    R2,R3                   Copy start-of-token pointer      00855000
+         LA    R8,8                    Set token length                 00855100
+         SPACE ,                                                        00855200
+*** Top of loop ***                                                     00855300
+         BALR  R15,0                   Get top-of-loop pointer          00855400
+         CLI   0(R2),C'0'              Less than 0?                     00855500
+         JL    PARSEBAD                Low, invalid                     00855600
+         CLI   0(R2),C'9'              Greater than 9?                  00855700
+         JH    PARSEBAD                High, invalid                    00855800
+         LA    R2,1(,R2)               Point to next character          00855900
+         CLI   0(R2),C' '              At end of value??                00856000
+         JE    PARSECVN                Yes, done parsing                00856100
+         BCTR  R8,R15                  Decrement and go if more         00856200
+*** Bottom of loop ***                                                  00856300
+         SPACE ,                                                        00856400
+PARSECVN DS    0H                                                       00856500
+         SR    R2,R3                   Subtract to get # of digits      00856600
+         BCTR  R2,0                    -1 for execute                   00856700
+         EX    R2,PARSEEXP             Convert to packed                00856800
+         CVB   R2,WORKAREA             Convert to binary                00856900
+         ST    R2,CHISTORY             And set new number               00857000
+         SPACE ,                                                        00857100
+         LM    R0,R15,WORKSAVE         Restore all regs                 00857200
+         SPACE ,                                                        00857300
+         BR    R7                      Return to caller                 00857400
+         SPACE ,                                                        00857500
+PARSEUNK DS    0H                                                       00857600
+         WRTERM 'Unknown option--must be HISTORY <n> if specified.'     00857700
+         LA    R15,24                  Set return code                  00857800
+         J     EXIT                    And return to caller with error  00857900
+         SPACE ,                                                        00858000
+PARSEBAD DS    0H                                                       00858100
+         WRTERM 'Invalid number of HISTORY buffers--must be an integer' 00858200
+         LA    R15,24                  Set return code                  00858300
+         J     EXIT                    And return to caller with error  00858400
+         SPACE ,                                                        00858500
+PARSEEXP PACK  WORKAREA(8),0(*-*,R3)  EXECUTED                          00858600
+./ R 01310000          $ 1314990 4990                 07/28/25 15:53:44         
+NUCXUWRD DC    AL4(0)                  USER WORD                        01314990
+./ R 01640000          $ 1644990 4990                 07/28/25 15:53:44         
+* R9  -- Usually points to OLDCMD                                       01644990
+./ I 02810000          $ 2815000 5000                 07/28/25 15:53:44         
+         STH   R8,ONECMDL              Set length for future use        02815000
+./ I 02890000          $ 2900000 10000                07/28/25 15:53:44         
+         BAL   R7,ADD2H                Go add to history                02900000
+./ I 03030000          $ 3033000 3000                 07/28/25 15:53:44         
+         CLI   CMNDLINE,X'00'          Null command?                    03033000
+         JZ    NULL                    Yes, handle it thus              03036000
+./ I 09560000          $ 9560100 100                  07/28/25 15:53:44         
+**********************************************************************  09560100
+*                                                                       09560200
+* ADD2H --                                                              09560300
+*                                                                       09560400
+*        Add command to history as appropriate. Do not add if same as   09560500
+*        previous entry.                                                09560600
+*                                                                       09560700
+*        The history buffer is a ring, comprising n entries.            09560800
+*                                                                       09560900
+*                                                                       09561000
+*                                                                       09561100
+* CALLED BY:                                                            09561200
+*                                                                       09561300
+*  BAL  R7,ADD2H                                                        09561400
+*                                                                       09561500
+*                                                                       09561600
+* On arrival:                                                           09561700
+*  R8 - Contains length of command to copy                              09561800
+*  R9 - Points to command to copy                                       09561900
+*                                                                       09562000
+**********************************************************************  09562100
+         SPACE ,                                                        09562200
+ADD2H    DS    0H                                                       09562300
+         LTR   R8,R8                   Anything at all??                09562400
+         BZR   R7                      No, nothing to do here           09562500
+         SPACE ,                                                        09562600
+         STM   R0,R15,WORKSAVE         Save all regs                    09562700
+         SPACE ,                                                        09562800
+         ICM   R3,B'1111',AHISTORY     No history buffer??              09562900
+         JZ    ADD2HX                  Weird but just don't do anything 09563000
+         SPACE ,                                                        09563100
+         USING HISTORY,R3              Address it                       09563200
+         SPACE ,                                                        09563300
+         L     R0,HISTORYC             Get cursor                       09563400
+         L     R1,HISTORYL             Get slot length                  09563500
+         LR    R15,R0                  Copy cursor                      09563600
+         SR    R15,R1                  Point to previous entry          09563700
+         C     R15,HISTORY1            We we at start of buffer??       09563800
+         JNL   ADD2HCLC                No, we're fine                   09563900
+         L     R15,HISTORYZ            Yes, point back to last entry    09564000
+ADD2HCLC DS    0H                                                       09564100
+         LA    R2,ONECMDL-ONECMD(,R15) Point to command length          09564300
+         CH    R8,0(,R2)               Same length??                    09564400
+         JNE   ADD2HCND                No, can't be a duplicate command 09564500
+         LR    R14,R8                  Get real length to compare       09564600
+         BCTR  R14,0                   Decrement for EX                 09564700
+         EX    R14,ADD2HXX             CLC   0(LONECMD-1,R9),0(R15)     09564800
+         JE    ADD2HX                  Same, don't create new entry     09564900
+ADD2HCND DS    0H                                                       09565000
+ MC 2,2                                                                 09565300
+         L     R15,HISTORYC            Get current cursor again         09565100
+         LA    R14,0(R1,R15)           Get new cursor for next command  09565200
+         C     R14,HISTORYZ            Past end??                       09565400
+         JNH   ADD2HCN                 No, leave it alone               09565500
+         L     R14,HISTORY1            Next entry is first slot         09565600
+ADD2HCN  DS    0H                                                       09565700
+         ST    R14,HISTORYC            And set that new cursor          09565800
+         LA    R2,ONECMDL-ONECMD(,R15)  Point to new command length     09565900
+         STH   R8,0(,R2)               Set length of command            09566000
+         LA    R0,0(,R15)              Point to slot for actual command 09566100
+         LR    R14,R9                  Get address of command           09566200
+         LR    R15,R8                  Get length of command            09566300
+         LA    R1,L'OLDCMD             Get maximum length               09566400
+         CR    R15,R1                  Somehow too long?? (impossible)  09566500
+         JNH   ADD2HCM                 No, it's fine                    09566600
+         LR    R15,R1                  Yes, just copy max               09566700
+ADD2HCM  DS    0H                                                       09566800
+         ICM   R15,B'1000',=C' '       Pad with spaces                  09566900
+         MVCL  R0,R14                  Copy the command text            09567000
+ADD2HX   DS    0H                                                       09567100
+         SPACE ,                                                        09567200
+         LM    R0,R15,WORKSAVE         Restore all regs                 09567300
+         SPACE ,                                                        09567400
+         BR    R7                      Return                           09567500
+         SPACE ,                                                        09567600
+ADD2HXX  CLC   0(*-*,R9),0(R15)        Same as previous entry??         09567700
+         SPACE ,                                                        09567800
+         DROP  R3                      Done with HISTORY now            09567900
+         EJECT ,                                                        09568000
+./ R 10850000 10870000 $ 10859990 9990                07/28/25 15:53:44         
+*        This is a service call.  We only care about a NUCXDROP,        10859990
+*        in which case we must release any history buffers.             10869980
+./ I 10910000          $ 10920000 10000               07/28/25 15:53:44         
+         CLC   8(8,R1),=CL8'RESET   '  NUCXDROP call??                  10920000
+         JNE   EXITZERO                No, just exit quietly            10930000
+         BAL   R7,RHISTORY             Go release any history buffer    10940000
+./ I 10950000          $ 10950600 600                 07/28/25 15:53:44         
+         EJECT ,                                                        10950600
+**********************************************************************  10951200
+*                                                                       10951800
+* RHISTORY -- Release any history buffer                                10952400
+*                                                                       10953000
+**********************************************************************  10953600
+         SPACE ,                                                        10954200
+RHISTORY DS    0H                                                       10954800
+         ICM   R2,B'1111',AHISTORY     Did we allocate history??        10955400
+         BZR   R7                      No, nothing to do                10956000
+         XC    AHISTORY(4),AHISTORY    Clear it for PoE                 10956600
+         L     R0,SHISTORY             Get byte size to release         10957200
+         CMSSTOR RELEASE,BYTES=(R0),ADDR=(R2)                           10957800
+         BR    R7                      And we're done here              10958400
+./ R 11490000          $ 11494990 4990                07/28/25 15:53:44         
+         DC    AL1(NOMAX+PRIOWR)       Flags: long and priority         11494990
+./ I 11500000          $ 11500800 800                 07/28/25 15:53:44         
+*                                                                       11500800
+*  TYPLIN flags, from DMSCWR ASSEMBLE                                   11501600
+NORETN   EQU   X'80'          NO CARRIAGE RETURN IN OP CODE             11502400
+ERROP    EQU   X'40'          SPECIAL ERROR CCW REQUEST                 11503200
+NOMAX    EQU   X'20'          OVERRIDE MAXIMUM WRITE REQUEST            11504000
+TYSZ10   EQU   X'10'          UNUSED                                    11504800
+TYSZ08   EQU   X'08'          UNUSED                                    11505600
+TYSZ04   EQU   X'04'          UNUSED                                    11506400
+TYSZ02   EQU   X'02'          CALL FROM QUERY INPUT OR OUTPUT           11507200
+PRIOWR   EQU   X'01'          PRIORITY WRITE REQUEST                    11508000
+                                                                        11508800
+./ I 11780000          $ 11783000 3000                07/28/25 15:53:44         
+         DS    CL6                     For alignment                    11783000
+         SPACE ,                                                        11786000
+./ I 11800000          $ 11805000 5000                07/28/25 15:53:44         
+ONECMD   EQU   *                       A CMS command string             11805000
+./ R 11820000          $ 11821990 1990                07/28/25 15:53:44         
+ONECMDL  DS    H                       Length of a command              11821990
+LONECMD  EQU   *-ONECMD                Length including length bytes    11823980
+         DS    CL8                     Slop                             11825970
+         SPACE ,                                                        11827960
+./ I 11860000          $ 11863000 3000                07/28/25 15:53:44         
+WORKAREA DS    D                       Workarea                         11863000
+         SPACE ,                                                        11866000
+./ I 11890000          $ 11891000 1000                07/28/25 15:53:44         
+*                                                                       11891000
+WORKSAVE DS    16F                     SAVEAREA FOR INTERNAL CALLS      11892000
+         SPACE ,                                                        11893000
+CHISTORY DC    F'25'                   # history buffers (default 25)   11894000
+SHISTORY DC    F'0'                    Size of history buffer block     11895000
+AHISTORY DC    F'0'                    History structure pointer        11896000
+         SPACE ,                                                        11897000
+./ I 12540000          $ 12540400 400                 07/28/25 15:53:44         
+         EJECT ,                                                        12540400
+*****************************************************************       12540800
+*                                                                       12541200
+* HISTORY --                                                            12541600
+*                                                                       12542000
+*        DSECT describing the format of the HISTORY structure           12542400
+*                                                                       12542800
+*        This is referenced by a Rexx program, so if you change         12543200
+*        it, it would be good form to update the version number         12543600
+*        (HISTORYV) so the program can at least fail gracefully.        12544000
+*                                                                       12544400
+*****************************************************************       12544800
+         SPACE ,                                                        12545200
+HISTORY  DSECT ,                                                        12545600
+HISTORYV DS    F                       Version                          12546000
+HISTORYC DS    F                       Buffer cursor                    12546400
+HISTORY1 DS    F                       First buffer address             12546800
+HISTORYZ DS    F                       Last buffer address              12547200
+HISTORYN DS    F                       # of buffers (same as CHISTORY)  12547600
+HISTORYL DS    F                       Length of a buffer (LONECMD)     12548000
+HISTORYX EQU   *                       History buffers start here       12548400
+HISTORYO EQU   *-HISTORY               History structure "overhead"     12548800

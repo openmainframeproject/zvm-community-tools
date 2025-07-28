@@ -1,0 +1,3 @@
+./ I 02320000          $ 2323000 3000                 09/06/88 22:29:17         
+         CLC   16(6,R15),=CL6'DMSINT'  WAS DMSINT OUR CALLER?? XA       02323000
+         BE    EDITIT                  YES, GO COMMAND EDIT    XA       02326000

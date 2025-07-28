@@ -1,0 +1,1261 @@
+CMD      TITLE ' CMS SP/4  C O M M A N D   E D I T I N G'               00010000
+**********************************************************************  00020000
+*                                                                       00030000
+* CMDEDIT --                                                            00040000
+*                                                                       00050000
+*        CMS COMMAND EDITING                                            00060000
+*                                                                       00070000
+* ATTRIBUTES --                                                         00080000
+*                                                                       00090000
+*        SERIALLY REUSABLE, RELOCATABLE (RELOCATES PART OF ITSELF       00100000
+*        AS A NUCLEUS EXTENSION)                                        00110000
+*                                                                       00120000
+*        DMSCMD LOADS ITSELF AS A NUCLEUS EXTENSION FOR WAITRD.         00130000
+*        WHEN IT IS CALLED, IT FIGURES OUT WHETHER IT WAS CALLED        00140000
+*        BY DMSINT, AND JUST PASSES THE CALL TO THE REAL DMSCRD         00150000
+*        (WAITRD) VIA BALR IF SO.  DMSCMD ALSO STEALS THE ADCON         00160000
+*        FOR DMSCRD FROM NUCON, AND, WHEN CALLED VIA BALR FROM          00170000
+*        DMSABN, ALSO COMMAND EDITS.  THIS IS SO THAT THE LINE          00180000
+*        WHICH IS READ AFTER AN ABEND IS ALSO COMMAND-EDITED.           00190000
+*                                                                       00200000
+**********************************************************************  00210000
+         EJECT ,                                                        00220000
+CMDEDIT  CSECT ,                                                        00230000
+         STM   R14,R12,12(R13)         SAVE REGISTERS ON ENTRY          00240000
+         LR    R12,R15                 GET BASE REGISTER                00250000
+         SPACE ,                                                        00260000
+         USING CMDEDIT,R12             GET ADDRESSABILITY               00270000
+         SPACE ,                                                        00280000
+         USING NUCON,0                 GET ADDRESSABILITY FOR NUCON     00290000
+         SPACE ,                                                        00300000
+         LR    R15,R13                 SAVE OLD SAVEAREA POINTER        00310000
+         LA    R13,SAVEAREA            POINT TO NEW SAVEAREA            00320000
+         ST    R15,4(,R13)             SET BACKWARD SAVEAREA POINTER    00330000
+         ST    R13,8(,R15)             SET FORWARD SAVEAREA POINTER     00340000
+         LA    R0,CMDSIZED             GET SIZE OF NUCEXT IN DWORDS     00350000
+         DMSFREE DWORDS=(0),TYPE=NUCLEUS,ERR=NOSTORE,TYPCALL=BALR       00360000
+         MVC   OADMSCRD(4),ADMSCRD     SAVE ORIGINAL ADMSCRD            00370000
+         ST    R1,ADMSCRD              AND SET OUR ADDRESS INSTEAD      00380000
+         ST    R1,NUCXADDR             SET ENTRY ADDRESS IN PLIST       00390000
+         ST    R1,NUCXORG              SET ADDRESS IN NUCEXT PLIST      00400000
+         LA    R14,DMSCMD              POINT TO DMSCMD                  00410000
+         LA    R15,CMDSIZEB            GET SIZE OF NUCEXT IN BYTES      00420000
+         ST    R15,NUCXSIZE            SET IT IN NUCEXT PLIST           00430000
+         LR    R0,R1                   MOVE POINTER FOR MVCL            00440000
+         LR    R1,R15                  COPY SIZE OF NUCEXT IN BYTES     00450000
+         MVCL  R0,R14                  COPY THE CODE INTO THE NUCEXT    00460000
+         LA    R1,NUCEXT               POINT TO NUCEXT PLIST            00470000
+         SVC   202                     ESTABLISH THE NUCEXT             00480000
+         DC    AL4(1)                  IF ANY ERROR, GO COMPLAIN        00490000
+         LTR   R2,R15                  ERROR?? (SHOULD NEVER HAPPEN)    00500000
+         BNZ   ERROR                   YES, GO COMPLAIN                 00510000
+         XR    R15,R15                 CLEAR RETURN CODE                00520000
+*        B     EXIT                    GO EXIT, RC=0                    00530000
+         EJECT ,                                                        00540000
+*****************************************************************       00550000
+*                                                                       00560000
+* EXIT --                                                               00570000
+*                                                                       00580000
+*        RESTORE REGISTERS AND EXIT; R15 IS SET WITH THE RETURN         00590000
+*        CODE ON ARRIVAL AT EXIT.                                       00600000
+*                                                                       00610000
+*****************************************************************       00620000
+         SPACE ,                                                        00630000
+EXIT     DS    0H                                                       00640000
+         L     R13,4(,R13)             GET OLD SAVEAREA POINTER         00650000
+         XC    8(4,R13),8(R13)         CLEAR FORWARD POINTER            00660000
+         ST    R15,12+1*4(,R13)        SET RETURN CODE IN SAVEAREA      00670000
+         LM    R14,R12,12(R13)         RESTORE REGISTERS                00680000
+         BR    R14                     AND RETURN TO DMSINT             00690000
+         EJECT ,                                                        00700000
+*****************************************************************       00710000
+*                                                                       00720000
+* NOSTORE --                                                            00730000
+*                                                                       00740000
+*        THERE IS NO STORAGE AVAILABLE TO BUILD THE NUCLEUS             00750000
+*        EXTENSION.  ERROR EXIT, RC=-4.                                 00760000
+*                                                                       00770000
+*****************************************************************       00780000
+         SPACE ,                                                        00790000
+NOSTORE  DS    0H                                                       00800000
+         LINEDIT TEXT='DMSCMD109S No storage available',               *00810000
+               DISP=ERRMSG                                              00820000
+         LA    R15,4                   GET A 4                          00830000
+         LNR   R15,R15                 MAKE IT A -4                     00840000
+         B     EXIT                    GO SET RETURN CODE AND EXIT      00850000
+         EJECT ,                                                        00860000
+*****************************************************************       00870000
+*                                                                       00880000
+* ERROR --                                                              00890000
+*                                                                       00900000
+*        AN ERROR OCCURRED ESTABLISHING THE NUCLEUS EXTENSION.          00910000
+*        ERROR EXIT, WITH THE RETURN CODE FROM THE NUCEXT CALL.         00920000
+*                                                                       00930000
+*****************************************************************       00940000
+         SPACE ,                                                        00950000
+ERROR    DS    0H                                                       00960000
+         MVC   ADMSCRD(4),OADMSCRD     RESET WAITRD ADCON               00970000
+         LR    R2,R15                  SAVE RETURN CODE FOR LINEDIT     00980000
+         LINEDIT TEXT='DMSRDT004S Error .... from NUCEXT',             *00990000
+               DISP=ERRMSG,SUB=(DEC,(R2))                               01000000
+         LR    R15,R2                  RESTORE THE ERROR CODE           01010000
+         B     EXIT                    GO SET RETURN CODE AND EXIT      01020000
+         EJECT ,                                                        01030000
+*****************************************************************       01040000
+*                                                                       01050000
+*        CONSTANTS/WORKAREAS USED BY THE INITIALIZATION PORTION         01060000
+*        (THE PART WHICH IS NOT LOADED AS A NUCLEUS EXTENSION)          01070000
+*                                                                       01080000
+*****************************************************************       01090000
+         SPACE ,                                                        01100000
+         DS    0D                                                       01110000
+NUCEXT   DC    CL8'NUCEXT'             THE NUCEXT COMMAND ITSELF        01120000
+NUCXNAME DC    CL8'WAITRD'             NAME OF THE NUCEXT               01130000
+NUCXINFO DC    XL2'0004'               STORAGE KEY, PSW INFO            01140000
+NUCXFLAG DC    AL1(XSYSTEM+XSERVICE)   SYSTEM AND SERVICE ATTRIBUTES    01150000
+         SPACE ,                                                        01160000
+*                                                                       01170000
+* VALUES FOR NUCXFLAG                                                   01180000
+*                                                                       01190000
+XSYSTEM  EQU   X'80'          X....... SYSTEM NUCEXT                    01200000
+XSERVICE EQU   X'40'          .X...... SERVICE NUCEXT                   01210000
+*        EQU   X'20'          ..X..... RESERVED                         01220000
+XENDCMD  EQU   X'10'          ...X.... ENDCMD NUCEXT                    01230000
+*        EQU   X'08'          ....X... RESERVED                         01240000
+XIMMCMD  EQU   X'04'          .....X.. IMMEDIATE COMMAND NUCEXT         01250000
+*        EQU   X'02'          ......X. RESERVED                         01260000
+*        EQU   X'01'          .......X RESERVED                         01270000
+         SPACE ,                                                        01280000
+         DC    X'00'                   USER FLAG (NOT USED)             01290000
+NUCXADDR DC    AL4(0)                  ENTRY POINT OF NUCEXT            01300000
+         DC    AL4(0)                  USER WORD (NOT USED)             01310000
+NUCXORG  DC    AL4(0)                  ADDRESS OF NUCEXT                01320000
+NUCXSIZE DC    AL4(0)                  LENGTH OF THE NUCEXT IN BYTES    01330000
+         SPACE ,                                                        01340000
+         LTORG ,                       LITERALS USED IN INITIALIZATION  01350000
+         EJECT ,                                                        01360000
+**********************************************************************  01370000
+*                                                                       01380000
+* DMSCMD --                                                             01390000
+*                                                                       01400000
+*        COMMAND LINE EDITING                                           01410000
+*                                                                       01420000
+* ENTRY CONDITIONS:                                                     01430000
+*                                                                       01440000
+* NONE                                                                  01450000
+*                                                                       01460000
+* CALLS TO OTHER ROUTINES:                                              01470000
+*                                                                       01480000
+* DMSCWR (VIA BALR)                                                     01490000
+* DMSCAT (VIA BALR)                                                     01500000
+* DMSCRD (VIA BALR)                                                     01510000
+*                                                                       01520000
+* REGISTER USAGE:                                                       01530000
+*                                                                       01540000
+* R0  -- WORK                                                           01550000
+* R1  -- POINTS TO WAITRD PLIST FROM ENTRY                              01560000
+* R2  -- WORK                                                           01570000
+* R3  -- WORK                                                           01580000
+* R4  -- WORK                                                           01590000
+* R5  -- NOT USED IN THIS SECTION                                       01600000
+* R6  -- NOT USED                                                       01610000
+* R7  -- WORK                                                           01620000
+* R8  -- CURRENT LENGTH OF OLDCMD                                       01630000
+* R9  -- POINTS TO OLDCMD --> THIS DOES NOT CHANGE THROUGHOUT DMSCMD    01640000
+* R10 -- CURRENT LENGTH OF CMNDLINE --> THIS REGISTER IS NOT TO BE      01650000
+*        MUCKED, EITHER, AS IT IS USED AT EXIT TIME                     01660000
+* R11 -- CURRENT POINTER IN CMNDLINE                                    01670000
+* R12 -- BASE REGISTER                                                  01680000
+* R13 -- STANDARD SAVEAREA POINTER                                      01690000
+* R14 -- RETURN ADDRESS                                                 01700000
+* R15 -- ADDRESSABILITY FOR OPSECT                                      01710000
+*                                                                       01720000
+* OPERATION:                                                            01730000
+*                                                                       01740000
+*        WE READ A LINE FROM THE TERMINAL AND PARSE IT.  IF THE         01750000
+*        LINE IS A VALID COMMAND-EDITING COMMAND, WE WILL APPLY         01760000
+*        IT AND EXIT TO EXECUTE THE LINE.  IF NOT, WE JUST EXIT.        01770000
+*        IF THE LINE IS COMMAND EDITED IN ANY WAY, CMDEDIT WILL         01780000
+*        TYPE THE LINE BEFORE EXITING.  FOR MORE INFORMATION ON         01790000
+*        HOW THIS ROUTINE WORKS, SEE THE COMMENTS IN THE CODE           01800000
+*        (SORRY 'BOUT THAT)                                             01810000
+*                                                                       01820000
+*        ALSO SEE THE 'CHANGE' COMMAND (LABEL CHANGE) FOR               01830000
+*        REGISTER USAGE WITHIN THAT ROUTINE.                            01840000
+*                                                                       01850000
+**********************************************************************  01860000
+         EJECT ,                                                        01870000
+DMSCMD   DS    0D                                                       01880000
+         STM   R14,R12,12(R13)         SAVE REGISTERS ON ENTRY          01890000
+         LR    R12,R15                 GET BASE REGISTER                01900000
+         SPACE ,                                                        01910000
+         USING DMSCMD,R12              GET ADDRESSABILITY               01920000
+         SPACE ,                                                        01930000
+         USING NUCON,0                 GET ADDRESSABILITY FOR NUCON     01940000
+         SPACE ,                                                        01950000
+         B     *+12                    SKIP OVER EYECATCHER             01960000
+         SPACE ,                                                        01970000
+         DC    CL8'CMDEDIT '           EYECATCHER IN CORE DUMPS         01980000
+         SPACE ,                                                        01990000
+*+12     DS    0H                                                       02000000
+         LR    R15,R13                 SAVE OLD SAVEAREA POINTER        02010000
+         LA    R13,SAVEAREA            POINT TO NEW SAVEAREA            02020000
+         ST    R15,4(,R13)             SET BACKWARD SAVEAREA POINTER    02030000
+         ST    R13,8(,R15)             SET FORWARD SAVEAREA POINTER     02040000
+         EJECT ,                                                        02050000
+*****************************************************************       02060000
+*                                                                       02070000
+*        FIRST CHECK TO SEE IF IT'S A SERVICE CALL, AND GO HANDLE       02080000
+*        IT IF SO; THEN DECIDE WHETHER WE WERE CALLED BY DMSINT         02090000
+*        OR DMSABN.  IF NOT, JUST GO TO PASSIT TO PASS THE CALL         02100000
+*        TO THE REAL WAITRD (I.E., DON'T COMMAND EDIT).                 02110000
+*                                                                       02120000
+*****************************************************************       02130000
+         SPACE ,                                                        02140000
+         CLM   R1,B'1000',=X'FF'       SERVICE CALL??                   02150000
+         BE    SERVICE                 YES, GO HANDLE IT                02160000
+         L     R8,ASVCSECT             POINT TO SVCSECT                 02170000
+         SPACE ,                                                        02180000
+         USING SVCSECT,R8              ADDRESS SVCSECT                  02190000
+         SPACE ,                                                        02200000
+         L     R8,CURRALOC             POINT TO CURRENT SAVEAREA        02210000
+         SPACE ,                                                        02220000
+         DROP  R8                      DONE WITH SVCSECT NOW            02230000
+         SPACE ,                                                        02240000
+         USING SSAVE,R8                ADDRESS THE SAVEAREA             02250000
+         SPACE ,                                                        02260000
+         NI    CALLFLAG,X'FF'-XABNCALL CLEAR 'CALLED FROM DMSABN'       02270000
+         CLC   CALLEE(8),=CL8'WAITRD  ' WERE WE EVEN CALLED VIA SVC??   02280000
+         BNE   QDMSABN                 NO, GO CHECK FOR DMSABN CALL     02290000
+         L     R15,EGPR12              GET CALLER'S R12                 02300000
+         CLC   4(6,R15),=CL6'DMSINT'   WAS DMSINT OUR CALLER??          02310000
+         BE    EDITIT                  YES, GO COMMAND EDIT             02320000
+         SPACE ,                                                        02330000
+         DROP  R8                      DONE WITH SSAVE (SVCSAVE) NOW    02340000
+         SPACE ,                                                        02350000
+QDMSABN  DS    0H                                                       02360000
+         CL    R11,ADMSABN             CALLED FROM DMSABN??             02370000
+         BNE   PASSIT                  NO, GO PASS IT TO REAL WAITRD    02380000
+         OI    CALLFLAG,XABNCALL       CALLED FROM DMSABN               02390000
+         NI    CMDEFLAG,X'FF'-XREPEAT  UNSET 'PENDING REPEAT' FLAG      02400000
+*        B     EDITIT                  AND GO COMMAND EDIT              02410000
+         EJECT ,                                                        02420000
+*****************************************************************       02430000
+*                                                                       02440000
+* EDITIT --                                                             02450000
+*                                                                       02460000
+*        AT THIS POINT THERE ARE FOUR POSSIBILITIES:                    02470000
+*        1) WE ARE NOT IN SUBSET, AND WEREN'T LAST TIME;                02480000
+*        2) WE ARE NOT IN SUBSET, BUT WERE LAST TIME;                   02490000
+*        3) WE ARE IN SUBSET, BUT WEREN'T LAST TIME;                    02500000
+*        4) WE ARE IN SUBSET, AND WERE LAST TIME.                       02510000
+*                                                                       02520000
+*        (1) AND (4) CAN BE HANDLED THE SAME:  WE JUST LEAVE THE        02530000
+*        OLD COMMAND ALONE.  IN CASE2 (2) AND (3), WE MUST SWAP         02540000
+*        THE OLD COMMAND STRING AND LENGTH FOR SUBSET MODE WITH         02550000
+*        THE ONE FOR NON-SUBSET MODE, AND THEN TOGGLE THE BIT           02560000
+*        SAYING THAT WE ARE/ARE NOT IN SUBSET MODE FOR NEXT TIME.       02570000
+*                                                                       02580000
+*****************************************************************       02590000
+         SPACE ,                                                        02600000
+         USING RPLISTD,R1              ADDRESS OUR WAITRD PLIST         02610000
+         SPACE ,                                                        02620000
+EDITIT   DS    0H                                                       02630000
+         NI    CALLFLAG,X'FF'-XSUBSETX UNSET 'IN SUBSET' FLAG           02640000
+         TM    SUBFLAG,SUBACT          SUBSET ACTIVE??                  02650000
+         BNO   *+8                     NO, DON'T SET 'IN SUBSET' FLAG   02660000
+         OI    CALLFLAG,XSUBSETX       NOTE THIS CALL FROM SUBSET       02670000
+         TM    CALLFLAG,XSUBSET+XSUBSETX  DO WE NEED TO SWAP??          02680000
+         BNM   NOSWAP                  NO, SKIP NEXT                    02690000
+         XC    OLDCMD(L'OLDCMD),OLDSCMD  SWAP THE COMMANDS ...          02700000
+         XC    OLDSCMD(L'OLDCMD),OLDCMD  ...                            02710000
+         XC    OLDCMD(L'OLDCMD),OLDSCMD  ...                            02720000
+         XC    OLDCMDL(L'OLDCMDL),OLDSCMDL  AND THE LENGTHS ...         02730000
+         XC    OLDSCMDL(L'OLDCMDL),OLDCMDL  ...                         02740000
+         XC    OLDCMDL(L'OLDCMDL),OLDSCMDL  ...                         02750000
+         XI    CALLFLAG,XSUBSET        TOGGLE THE FLAG BIT              02760000
+NOSWAP   DS    0H                                                       02770000
+* SET UP R8 AND R9 FOR USE THROUGHOUT THE ROUTINE                       02780000
+         XR    R8,R8                   CLEAR R8 FOR INSERT              02790000
+         IC    R8,OLDCMDL              GET OLD COMMAND LENGTH           02800000
+         LA    R9,OLDCMD               POINT TO OLD COMMAND             02810000
+READLINE DS    0H                                                       02820000
+         NI    CMDEFLAG,X'FF'-XSTACKIT-XVERIFY  CLEAR FLAGS             02830000
+         TM    CMDEFLAG,XHOLDIT        IN COMMAND HOLD??                02840000
+         BO    CMDHELD                 YES, GO REDISPLAY                02850000
+         TM    CMDEFLAG,XREPEAT        PENDING REPEAT??                 02860000
+         BO    REPEATH                 YES, GO REUSE LAST COMMAND       02870000
+         BAL   R2,QSTACK               GO CHECK THE STACK               02880000
+         STM   R0,R15,CALLSAVE         SAVE ALL REGS                    02890000
+         XC    CONINBUF(L'CONINBUF),CONINBUF  MAKE SURE BUFFER IS CLEAR 02900000
+         LA    R13,CRDSAVE             GIVE DMSCRD HIS OWN WORKAREA     02910000
+         L     R15,OADMSCRD            POINT TO DMSCRD                  02920000
+         BALR  R14,R15                 GO DO IT                         02930000
+         BALR  R15,0                   GET TEMPORARY BASE               02940000
+         SPACE ,                                                        02950000
+         USING *,R15                   GET TEMPORARY ADDRESSABILITY     02960000
+         SPACE ,                                                        02970000
+         LM    R0,R15,CALLSAVE         RESTORE ALL REGS                 02980000
+         SPACE ,                                                        02990000
+         DROP  R15                     DONE WITH TEMPORARY BASE         03000000
+         SPACE ,                                                        03010000
+         OC    RPLISTL,RPLISTL         ANYTHING READ??                  03020000
+         BZ    NULL                    IF NULL, GO HANDLE IT            03030000
+         ICM   R15,B'1111',AINTRTBL    IS THERE A USER TRTABLE??        03040000
+         BZ    *+10                    NO, SKIP                         03050000
+         TR    CMNDLINE(L'CMNDLINE),256(R15)  TRANSLATE AS NECESSARY    03060000
+         LH    R10,RPLISTL             GET LENGTH READ                  03070000
+         TM    CMDEFLAG,XQMARK         UNFINISHED BUSINESS??            03080000
+         BO    OVERLAY                 YES, GO OVERLAY                  03090000
+         BAL   R2,QSTACK               GO CHECK THE STACK               03100000
+         LA    R11,CMNDLINE            POINT TO COMMAND LINE            03110000
+         BAL   R2,QMORE                GO SEE IF ANYTHING LEFT          03120000
+         BZ    BLANK                   IF NOTHING THERE, IT'S BLANK     03130000
+         EJECT ,                                                        03140000
+**********************************************************************  03150000
+*                                                                       03160000
+* SCANLINE --                                                           03170000
+*                                                                       03180000
+*        SCAN THE LINE FOR COMMAND EDITING CHARACTERS                   03190000
+*                                                                       03200000
+*        SCANLINE IS RETURNED TO FROM USEREST                           03210000
+*                                                                       03220000
+**********************************************************************  03230000
+         SPACE ,                                                        03240000
+SCANLINE DS    0H                                                       03250000
+         CLI   0(R11),C'&&'            IS IT AN AMPERSAND??             03260000
+         BE    HOLD                    YES, GO HANDLE IT                03270000
+         CLI   0(R11),C'?'             IS IT A QUESTION MARK??          03280000
+         BE    RESHOW                  YES, GO HANDLE IT                03290000
+         CLI   0(R11),C'='             IS IT AN EQUALS SIGN??           03300000
+         BE    REPEAT                  YES, GO HANDLE IT                03310000
+         CLI   0(R11),C'/'             IS IT A CHANGE COMMAND??         03320000
+         BE    CHANGE                  YES, GO HANDLE IT                03330000
+         CLI   0(R11),C'.'             IS IT A SPECIAL CHANGE??         03340000
+         BE    SPCHANGE                YES, GO HANDLE IT                03350000
+         CLI   0(R11),C'+'             IS IT AN APPEND COMMAND??        03360000
+         BE    APPEND                  YES, GO HANDLE IT                03370000
+         CLI   0(R11),C'-'             IS IT A REMOVE COMMAND??         03380000
+         BE    REMOVE                  YES, GO HANDLE IT                03390000
+         TM    CMDEFLAG,XSTACKIT       SHOULD WE STACK PREVIOUS??       03400000
+         BNO   SCANNED                 NO, SKIP                         03410000
+         BAL   R2,STACK                YES, GO STACK IT                 03420000
+SCANNED  DS    0H                                                       03430000
+         MVC   OLDCMD(L'OLDCMD),CMNDLINE  INSTALL LAST COMMAND          03440000
+         MVC   OLDCMDL(1),RPLISTL+1    AND SAVE LAST COMMAND LENGTH     03450000
+VERIFY   DS    0H                                                       03460000
+         BAL   R2,QVERIFY              SHOULD WE VERIFY THIS LINE??     03470000
+         BZ    EXITZERO                NO, JUST EXIT                    03480000
+         LA    R14,L'VHEADER           GET HEADER LENGTH                03490000
+         AH    R14,RPLISTL             ADD LENGTH OF COMMAND LINE       03500000
+         LA    R15,VHEADER             POINT TO COMMAND LINE COPY       03510000
+         BAL   R2,TYPE                 GO TYPE IT                       03520000
+*        B     EXITZERO                AND GO EXIT, WE'RE ALL DONE      03530000
+         EJECT ,                                                        03540000
+*****************************************************************       03550000
+*                                                                       03560000
+* EXITZERO --                                                           03570000
+*                                                                       03580000
+*        RESTORE ALL REGISTERS, CLEAR THE RETURN CODE, AND EXIT.        03590000
+*                                                                       03600000
+*****************************************************************       03610000
+         SPACE ,                                                        03620000
+EXITZERO DS    0H                                                       03630000
+         OI    CALLFLAG,XNOT1ST        INDICATE NOT FIRST TIME          03640000
+         L     R13,4(,R13)             GET OLD SAVEAREA POINTER         03650000
+         XC    8(4,R13),8(R13)         CLEAR FORWARD POINTER            03660000
+         LM    R14,R12,12(R13)         RESTORE REGISTERS                03670000
+         XR    R15,R15                 CLEAR RETURN CODE                03680000
+         BR    R14                     AND RETURN TO DMSINT             03690000
+         EJECT ,                                                        03700000
+**********************************************************************  03710000
+*                                                                       03720000
+* OVERLAY --                                                            03730000
+*                                                                       03740000
+*        OVERLAY CHARACTERS FOR NON DISPLAY TERMINALS                   03750000
+*                                                                       03760000
+*        OVERLAY BUILDS THE NEW COPY OF THE LINE IN CMNDLINE            03770000
+*                                                                       03780000
+**********************************************************************  03790000
+         SPACE ,                                                        03800000
+OVERLAY  DS    0H                                                       03810000
+         OI    CMDEFLAG,XVERIFY        SAY TO VERIFY THE CHANGED LINE   03820000
+         LR    R7,R11                  COPY POINTER TO CMNDLINE         03830000
+         LR    R3,R9                   COPY POINTER TO OLDCMD           03840000
+         LA    R4,0(R10,R9)            R4=END OF OLD LINE               03850000
+         CR    R10,R8                  NEW LONGER THAN OLD??            03860000
+         BNL   OVERLAYL                YES, OK                          03870000
+         LR    R10,R8                  ELSE USE NEW LENGTH              03880000
+         STH   R10,RPLISTL             AND SAVE THE LENGTH              03890000
+         LA    R4,0(R8,R9)             R4=END OF OLD LINE               03900000
+OVERLAYL DS    0H                      L FOR LOOP                       03910000
+         CR    R3,R4                   PAST END OF LAST CMD YET??       03920000
+         BH    OVERLAYB                YES, KEEP BLANKING OUT           03930000
+         CLI   0(R7),C'_'              IS IT A BLANKOUT CHAR??          03940000
+         BE    OVERLAYB                YES, GO DO IT                    03950000
+         CLI   0(R7),C' '              IS IT A BLANK??                  03960000
+         BNE   OVERLAYX                NO, LEAVE IT AS IS               03970000
+         MVC   0(1,R7),0(R3)           MOVE IN THE OLD CHARACTER        03980000
+         B     OVERLAYX                AND GO ON                        03990000
+         SPACE ,                                                        04000000
+OVERLAYB DS    0H                      B FOR BLANK                      04010000
+         MVI   0(R7),C' '              BLANK OUT OLD CHARACTER          04020000
+OVERLAYX DS    0H                      X FOR NEXT                       04030000
+         LA    R3,1(,R3)               GET NEXT OLD CHARACTER           04040000
+         LA    R7,1(,R7)               GET NEXT MODIFICATION CHARACTER  04050000
+         BCT   R10,OVERLAYL            LOOP AND CHECK AGAIN IF MORE     04060000
+         NI    CMDEFLAG,X'FF'-XQMARK   RESET FLAG                       04070000
+         B     SCANNED                 AND GO EXECUTE THE LINE          04080000
+         EJECT ,                                                        04090000
+**********************************************************************  04100000
+*                                                                       04110000
+* HOLD -- '&' COMMAND                                                   04120000
+*                                                                       04130000
+*        THE USER ENTERED A COMMAND LINE WHICH STARTS WITH AN           04140000
+*        AMPERSAND, WHICH IS THE COMMAND HOLD CHARACTER.  STRIP         04150000
+*        THIS CHARACTER, SET THE BIT WHICH SAYS TO HOLD THE             04160000
+*        COMMAND, AND GO EXECUTE THE COMMAND, SANS AMPERSAND.           04170000
+*        WHEN WE RETURN, THE BIT WILL TELL US TO GO TO 'CMDHELD'        04180000
+*        TO REDISPLAY THE LINE.                                         04190000
+*                                                                       04200000
+**********************************************************************  04210000
+         SPACE ,                                                        04220000
+HOLD     DS    0H                                                       04230000
+         BAL   R2,QGRAF                GO SEE IF THE TERMINAL IS A GRAF 04240000
+         BNE   SCANNED                 IF NOT, '&' IS MEANINGLESS       04250000
+         LR    R2,R11                  COPY POINTER IN LINE             04260000
+         BCT   R10,HOLDSAVE            DECREMENT FOR AMPERSAND          04270000
+         B     NULL                    IF A LONE AMPERSAND, IGNORE IT   04280000
+         SPACE ,                                                        04290000
+HOLDSAVE DS    0H                                                       04300000
+         LA    R11,1(,R11)             POINT PAST THE AMPERSAND         04310000
+         BCTR  R10,0                   DECREMENT FOR EXECUTE            04320000
+         EX    R10,APPENDIT            < MVC   0(*-*,R2),0(R11) >       04330000
+         LH    R10,RPLISTL             GET LENGTH OF WHOLE COMMAND      04340000
+         BCTR  R10,0                   DECREMENT LENGTH FOR '&'         04350000
+         STH   R10,RPLISTL             SAVE THAT LENGTH                 04360000
+         OI    CMDEFLAG,XHOLDIT+XVERIFY SAY TO HOLD AND VERIFY          04370000
+         B     SCANNED                 AND GO ON                        04380000
+         EJECT ,                                                        04390000
+**********************************************************************  04400000
+*                                                                       04410000
+* CMDHELD --                                                            04420000
+*                                                                       04430000
+*        A COMMAND WAS 'HELD' IN THE INPUT AREA; UNSET THE BIT,         04440000
+*        FIX OLDCMD  TO HAVE A LEADING '&', AND GO RESHOW OLDCMD        04450000
+*        AS IF THE USER HAD DONE A '?'                                  04460000
+*                                                                       04470000
+**********************************************************************  04480000
+         SPACE ,                                                        04490000
+CMDHELD  DS    0H                                                       04500000
+         NI    CMDEFLAG,X'FF'-XHOLDIT  UNSET 'COMMAND HOLD' BIT         04510000
+         BAL   R2,QGRAF                GO SEE IF THE TERMINAL IS A GRAF 04520000
+         BNZ   READLINE                IF NOT, JUST READ, DON'T HOLD    04530000
+         MVI   OLDCMD-1,C'&&'          MOVE IN THE AMPERSAND            04540000
+         LA    R9,OLDCMD-1             POINT TO BEFORE OLDCMD           04550000
+         LA    R8,1(,R8)               FIX UP LENGTH                    04560000
+         B     RESHOWX                 AND GO RESHOW THE COMMAND        04570000
+         EJECT ,                                                        04580000
+**********************************************************************  04590000
+*                                                                       04600000
+* RESHOW -- '?' COMMAND                                                 04610000
+*                                                                       04620000
+*        SHOW THE LAST COMMAND ENTERED IN INPUT AREA ON A 3270,         04630000
+*        OR TYPE IT AND WAIT FOR OVERLAY ON A TTY.                      04640000
+*                                                                       04650000
+*        RESHOWX IS ENTERED FROM CMDHELD, ABOVE.                        04660000
+*                                                                       04670000
+**********************************************************************  04680000
+         SPACE ,                                                        04690000
+RESHOW   DS    0H                                                       04700000
+         LTR   R8,R8                   ANYTHING TO RESHOW??             04710000
+         BZ    NORESHOW                NO, GO GIVE WARNING MSG          04720000
+RESHOWX  DS    0H                                                       04730000
+         BAL   R2,QGRAF                GO SEE IF THE TERMINAL IS A GRAF 04740000
+         BNZ   NOTGRAF                 IF NOT, TYPE THE OLD COMMAND     04750000
+         SPACE ,                                                        04760000
+*        THE FOLLOWING TWO SHIFTS CHANGE R15 THUS: 'XXXXYYXX' ==>       04770000
+*        '000000YY' TO ISOLATE GRAF MODEL INFORMATION FOR SETUP         04780000
+*        FOR DIAGNOSE X'58' (FULL-SCREEN I/O)                           04790000
+         SPACE ,                                                        04800000
+         SLL   R15,16                  ISOLATE GRAF MODEL INFO          04810000
+         SRL   R15,24                  GET SCREEN SIZE INDEX            04820000
+         IC    R15,GRAFINDX(R15)       BY INDEXING INTO TABLE           04830000
+         LTR   R15,R15                 IS IT SUPPORTED??                04840000
+         BZ    NOTGRAF                 UNSUPPORTED DEVICE               04850000
+         LH    R15,GRAFLINS-2(R15)     GET NUMBER OF LINES/SCREEN       04860000
+         STC   R15,GRAFCTL             SET SCREEN LINE COUNT            04870000
+         STCM  R9,B'0111',GRAFADDR     SAVE LINE ADDRESS IN CCW         04880000
+         LA    R2,0(R8,R9)             POINT TO END OF DATA             04890000
+         MVI   0(R2),X'13'             ADD 'INSERT CURSOR'              04900000
+         LA    R2,1(,R8)               INCREMENT LENGTH TO WRITE        04910000
+         STH   R2,GRAFLEN              AND SAVE LENGTH OF LINE          04920000
+         LA    R2,GRAFCCW              POINT TO CCW FOR DIAG X'58'      04930000
+TIOLOOP  DS    0H                                                       04940000
+         TIO   0(R4)                   IS THE DEVICE AVAILABLE??        04950000
+         BNZ   TIOLOOP                 IF BUSY, GO WAIT FOR IT          04960000
+         DIAG  R2,R4,X'58'             FULL SCREEN I/O DIAGNOSE         04970000
+         BZ    RESHOWN                 IF IT WENT OK, GO CLEAN UP       04980000
+         LA    R14,L'WRITERR           GET MSG LENGTH                   04990000
+         LA    R15,WRITERR             POINT TO THE LIST                05000000
+         BAL   R2,TYPE                 GO TYPE MESSAGE                  05010000
+         EJECT ,                                                        05020000
+*****************************************************************       05030000
+*                                                                       05040000
+* NOTGRAF --                                                            05050000
+*                                                                       05060000
+*        THE TERMINAL IS NOT A GRAF; JUST TYPE THE OLD COMMAND          05070000
+*        AND READ AGAIN, THEN OVERLAY THE NEW INPUT ON THE OLD.         05080000
+*                                                                       05090000
+*****************************************************************       05100000
+         SPACE ,                                                        05110000
+NOTGRAF  DS    0H                                                       05120000
+         OI    CMDEFLAG,XQMARK         SET PENDING '?' ON A TTY         05130000
+         ST    R9,TYPLINA              SAVE MSG ADDRESS                 05140000
+         STH   R8,TYPLINL              AND MSG LENGTH                   05150000
+         BAL   R2,TYPELINE             GO TYPE THE LINE                 05160000
+         B     READLINE                GO READ ANOTHER LINE             05170000
+         EJECT ,                                                        05180000
+**********************************************************************  05190000
+*                                                                       05200000
+* RESHOWN --                                                            05210000
+*                                                                       05220000
+*        THE LAST COMMAND HAS BEEN RESHOWN, AND SINCE IT MIGHT          05230000
+*        HAVE BEEN A 'HELD' COMMAND, WE MUST REMOVE A POSSIBLE          05240000
+*        AMPERSAND IN THE SPOT BEFORE OLDCMD AND RESET R8 AND R9        05250000
+*        TO BE THE LENGTH AND ADDRESS OF OLDCMD.                        05260000
+*                                                                       05270000
+**********************************************************************  05280000
+         SPACE ,                                                        05290000
+RESHOWN  DS    0H                                                       05300000
+         MVI   OLDCMD-1,C' '           RESET POSSIBLE AMPERSAND         05310000
+         IC    R8,OLDCMDL              GET OLD COMMAND LENGTH AGAIN     05320000
+         LA    R9,OLDCMD               POINT TO OLD COMMAND             05330000
+         B     READLINE                AND GO READ THE NEXT LINE        05340000
+         SPACE ,                                                        05350000
+NORESHOW DS    0H                                                       05360000
+         LA    R14,L'RESHOWM           GET MSG LENGTH                   05370000
+         LA    R15,RESHOWM             POINT TO 'NO LAST COMMAND' MSG   05380000
+         BAL   R2,TYPE                 GO TYPE MESSAGE                  05390000
+         B     READLINE                AND GO READ ANOTHER LINE         05400000
+         EJECT ,                                                        05410000
+**********************************************************************  05420000
+*                                                                       05430000
+* REPEAT -- '=' COMMAND                                                 05440000
+*                                                                       05450000
+*        REUSE THE PREVIOUS COMMAND ('=' COMMAND)                       05460000
+*                                                                       05470000
+**********************************************************************  05480000
+         SPACE ,                                                        05490000
+REPEAT   DS    0H                                                       05500000
+         LA    R11,1(,R11)             POINT PAST '='                   05510000
+         BCT   R10,REPEAT2             DECREMENT AND GO IF MORE         05520000
+*        B     USELAST                 ELSE FALL THROUGH TO USELAST     05530000
+         EJECT ,                                                        05540000
+**********************************************************************  05550000
+*                                                                       05560000
+* USELAST --                                                            05570000
+*                                                                       05580000
+*        MOVE OLDCMD INTO CMNDLINE AND GO EXECUTE IT                    05590000
+*                                                                       05600000
+**********************************************************************  05610000
+         SPACE ,                                                        05620000
+USELAST  DS    0H                                                       05630000
+         OI    CMDEFLAG,XVERIFY        SAY TO VERIFY CMNDLINE           05640000
+         NI    CMDEFLAG,X'FF'-XSTACKIT CLEAR FLAG                       05650000
+         STC   R8,OLDCMDL              SAVE LENGTH OF OLDCMD            05660000
+         STH   R8,RPLISTL              AND SAVE LENGTH OF CMNDLINE      05670000
+         CLI   OLDCMDL,X'00'           IS OLDCMD NOW NULL??             05680000
+         BZ    NULL                    YES, NO INSTALL                  05690000
+         BCTR  R8,0                    DECREMENT (OK TO MESS R8)        05700000
+         EX    R8,INSTALL              < MVC   CMNDLINE(*-*),OLDCMD >   05710000
+         B     VERIFY                  GO VERIFY AND EXIT               05720000
+         SPACE ,                                                        05730000
+REPEATH  DS    0H                                                       05740000
+         IC    R8,OLDHCMDL             GET OLD COMMAND LENGTH           05750000
+         MVC   OLDCMD(160),OLDHCMD     RESTORE OLD COMMAND              05760000
+         NI    CMDEFLAG,X'FF'-XREPEAT  CLEAR FLAG                       05770000
+         B     USELAST                 AND GO REUSE OLD COMMAND         05780000
+         SPACE ,                                                        05790000
+REPEAT2  DS    0H                                                       05800000
+         BAL   R2,QMORE                ANYTHING ELSE??                  05810000
+         BZ    USELAST                 NO, GO USE OLDCMD                05820000
+         OI    CMDEFLAG,XVERIFY        SET VERIFICATION FLAGS           05830000
+         BAL   R2,STACK                GO STACK THE LINE                05840000
+         TM    CALLFLAG,XABNCALL       WERE WE CALLED BY DMSABN??       05850000
+         BNO   USEREST                 NO, JUST SKIP NEXT               05860000
+         OI    CMDEFLAG,XREPEAT        REMEMBER PENDING REPEAT          05870000
+         MVC   OLDHCMDL(1),OLDCMDL     SAVE OLD COMMAND LENGTH          05880000
+         MVC   OLDHCMD(160),OLDCMD     SAVE OLD COMMAND                 05890000
+*        B     USEREST                 FALL THROUGH TO USEREST          05900000
+         EJECT ,                                                        05910000
+**********************************************************************  05920000
+*                                                                       05930000
+* USEREST --                                                            05940000
+*                                                                       05950000
+*        SHIFT CMNDLINE TO THE LEFT AND GO USE IT                       05960000
+*                                                                       05970000
+*        RETURNS TO SCANLINE.                                           05980000
+*                                                                       05990000
+**********************************************************************  06000000
+         SPACE ,                                                        06010000
+USEREST  DS    0H                                                       06020000
+         LA    R11,CMNDLIST-CMNDLINE(R11)  PART OF COMMAND WE WANT      06030000
+         MVI   0(R11),C' '             BLANK OUT THE LINE               06040000
+         MVC   1(L'CMNDLINE-1,R11),0(R11)  ...                          06050000
+         MVC   CMNDLIST(L'CMNDLINE),CMNDLINE  COPY COMMAND LINE         06060000
+         MVC   CMNDLINE(L'CMNDLINE),0(R11)  AND MOVE IN REST OF LINE    06070000
+         LA    R11,CMNDLINE            POINT TO THE FIXED LINE          06080000
+         STH   R10,RPLISTL             SAVE THE NEW LENGTH              06090000
+         B     SCANLINE                AND GO USE WHAT'S LEFT           06100000
+         EJECT ,                                                        06110000
+**********************************************************************  06120000
+*                                                                       06130000
+*   REMOVE -- '-' COMMAND                                               06140000
+*                                                                       06150000
+*        FOR EVERY '-' AT THE START OF THE LINE, REMOVE ONE TOKEN       06160000
+*        FROM THE OLD COMMAND LINE; THEN GO APPEND ANY REMAINING        06170000
+*        TEXT AND EXECUTE THE NEW LINE.                                 06180000
+*                                                                       06190000
+**********************************************************************  06200000
+         SPACE ,                                                        06210000
+REMOVE   DS    0H                                                       06220000
+         LA    R2,0(R8,R9)             POINT PAST END OF OLDCMD         06230000
+         BCTR  R2,0                    POINT TO LAST CHAR               06240000
+REMOVELP DS    0H                                                       06250000
+         LTR   R8,R8                   IS LENGTH ZERO??                 06260000
+         BNP   REMOVED                 YES, SKIP ALL LOOPING            06270000
+         BALR  R7,0                    BALR LOOP ADDRESS                06280000
+* LOOK FOR THE END OF THE TOKEN                                         06290000
+         CLI   0(R2),C' '              END CHAR BLANK??                 06300000
+         BE    REMOVENX                YES, SKIP TRAILING BLANKS        06310000
+         BAL   R7,REMOVENX             NEW BALR ADDR AND LOOP           06320000
+* WE HAVE FOUND A NON-BLANK. IF IT'S A BRACKET, IT COUNTS AS A          06330000
+* TOKEN IN ITS OWN RIGHT: COUNT IT AS SUCH.                             06340000
+         CLI   1(R2),C'('              LEFT BRACKET??                   06350000
+         BE    REMOVED                 YES, QUIT LOOPING                06360000
+         CLI   1(R2),C')'              RIGHT BRACKET??                  06370000
+         BE    REMOVED                 YES, QUIT LOOPING                06380000
+         BALR  R7,0                    NEW BALR LOOP ADDRESS            06390000
+* FIND ONE LESS THAN THE START OF THE TOKEN                             06400000
+         CLI   0(R2),C' '              BLANK??                          06410000
+         BE    REMOVED                 YES, QUIT LOOPING                06420000
+         CLI   0(R2),C'('              LEFT BRACKET??                   06430000
+         BE    REMOVED                 YES, QUIT LOOPING                06440000
+         CLI   0(R2),C')'              RIGHT BRACKET??                  06450000
+         BE    REMOVED                 YES, QUIT LOOPING                06460000
+REMOVENX DS    0H                                                       06470000
+         BCTR  R2,0                    BACK UP POINTER                  06480000
+         BCTR  R8,R7                   DECREMENT LENGTH AND LOOP        06490000
+REMOVED  DS    0H                                                       06500000
+         CLI   1(R11),C'-'             GOT ANOTHER MINUS ?              06510000
+         BNE   APPEND                  NO, JUMP INTO 'PLUS' TO APPEND   06520000
+         LA    R11,1(,R11)             YES, JUMP OVER IT                06530000
+         BCT   R10,REMOVELP            DECREMENT LENGTH AND LOOP        06540000
+* FELL THROUGH ... NO  MORE DATA TO APPEND                              06550000
+         LTR   R8,R8                   IS LENGTH ZERO??                 06560000
+         BNP   BLANK                   YES, PRETEND 'TWAS BLANK COMMAND 06570000
+         B     USELAST                 GO USE LAST COMMAND              06580000
+         EJECT ,                                                        06590000
+**********************************************************************  06600000
+*                                                                       06610000
+* APPEND -- '+' COMMAND                                                 06620000
+*                                                                       06630000
+*        APPEND TEXT FOLLOWING '+' TO LAST COMMAND AND EXECUTE IT       06640000
+*                                                                       06650000
+**********************************************************************  06660000
+         SPACE ,                                                        06670000
+APPEND   DS    0H                                                       06680000
+         LA    R11,1(,R11)             JUMP OVER THE '+'                06690000
+         BCT   R10,APPEND1             AND DECREMENT LENGTH LEFT        06700000
+         B     USELAST                 IF THAT'S IT, JUST USE LAST      06710000
+APPEND1  DS    0H                                                       06720000
+         LA    R2,L'OLDCMD             MAX LENGTH OF BUFFER             06730000
+         SR    R2,R8                   SUBTRACT OLD LENGTH              06740000
+         BNP   USELAST                 IF LONG, GO USE IT AS IS         06750000
+         SR    R2,R10                  AND LENGTH TO BE ADDED           06760000
+         BP    APPEND2                 IF NOT TOO LONG, GOOD            06770000
+         AR    R10,R2                  ELSE TRUNCATE APPEND STRING      06780000
+APPEND2  DS    0H                                                       06790000
+         LA    R2,OLDCMD(R8)           POINT TO END OF OLDCMD           06800000
+         AR    R8,R10                  ADD TO GET NEW LENGTH            06810000
+         BCTR  R10,0                   DECREMENT FOR EXECUTE            06820000
+         EX    R10,APPENDIT            < MVC   0(*-*,R2),0(R11) >       06830000
+         B     USELAST                 AND GO EXECUTE THE LINE          06840000
+         EJECT ,                                                        06850000
+**********************************************************************  06860000
+*                                                                       06870000
+* SPCHANGE -- '.' COMMAND                                               06880000
+*                                                                       06890000
+*        SPECIAL 'CHANGE' COMMAND.  SPCHANGE IS CALLED WHEN THE         06900000
+*        FIRST CHARACTER OF THE COMMAND LINE IS A PERIOD ('.').         06910000
+*        THIS CHARACTER SIGNIFIES THAT THE CHARACTER FOLLOWING IS       06920000
+*        TO BE THE DELIMITER FOR THE CHANGE COMMAND.  THIS IS           06930000
+*        HANDLED VERY SIMPLY:  SPCHANGE SIMPLY POINTS AHEAD TO          06940000
+*        THAT CHAR, AND THEN BRANCHES TO CHANGE.                        06950000
+*                                                                       06960000
+**********************************************************************  06970000
+         SPACE ,                                                        06980000
+SPCHANGE DS    0H                                                       06990000
+         LA    R11,1(,R11)             POINT PAST '.'                   07000000
+         BCTR  R10,0                   DECREMENT LENGTH REMAINING       07010000
+         LTR   R10,R10                 TEST REMAINING LENGTH            07020000
+         BNP   USELAST                 IF NO MORE, JUST USE LAST        07030000
+         XR    R15,R15                 CLEAR FOR INSERT                 07040000
+         IC    R15,0(,R11)             GET THE CHAR                     07050000
+         LA    R15,INVTBL(R15)         INDEX INTO THE TABLE             07060000
+         CLI   0(R15),X'00'            IS IT A VALID FILEID CHAR??      07070000
+         BNZ   CHANGE                  NO, GOOD, USE IT FOR A DELIMITER 07080000
+         MVC   CMNDLIST(L'BADELIMM),BADELIMM  MOVE IN THE MSG           07090000
+         MVC   CMNDLIST+L'BADELIMM(1),0(R11)  AND THE BAD CHAR          07100000
+         MVI   CMNDLIST+L'BADELIMM+1,C'"'  AND THE CLOSING QUOTE        07110000
+         LA    R14,L'BADELIMM+2        GET MSG LENGTH                   07120000
+         LA    R15,CMNDLIST            POINT TO BADELIM MSG             07130000
+         BAL   R2,TYPE                 GO TYPE THE MESSAGE              07140000
+         B     READLINE                AND GO READ ANOTHER LINE         07150000
+         EJECT ,                                                        07160000
+**********************************************************************  07170000
+*                                                                       07180000
+* CHANGE -- '/' COMMAND                                                 07190000
+*                                                                       07200000
+*        FORMAT IS:  //STRING1/STRING2/ <MORE TEXT>                     07210000
+*                                                                       07220000
+*        WE PROCESS THE CHANGE; THEN IF THERE IS MORE TEXT              07230000
+*        FOLLOWING, WE GO TO USEREST TO USE IT.  IF CHANGE IS           07240000
+*        CALLED DIRECTLY, R11 WILL POINT TO A SLASH ('/').  IF IT       07250000
+*        IS CALLED VIA SPCHANGE, IT WILL POINT TO A DELIMITER           07260000
+*        CHARACTER, WHICH IS ANY CHARACTER WHICH IS NOT A VALID         07270000
+*        FILEID CHARACTER.  THIS CHARACTER IS SAVED FOR FUTURE          07280000
+*        REFERENCE IN IN BALRSAVE WHEN CHANGE IS ENTERED.               07290000
+*                                                                       07300000
+* REGISTER USAGE IN THIS SECTION OF CODE:                               07310000
+*                                                                       07320000
+* R2  -- LEN-1(1ST STRING), INTERNAL LINKAGE FOR TYPE & QMORE           07330000
+* R3  -- A(1ST STRING)                                                  07340000
+* R4  -- LEN-1(2ND STRING)                                              07350000
+* R5  -- A(2ND STRING)                                                  07360000
+* R7  -- POINTER WITHIN OLDCMD WHEN SEARCHING                           07370000
+* R8  -- CURRENT LENGTH OF OLDCMD                                       07380000
+* R9  -- POINTER TO OLDCMD                                              07390000
+* R10 -- LENGTH OF COMMAND STRING REMAINING                             07400000
+* R11 -- CURRENT POSITION IN COMMAND STRING                             07410000
+* R14 -- WORK, BALR REGISTER FOR LOOP                                   07420000
+* R15 -- WORK                                                           07430000
+*                                                                       07440000
+*        NOTE:  IN THIS SECTION OF CODE, R10 MAY TAKE ON NEGATIVE       07450000
+*        VALUES -- BE SURE TO USE 'BP' RATHER THAN 'BNZ'.               07460000
+*                                                                       07470000
+**********************************************************************  07480000
+         SPACE ,                                                        07490000
+CHANGE   DS    0H                                                       07500000
+         MVC   BALRSAVE(1),0(R11)      SAVE THE DELIMITER               07510000
+         BALR  R14,0                   SET ADDRESS FOR NEXT TIME        07520000
+         SPACE ,                                                        07530000
+* * * TOP OF LOOP * * *                                                 07540000
+         SPACE ,                                                        07550000
+         LR    R2,R4                   COPY LENGTH IF ANY               07560000
+         XR    R4,R4                   START WITH LENGTH=0 (USE -1)     07570000
+         BCTR  R4,0                    ...                              07580000
+         LR    R3,R5                   COPY ADDRESS IF ANY              07590000
+         LTR   R10,R10                 ANYTHING LEFT??                  07600000
+         BNPR  R14                     NO, GO FINISH                    07610000
+         LA    R5,1(,R11)              SKIP OVER DELIMITER              07620000
+FINDLIM  DS    0H                                                       07630000
+         LA    R11,1(,R11)             NEXT CHAR                        07640000
+         CLC   0(1,R11),BALRSAVE       DELIMITER AGAIN??                07650000
+         BE    FOUNDLIM                YES, WE'RE DONE                  07660000
+         BCT   R10,FINDLIM             NO, DECREMENT AND LOOK AGAIN     07670000
+FOUNDLIM DS    0H                                                       07680000
+         BCTR  R10,0                   DECREMENT COUNT AGAIN            07690000
+         LR    R4,R11                  POINT TO DELIMITER               07700000
+         SR    R4,R5                   LENGTH OF STRING                 07710000
+         BCTR  R4,0                    LENGTH-1                         07720000
+         BALR  R14,R14                 LOOP AGAIN OR FINISH             07730000
+         SPACE ,                                                        07740000
+* * * BOTTOM OF LOOP * * *                                              07750000
+         SPACE ,                                                        07760000
+         LR    R7,R9                   COPY POINTER TO OLDCMD           07770000
+         LTR   R2,R2                   LOOKING FOR NULL STRING??        07780000
+         BM    MATCHED                 YES, THEN WE'VE MATCHED NOW      07790000
+         LA    R0,L'OLDCMD             GET LENGTH OF OLDCMD             07800000
+         SR    R0,R2                   MAKE LENGTH TO MATCH             07810000
+         LA    R15,L'OLDCMD-1-1        GET MAX LENGTH OF OLDCMD-2       07820000
+         SR    R15,R8                  MAKE LENGTH TO BLANK OUT         07830000
+         BNP   CSEARCH                 IF MAX LENGTH OLDCMD, SKIP       07840000
+         LA    R14,OLDCMD(R8)          POINT PAST END OF PREV CMD       07850000
+         MVI   0(R14),C' '             BLANK OUT REST ...               07860000
+         EX    R15,BLANKOUT            < MVC   1(*-*,R14),0(R14) >      07870000
+CSEARCH  DS    0H                                                       07880000
+         EX    R2,MATCHCLC             < CLC   0(*-*,R3),0(R7) >        07890000
+         BE    MATCHED                 YES, BRANCH                      07900000
+         LA    R7,1(,R7)               NO, NEXT POSITION                07910000
+         BCT   R0,CSEARCH              KEEP LOOKING                     07920000
+         EJECT ,                                                        07930000
+**********************************************************************  07940000
+*                                                                       07950000
+* CFAILED --                                                            07960000
+*                                                                       07970000
+*        THE STRING WE WERE SEARCHING FOR DOES NOT EXIST; WE WANT       07980000
+*        TO TELL THE USER AND GO READ ANOTHER LINE                      07990000
+*                                                                       08000000
+*        CFAILED USES CMNDLIST AS A WORK AREA.                          08010000
+*                                                                       08020000
+**********************************************************************  08030000
+         SPACE ,                                                        08040000
+CFAILED  DS    0H                                                       08050000
+         MVC   CMNDLIST(1),BALRSAVE    MOVE IN THE DELIMITER CHAR       08060000
+         MVC   CMNDLIST+1(L'NOTFOUND),NOTFOUND    " NOT FOUND "         08070000
+         MVC   CMNDLIST+1+L'NOTFOUND(L'OLDCMD),0(R3)  MOVE IN STRING    08080000
+         LA    R5,CMNDLIST+1+L'NOTFOUND+1(R2)  END OF STRING            08090000
+         MVI   0(R5),C'"'              AND INSERT CLOSING '"'           08100000
+         LA    R14,1+L'NOTFOUND+1+1(R2) GET CORRECT LENGTH              08110000
+         LA    R15,CMNDLIST            POINT TO START OF MESSAGE        08120000
+         BAL   R2,TYPE                 GO TYPE MESSAGE                  08130000
+         B     READLINE                AND GO LEAVE                     08140000
+         SPACE ,                                                        08150000
+MATCHED  DS    0H                                                       08160000
+         MVC   CMNDLIST(L'OLDCMD),OLDCMD  MOVE IN OLDCMD                08170000
+         SR    R7,R9                   SUBTRACT TO GET LENGTH           08180000
+         LA    R15,CMNDLIST(R7)        POINT TO END OF PREV COMMAND     08190000
+         LTR   R4,R4                   ANY REPLACEMENT STRING??         08200000
+         BM    MOVEREST                NO, DON'T MOVE ANYTHING          08210000
+         MVC   0(L'OLDCMD,R15),0(R5)   MOVE IN THE REPLACEMENT          08220000
+         LA    R15,1(R15,R4)           POINT PAST INSERTED STRING       08230000
+MOVEREST DS    0H                                                       08240000
+         LA    R5,OLDCMD+1(R7)         START OF REPLACED STRING+1       08250000
+         LA    R7,1(R7,R4)             NEW LENGTH OF OLDCMD             08260000
+         AR    R5,R2                   END OF REPLACED STRING           08270000
+         CR    R5,R14                  NOTHING MORE TO DO??             08280000
+         BNL   RESTDONE                NOTHING, SKIP                    08290000
+         MVC   0(L'OLDCMD,R15),0(R5)   MOVE IN REST                     08300000
+         LA    R7,0(R8,R4)             BY ADDING NEW STRING LENGTH...   08310000
+         SR    R7,R2                   ... AND SUBTRACTING OLD          08320000
+RESTDONE DS    0H                                                       08330000
+         LR    R8,R7                   COPY NEW LENGTH OF OLDCMD        08340000
+         CLM   R8,B'0001',=AL1(L'OLDCMD)  NEW LENGTH TOO BIG??          08350000
+         BL    CHANGED                 NO, WE'RE DONE                   08360000
+         LA    R8,L'OLDCMD             YES, NEW LENGTH IS MAX LENGTH    08370000
+CHANGED  DS    0H                                                       08380000
+         MVC   OLDCMD(L'OLDCMD),CMNDLIST  SAVE IN LAST COMMAND          08390000
+         LA    R11,1(,R11)             POINT R15 PAST DELIMITER         08400000
+         BCTR  R10,0                   AND DECREMENT R15 ONCE MORE      08410000
+         LTR   R10,R10                 ANYTHING LEFT??                  08420000
+         BNP   USELAST                 NO, JUST EXECUTE OLDCMD          08430000
+         BAL   R2,QMORE                ANYTHING NON-BLANK LEFT??        08440000
+         BZ    USELAST                 NO, JUST EXECUTE OLDCMD          08450000
+         OI    CMDEFLAG,XVERIFY+XSTACKIT  SET FLAGS FOR LATER           08460000
+         B     USEREST                 AND GO USE THE REST              08470000
+         EJECT ,                                                        08480000
+**********************************************************************  08490000
+*                                                                       08500000
+* QMORE --                                                              08510000
+*                                                                       08520000
+*        CHECK FOR ANYTHING ELSE ON THE COMMAND LINE                    08530000
+*                                                                       08540000
+* CALLED VIA:                                                           08550000
+*                                                                       08560000
+* BAL  R2,QMORE                                                         08570000
+*                                                                       08580000
+* EXIT CONDITIONS:                                                      08590000
+*                                                                       08600000
+* CC  = 0: LINE EXHAUSTED                                               08610000
+* CC ^= 0: NON-BLANK FOUND; R10 CONTAINS LENGTH, R11 POINTS TO CHAR.    08620000
+*                                                                       08630000
+**********************************************************************  08640000
+         SPACE ,                                                        08650000
+QMORE    DS    0H                                                       08660000
+         CLI   0(R11),C' '             LOOP, LOOKING FOR A NON-BLANK    08670000
+         BNER  R2                      FOUND NON-BLANK, GO CHECK IT     08680000
+         LA    R11,1(,R11)             LOOK AHEAD                       08690000
+         BCT   R10,QMORE               DECREMENT LENGTH AND GO AGAIN    08700000
+         BR    R2                      AND RETURN                       08710000
+         EJECT ,                                                        08720000
+**********************************************************************  08730000
+*                                                                       08740000
+* QGRAF --                                                              08750000
+*                                                                       08760000
+*        SEE WHETHER THE USER'S CONSOLE IS A GRAF OR A TTY.             08770000
+*                                                                       08780000
+* CALLED VIA:                                                           08790000
+*                                                                       08800000
+* BAL  R2,QGRAF                                                         08810000
+*                                                                       08820000
+*        QGRAF USES DIAGNOSE X'24' TO GET THE DEVICE INFO, AND          08830000
+*        RETURNS WITH CC=0 IF THE TERMINAL IS A GRAF AND CC^=0 IF       08840000
+*        IT'S A TTY OR AN UNKNOWN MODEL OF GRAF.                        08850000
+*                                                                       08860000
+**********************************************************************  08870000
+         SPACE ,                                                        08880000
+QGRAF    DS    0H                                                       08890000
+         XR    R4,R4                   CLEAR R4 FOR DIAGNOSE            08900000
+         BCTR  R4,0                    MAKE R4=-1                       08910000
+         DIAG  R4,R14,X'24'            DIAGNOSE FOR CONSOLE INFO        08920000
+         CLM   R15,B'1000',=X'40'      IS IT A DISPLAY TERMINAL??       08930000
+         BER   R2                      YES, RETURN, CC=0                08940000
+         CLM   R15,B'1000',=X'80'      MIGHT IT BE A REMOTE GRAF??      08950000
+         BNER  R2                      NO, RETURN, CC^=0                08960000
+         CLM   R15,B'0100',=X'01'      IS IT A REMOTE GRAF??            08970000
+         BER   R2                      YES, RETURN, CC=0                08980000
+         CLM   R15,B'0100',=X'04'      IS IT A REMOTE GRAF??            08990000
+         BR    R2                      RETURN WITH CC SET APPROPRIATELY 09000000
+         EJECT ,                                                        09010000
+**********************************************************************  09020000
+*                                                                       09030000
+* QSTACK --                                                             09040000
+*                                                                       09050000
+*        CHECK THE STACK                                                09060000
+*                                                                       09070000
+* CALLED VIA:                                                           09080000
+*                                                                       09090000
+* BAL  R2,QSTACK                                                        09100000
+*                                                                       09110000
+*        QSTACK CHECKS THE STACK AND SETS XVERIFY IF THERE IS           09120000
+*        SOMETHING IN THE STACK AND WE ARE NOT CURRENTLY                09130000
+*        EXECUTING A 'SUBSET (RETURN'                                   09140000
+*                                                                       09150000
+**********************************************************************  09160000
+         SPACE ,                                                        09170000
+QSTACK   DS    0H                                                       09180000
+         TM    CMDEFLAG,XVERIFY        ARE WE ALREADY GONNA VERIFY??    09190000
+         BOR   R2                      YES, RETURN TO CALLER            09200000
+         OC    NUMFINRD(2),NUMFINRD    ARE THERE ANY UNFINISHED READS?? 09210000
+         BZR   R2                      NO, RETURN TO CALLER             09220000
+         TM    SUBFLAG,SUBRTN          IN 'SUBSET (RETURN' MODE??       09230000
+         BOR   R2                      YES, RETURN TO CALLER            09240000
+         OI    CMDEFLAG,XVERIFY        ELSE SAY WE MUST VERIFY          09250000
+         BR    R2                      AND RETURN TO CALLER             09260000
+         EJECT ,                                                        09270000
+*****************************************************************       09280000
+*                                                                       09290000
+* QVERIFY --                                                            09300000
+*                                                                       09310000
+*        SEE IF WE ARE TO VERIFY A PARTICULAR LINE.                     09320000
+*                                                                       09330000
+* CALLED VIA:                                                           09340000
+*                                                                       09350000
+* BAL  R2,QVERIFY                                                       09360000
+*                                                                       09370000
+*        QVERIFY CHECKS THE VARIOUS FLAGS AND SUCHLIKE TO SEE IF        09380000
+*        THE LINE SHOULD BE VERIFIED.  IF SO, IT RETURNS, CC^=0.        09390000
+*        IF NOT, IT RETURNS, CC=0.  THIS SUBROUTINE GOES THROUGH        09400000
+*        SOME GYRATIONS TO DETERMINE WHETHER OR NOT THE LINE IN         09410000
+*        QUESTION IS THE 'EXEC PROFILE' WHICH DMSINS STACKS AFTER       09420000
+*        THE IPL, AND INDICATES NOT TO VERIFY THE LINE IF IT IS.        09430000
+*                                                                       09440000
+*****************************************************************       09450000
+         SPACE ,                                                        09460000
+QVERIFY  DS    0H                                                       09470000
+         TM    CMDEFLAG,XVERIFY        ARE WE TO VERIFY COMMAND LINE??  09480000
+         BNOR  R2                      NO, JUST RETURN, CC=0            09490000
+         TM    CALLFLAG,XNOT1ST        IS THIS OUR FIRST CALL??         09500000
+         BOR   R2                      NO, VERIFY IT FOR SURE           09510000
+         CLC   RPLISTL,=H'16'          IS THE LINE THE RIGHT LENGTH??   09520000
+         BNER  R2                      NO, GO VERIFY THE LINE           09530000
+         CLC   OLDCMD(16),=CL16'EXEC    PROFILE '  IS IT THE PROFILE??  09540000
+         BR    R2                      RETURN WITH CC SET APPROPRIATELY 09550000
+         EJECT ,                                                        09560000
+**********************************************************************  09570000
+*                                                                       09580000
+* STACK --                                                              09590000
+*                                                                       09600000
+*        STACK OLDCMD LIFO IN THE CONSOLE STACK                         09610000
+*                                                                       09620000
+* CALLED BY:                                                            09630000
+*                                                                       09640000
+*  BAL  R2,STACK                                                        09650000
+*                                                                       09660000
+**********************************************************************  09670000
+         SPACE ,                                                        09680000
+STACK    DS    0H                                                       09690000
+         TM    CALLFLAG,XABNCALL       WERE WE CALLED FROM DMSABN??     09700000
+         BOR   R2                      YES, DON'T STACK                 09710000
+         ST    R9,ATTNLEN              SAVE LINE ADDRESS IN PLIST       09720000
+         STC   R8,ATTNLEN              AND SAVE LINE LENGTH IN PLIST    09730000
+         STM   R0,R15,CALLSAVE         SAVE ALL REGS                    09740000
+         LA    R1,ATTN                 POINT TO 'ATTN' PLIST            09750000
+         L     R15,ADMSCAT             POINT TO 'ATTN'                  09760000
+         BALR  R14,R15                 STACK THE LINE                   09770000
+         BALR  R15,0                   GET TEMPORARY BASE               09780000
+         SPACE ,                                                        09790000
+         USING *,R15                   GET TEMPORARY ADDRESSABILITY     09800000
+         SPACE ,                                                        09810000
+         LM    R0,R15,CALLSAVE         RESTORE ALL REGS                 09820000
+         SPACE ,                                                        09830000
+         DROP  R15                     DONE WITH TEMPORARY BASE         09840000
+         SPACE ,                                                        09850000
+         BR    R2                      AND RETURN TO CALLER             09860000
+         EJECT ,                                                        09870000
+**********************************************************************  09880000
+*                                                                       09890000
+* TYPE --                                                               09900000
+*                                                                       09910000
+*        SET UP FOR CALL TO TYPELINE AND DO IT                          09920000
+*                                                                       09930000
+* CALLED BY:                                                            09940000
+*                                                                       09950000
+*  BAL  R2,TYPE                                                         09960000
+*                                                                       09970000
+* ENTRY CONDITIONS:                                                     09980000
+*                                                                       09990000
+* R14 -- CONTAINS LENGTH TO TYPE                                        10000000
+* R15 -- CONTAINS ADDRESS OF LINE TO TYPE                               10010000
+*                                                                       10020000
+**********************************************************************  10030000
+         SPACE ,                                                        10040000
+TYPE     DS    0H                                                       10050000
+         STH   R14,TYPLINL             SAVE LENGTH TO TYPE              10060000
+         ST    R15,TYPLINA             SAVE ADDRESS OF LINE             10070000
+*        B     TYPELINE                FALL THROUGH TO TYPELINE         10080000
+         EJECT ,                                                        10090000
+**********************************************************************  10100000
+*                                                                       10110000
+* TYPELINE --                                                           10120000
+*                                                                       10130000
+*        TYPE A LINE TO THE CONSOLE                                     10140000
+*                                                                       10150000
+* CALLED BY:                                                            10160000
+*                                                                       10170000
+*  BAL  R2,TYPELINE                                                     10180000
+*                                                                       10190000
+* ENTRY CONDITIONS:                                                     10200000
+*                                                                       10210000
+*        THE TYPLIN PLIST AT TYPLIN AS BEEN FILLED IN ALREADY.          10220000
+*                                                                       10230000
+**********************************************************************  10240000
+         SPACE ,                                                        10250000
+TYPELINE DS    0H                                                       10260000
+         STM   R0,R15,CALLSAVE         SAVE ALL REGS                    10270000
+         LA    R1,TYPLIN               POINT TO TYPLIN PLIST            10280000
+         L     R15,ADMSCWR             POINT TO TYPLIN                  10290000
+         BALR  R14,R15                 GO TYPE THE LINE                 10300000
+         BALR  R15,0                   GET TEMPORARY BASE               10310000
+         SPACE ,                                                        10320000
+         USING *,R15                   GET TEMPORARY ADDRESSABILITY     10330000
+         SPACE ,                                                        10340000
+         LM    R0,R15,CALLSAVE         RESTORE ALL REGS                 10350000
+         SPACE ,                                                        10360000
+         DROP  R15                     DONE WITH TEMPORARY BASE         10370000
+         SPACE ,                                                        10380000
+         BR    R2                      AND RETURN TO CALLER             10390000
+         EJECT ,                                                        10400000
+**********************************************************************  10410000
+*                                                                       10420000
+* BLANK --                                                              10430000
+*                                                                       10440000
+*        THE LINE READ WAS NULL; EITHER GO EXIT OR OVERLAY              10450000
+*                                                                       10460000
+**********************************************************************  10470000
+         SPACE ,                                                        10480000
+BLANK    DS    0H                                                       10490000
+         XC    RPLISTL,RPLISTL         BLANK LINE, CLEAR COUNT          10500000
+NULL     DS    0H                                                       10510000
+         TM    CMDEFLAG,XQMARK         FINISHING UP '?' ON TTY??        10520000
+         BNO   EXITZERO                NO, GO EXIT TO TYPE 'CMS'        10530000
+         NI    CMDEFLAG,X'FF'-XQMARK   YES, UNSET FLAG                  10540000
+         B     USELAST                 AND GO USE LAST COMMAND          10550000
+         EJECT ,                                                        10560000
+INSTALL  MVC   CMNDLINE(*-*),OLDCMD    COPY IN OLD COMMAND              10570000
+         SPACE ,                                                        10580000
+APPENDIT MVC   0(*-*,R2),0(R11)        APPEND TO EXISTING OLDCMD        10590000
+         SPACE ,                                                        10600000
+BLANKOUT MVC   1(*-*,R14),0(R14)       BLANK OUT REST OF OLDCMD         10610000
+         SPACE ,                                                        10620000
+MATCHCLC CLC   0(*-*,R3),0(R7)         COMPARE 'STRING1' TO PREV CMD    10630000
+         EJECT ,                                                        10640000
+*****************************************************************       10650000
+*                                                                       10660000
+* PASSIT --                                                             10670000
+*                                                                       10680000
+*        WE HAVE CONCLUDED THAT WE WERE NOT CALLED BY DMSINT.  PASS     10690000
+*        THE CALL ON TO THE REAL DMSCRD.                                10700000
+*                                                                       10710000
+*****************************************************************       10720000
+         SPACE ,                                                        10730000
+PASSIT   DS    0H                                                       10740000
+         L     R13,4(,R13)             GET OLD SAVEAREA POINTER         10750000
+         XC    8(4,R13),8(R13)         CLEAR FORWARD POINTER            10760000
+         MVC   12+1*4(4,R13),OADMSCRD  SET REAL WAITRD ADDRESS          10770000
+         LM    R14,R12,12(R13)         RESTORE REGISTERS                10780000
+         BR    R15                     AND GO TO REAL WAITRD            10790000
+         EJECT ,                                                        10800000
+*****************************************************************       10810000
+*                                                                       10820000
+* SERVICE --                                                            10830000
+*                                                                       10840000
+*        THIS IS A SERVICE CALL.  WE ONLY CARE ABOUT A NUCXDROP,        10850000
+*        IN WHICH CASE WE WILL HAVE TO RESET THE WAITRD ADCON           10860000
+*        (ADMSCRD) SO WE DON'T GET CALLED AFTER BEING DELETED.          10870000
+*                                                                       10880000
+*****************************************************************       10890000
+         SPACE ,                                                        10900000
+SERVICE  DS    0H                                                       10910000
+         CLC   8(8,R1),=CL8'RESET   '  NUCXDROP CALL??                  10920000
+         BNE   EXITZERO                NO, JUST EXIT                    10930000
+         MVC   ADMSCRD(4),OADMSCRD     RESET WAITRD ADCON               10940000
+         B     EXITZERO                AND GO EXIT QUIETLY              10950000
+         EJECT ,                                                        10960000
+*****************************************************************       10970000
+*                                                                       10980000
+*        CONSTANTS                                                      10990000
+*                                                                       11000000
+*****************************************************************       11010000
+         SPACE ,                                                        11020000
+NOTFOUND DC    C' NOT FOUND  "'        ERROR WHEN CHANGE FAILS          11030000
+         SPACE ,                                                        11040000
+BADELIMM DC    C'Invalid command editing delimiter "'                   11050000
+         SPACE ,                                                        11060000
+WRITERR  DC    C'Full-screen I/O error; "?" aborted.'                   11070000
+         SPACE ,                                                        11080000
+RESHOWM  DC    C'No previous command to redisplay.'                     11090000
+         SPACE ,                                                        11100000
+GRAFINDX DS    0H             327X MODEL NUMBER INDEX                   11110000
+         DC    AL1(00,02,04,06,08,10,00,00,00,00,00,00,00,00,00,00)     11120000
+         DC    AL1(00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00)     11130000
+         DC    AL1(00,00,00,00,00,00,00,00,00,00,12,00,00,00,00,00)     11140000
+         SPACE ,                                                        11150000
+GRAFLINS DS    0H             327X SCREEN SIZES (80 CHAR LINES)         11160000
+         DC    AL2(((12*80)-(2*80))/80)           3278 MODEL 1          11170000
+         DC    AL2(((24*80)-(2*80))/80)           MODEL 2               11180000
+         DC    AL2(((32*80)-(2*80))/80)           MODEL 3               11190000
+         DC    AL2(((43*80)-(2*80))/80)           MODEL 4               11200000
+         DC    AL2(((27*132)-(2*132))/132)        MODEL 5               11210000
+         DC    AL2(((20*80)-(2*80))/80)           MODEL 2A              11220000
+         SPACE ,                                                        11230000
+*                                                                       11240000
+*        CCW TO WRITE COMMAND STRING TO GRAF                            11250000
+*                                                                       11260000
+         SPACE ,                                                        11270000
+GRAFCCW  DS    0D             DIAGNOSE CCW FOR 327X CONSOLES            11280000
+         DC    X'19'          OPCODE                                    11290000
+GRAFADDR DC    AL3(0)         DATA ADDRESS                              11300000
+         DC    X'20'          FLAG BYTE = SILI                          11310000
+GRAFCTL  DC    AL1(22)        DISPLAY ON LINE 22(INPUT AREA)            11320000
+GRAFLEN  DC    AL2(130)       LENGTH OF LINE                            11330000
+         SPACE ,                                                        11340000
+*                                                                       11350000
+*        COMMAND TO STACK A LINE                                        11360000
+*                                                                       11370000
+         SPACE ,                                                        11380000
+ATTN     DS    0F                      STACK A LINE                     11390000
+         DC    CL8'ATTN'                                                11400000
+         DC    CL4'LIFO'               STACKING ORDER                   11410000
+ATTNLEN  DC    AL1(0)                  LINE LENGTH                      11420000
+         DC    AL3(0)                  ADDRESS                          11430000
+         SPACE ,                                                        11440000
+TYPLIN   DS    0F                                                       11450000
+         DC    CL8'TYPLIN'             THE TYPLIN COMMAND ITSELF        11460000
+TYPLINA  DS    AL4                     BUFFER ADDRESS                   11470000
+         DC    C'B'                    COLOR CODE                       11480000
+         DC    X'01'                   SPECIAL FLAG                     11490000
+TYPLINL  DS    AL2                     LENGTH TO TYPE                   11500000
+         SPACE ,                                                        11510000
+OADMSCRD DC    F'0'                    SLOT FOR SAVED ADMSCRD           11520000
+         SPACE ,                                                        11530000
+CMDEFLAG DS    X                       FLAG BYTE                        11540000
+*                                                                       11550000
+*        EQU   X'80'          X....... RESERVED FOR FUTURE USE          11560000
+*        EQU   X'40'          .X...... RESERVED FOR FUTURE USE          11570000
+*        EQU   X'20'          ..X..... RESERVED FOR FUTURE USE          11580000
+XREPEAT  EQU   X'10'          ...X.... 'REPEAT' PENDING                 11590000
+XHOLDIT  EQU   X'08'          ....X... 'HOLD' THE LAST COMMAND          11600000
+XVERIFY  EQU   X'04'          .....X.. VERIFY THIS COMMAND              11610000
+XSTACKIT EQU   X'02'          ......X. STACK THE LINE IF MORE CHANGES   11620000
+XQMARK   EQU   X'01'          .......X '?' FOR TTY UNFINISHED           11630000
+         SPACE ,                                                        11640000
+CALLFLAG DS    X                                                        11650000
+*                                                                       11660000
+XSUBSETX EQU   X'80'          X....... THIS CALL WAS FROM CMS SUBSET    11670000
+XSUBSET  EQU   X'40'          .X...... LAST CALL WAS FROM CMS SUBSET    11680000
+XABNCALL EQU   X'20'          ..X..... CALLED VIA DMSABN                11690000
+XNOT1ST  EQU   X'10'          ...X.... NOT FIRST TIME CALLED            11700000
+*        EQU   X'08'          ....X... RESERVED FOR FUTURE USE          11710000
+*        EQU   X'04'          .....X.. RESERVED FOR FUTURE USE          11720000
+*        EQU   X'02'          ......X. RESERVED FOR FUTURE USE          11730000
+*        EQU   X'01'          .......X RESERVED FOR FUTURE USE          11740000
+         SPACE ,                                                        11750000
+OLDCMDL  DC    AL1(0)                  LENGTH OF CMS COMMAND STRING     11760000
+OLDSCMDL DC    AL1(6)                  LENGTH OF SUBSET COMMAND STRING  11770000
+         SPACE ,                                                        11780000
+VHEADER  DC    CL4'==> '               HEADER STRING                    11790000
+*                                                                       11800000
+OLDCMD   DC    CL160' '                CMS COMMAND STRING               11810000
+         DS    CL8                     SOME SLOP                        11820000
+OLDSCMD  DC    CL160'RETURN'           SUBSET COMMAND STRING            11830000
+OLDHCMDL DC    AL1(0)                  SAVED OLD COMMAND STRING LENGTH  11840000
+OLDHCMD  DC    CL160' '                SAVED OLD COMMAND STRING         11850000
+         SPACE ,                                                        11860000
+SAVEAREA DS    18F                     SAVEAREA FOR CALLED ROUTINES     11870000
+*                                                                       11880000
+CALLSAVE DS    16F                     SAVEAREA FOR EXTERNAL CALLS      11890000
+*                                                                       11900000
+* NOTE THAT DMSCRD IS A PIG WHO USES THE SAVEAREA FOR A SCRATCH AREA;   11910000
+* THUS WE MUST NOT LET HIM MESS OUR CAREFULLY-CHAINED SAVEAREA!         11920000
+*                                                                       11930000
+CRDSAVE  DS    18F                     SAVEAREA FOR DMSCRD              11940000
+         EJECT ,                                                        11950000
+*****************************************************************       11960000
+*                                                                       11970000
+* INVTBL --                                                             11980000
+*                                                                       11990000
+*        TABLE OF CHARACTERS WHICH ARE VALID IN A FILEID.  COPIED       12000000
+*        FROM DMSBWR.                                                   12010000
+*                                                                       12020000
+*****************************************************************       12030000
+         SPACE ,                                                        12040000
+INVTBL   DC    256X'40'       X'40'  MEANS "INVALID" CHARACTERS         12050000
+         ORG   INVTBL+78                                                12060000
+         DC    X'00'         '+' PLUS 78(4E) IS VALID                   12070000
+         ORG   INVTBL+91                                                12080000
+         DC    X'00'         '$' IS VALID                               12090000
+         ORG   INVTBL+96                                                12100000
+         DC    X'00'         '-' DASH 96(60) IS VALID                   12110000
+         ORG   INVTBL+109                                               12120000
+         DC    X'00'         '_' UNDERSCORE 109(6D) IS VALID            12130000
+         ORG   INVTBL+122                                               12140000
+         DC    X'00'         ':' COLON 122(7A) IS VALID                 12150000
+         ORG   INVTBL+123                                               12160000
+         DC    2X'00'        '#' AND '@' ARE VALID                      12170000
+         ORG   INVTBL+129                                               12180000
+         DC    9X'00'        LOWER CASE 'A' THRU 'I' ARE VALID          12190000
+         ORG   INVTBL+145                                               12200000
+         DC    9X'00'        LOWER CASE 'J' THRU 'R' ARE VALID          12210000
+         ORG   INVTBL+162                                               12220000
+         DC    8X'00'        LOWER CASE 'S' THRU 'Z' ARE VALID          12230000
+         ORG   INVTBL+193                                               12240000
+         DC    9X'00'        UPPER CASE 'A' THRU 'I' ARE VALID          12250000
+         ORG   INVTBL+209                                               12260000
+         DC    9X'00'        UPPER CASE 'J' THRU 'R' ARE VALID          12270000
+         ORG   INVTBL+226                                               12280000
+         DC    8X'00'        UPPER CASE 'S' THRU 'Z' ARE VALID          12290000
+         ORG   INVTBL+240                                               12300000
+         DC    10X'00'       NUMBERS '0' THRU '9' ARE VALID             12310000
+         ORG   ,                                                        12320000
+         EJECT ,                                                        12330000
+         LTORG ,                                                        12340000
+         SPACE ,                                                        12350000
+CMDSIZEB EQU   *-DMSCMD                SIZE OF THE NUCEXT IN BYTES      12360000
+CMDSIZED EQU   (*-DMSCMD+7)/8          SIZE OF THE NUCEXT IN DWORDS     12370000
+         EJECT ,                                                        12380000
+*****************************************************************       12390000
+*                                                                       12400000
+* RPLISTD --                                                            12410000
+*                                                                       12420000
+*        DSECT DESCRIBING THE FORMAT OF A WAITRD PLIST                  12430000
+*                                                                       12440000
+*****************************************************************       12450000
+         SPACE ,                                                        12460000
+RPLISTD  DSECT ,                                                        12470000
+*                                                                       12480000
+RPLISTW  DS    CL8'WAITRD  '           THE WAITRD COMMAND ITSELF        12490000
+RPLISTB  DS    AL4                     ADDRESS OF LINE BUFFER           12500000
+RPLISTC  DS    C                       TRANSLATE CODE                   12510000
+         DC    X'00'                   NOT USED                         12520000
+RPLISTL  DS    AL2                     LENGTH READ                      12530000
+         DS    F                       NOT USED                         12540000
+         EJECT ,                                                        12550000
+         PRINT OFF,NOGEN                                                12560000
+         REGEQU ,                                                       12570000
+         NUCON ,                                                        12580000
+         SVCSECT ,                                                      12590000
+         SVCSAVE ,                                                      12600000
+         END   ,                                                        12610000

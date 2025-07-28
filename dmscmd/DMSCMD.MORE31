@@ -1,0 +1,7 @@
+./ I 02157960          $ 2158260 300                  09/22/98 13:56:19         
+         L     R2,=X'7FFFFFFF'         Get set for AMODE 31    MORE31   02158260
+         TM    USEMFLG,USEA31          Was caller AMODE 31??   MORE31   02158560
+         BO    *+8                     Yes, we're set          MORE31   02158860
+         ICM   R2,B'1000',=X'00'       No, clear top byte      MORE31   02159160
+./ I 02300000          $ 2302000 2000                 09/22/98 13:56:19         
+         NR    R15,R2                  (Maybe) clear top byte  MORE31   02302000

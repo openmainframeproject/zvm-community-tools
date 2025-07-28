@@ -1,0 +1,10 @@
+./ R 00223000 00226000 $ 224990 1990                  06/19/97 09:27:08         
+CMDEDIT  RMODE ANY                                             AMODE31  00224990
+CMDEDIT  AMODE 31                                              AMODE31  00226980
+./ I 00460000          $ 463000 3000                  06/19/97 09:27:08         
+         OI    NUCXADDR,X'80'                                  AMODE31  00463000
+         OI    NUCXORG,X'80'                                   AMODE31  00466000
+./ R 01150000          $ 1154990 4990                 06/19/97 09:27:08         
+NUCXFLAG DC    AL1(XSYSTEM+XSERVICE+XAMODE31)                  AMODE31  01154990
+./ R 01260000          $ 1264990 4990                 06/19/97 09:27:08         
+XAMODE31 EQU   X'02'          ......X. RESERVED                AMODE31  01264990

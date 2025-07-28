@@ -1,0 +1,151 @@
+* Help file
+.cs 2 on
+ 
+›|DMSCMD›%
+ 
+ 
+>>-DMSCMD----+---------+--+------->
+             '-HISTORY-'  |---25--|
+                          '---n---'
+ 
+.CS 4 OFF
+.CS 1 ON
+›|Authorization›%
+ 
+General User
+ 
+.CS 1 OFF
+.CS 1 ON
+›|Purpose›%
+ 
+DMSCMD provides CMS "command editing": re-executing a previous command by
+typing = and hitting enter; or ? to retrieve it, /x/y to change x to y and
+re-execute, + to add a token, - to remove a token, & to "hold" it: execute it
+(without the ampersand) and redisplay it on the command line.
+ 
+It also optionally saves a number of CMS commands in a buffer.  The HISTORY
+EXEC then displays these commands and lets you optionally modify and re-execute
+one or more of them.
+ 
+ 
+.CS 1 OFF
+.CS 3 ON
+›|Operands›%
+ 
+HISTORY  is an optional keyword preceding a history count (the maximum number
+         of commands to save as command history).
+ 
+         Also see Usage Note 3 for discussion of the HISTORY command provided
+         with and used in conjunction with DMSCMD.
+ 
+n        is the number of commands to save. If HISTORY is omitted, or is
+         not followed by a value, the default is to save 25 commands.
+ 
+.CS 3 OFF
+.CS 4 ON
+.CS 4 OFF
+.CS 5 ON
+›|Usage Notes›%
+ 
+1. DMSCMD loads a CMS nucleus extension for the native WAITRD function. It
+   does not check for an existing nucleus extension: thus if you invoke DMSCMD
+   repeatedly, it loads multiple copies of itself. These do not "cascade",
+   i.e., they do not pass calls to the "earlier" copies.
+ 
+2. Command editing functions can be combined, e.g.:
+ 
+   copyfile x x a y y a (append
+ 
+   change "x x" to "x y", remove 'append', replace it with 'replace', then add
+ 
+   /x/y/-type
+ 
+   If the string to be changed by a / includes a /, a period followed by a
+   delimiter character can be specified, e.g.:
+ 
+   .,/,!,
+ 
+   to change a slash to an exclamation point. The delimiter must not be a valid
+   character in a CMS fileid.
+ 
+   Whenever DMSCMD re-executes a command, it types it on the screen:
+ 
+   type a a a
+   this is file a
+   Ready(phsiii@VSIVC1); T=0.01/0.01 15:12:19
+   -b
+   ==> type a a b
+   DMSOPN069E Filemode B not accessed
+ 
+   Note the "==>" showing what command was re-executed. This is just showing
+   that the command came from the stack, which can be useful if something
+   leaves junk in the stack:
+ 
+   somecmd   <==this is a poorly behaved command that leaves two lines stacked
+   R;
+   ==> somejunkline
+   Unknown CP/CMS command
+   ==> someotherjunkline
+   Unknown CP/CMS command
+ 
+3. The HISTORY command is provided with DMSCMD. This is an EXEC that drives an
+   XEDIT dialog. It displays any commands saved by DMSCMD, letting you scroll
+   and optionally modify and stack those commands for re-execution by pressing
+   the ENTER key.
+ 
+   If more than one command is modified in HISTORY before ENTER is pressed,
+   all the modified commands will be stacked on exit.
+ 
+   If a command is modified in error, it can be blanked out (or ERASE EOF hit)
+   and HISTORY will restore the previous value. Pressing ENTER after blanking
+   a command or hitting ERASE EOF will not stack modified commands: a second
+   ENTER will be required. This allows you to continue modifying commands
+   before causing them to be stacked.
+ 
+   HISTORY EXECLOADs a copy of itself as HISTORY XEDIT to drive the XEDIT
+   panel.
+ 
+   HISTORY ? will display details of HISTORY operation.
+ 
+.CS 5 OFF
+.CS 6 ON
+›|Responses›%
+ 
+Normally, none.
+ 
+.CS 6 OFF
+.CS 6 ON
+›|Messages and Return Codes›%
+ 
+Invalid number of HISTORY buffers--must be an integer
+ 
+   This message is issued by DMSCMD when first invoked, if a parameter appears
+   after HISTORY that is not an integer.
+ 
+Unknown option--must be HISTORY <n> if specified.
+ 
+   This message is issued by DMSCMD when first invoked, if a parameter other
+   than HISTORY is specified.
+ 
+/ NOT FOUND  "changestring"
+ 
+   This message is issued after a "change" (/ or .x) command editing command, if
+   the specified string to change is not found in the previous command. The
+   leading / will be replaced by the "x" value if the ".x" form is used, e.g.,
+   .?/x?y
+   to change the string "/x" to just "y" in a command, but "/x" is not found.
+ 
+Invalid command editing delimiter "x"
+ 
+   This message is issued if the ".x" form is used and the "x" is a valid CMS
+   fileid character.
+ 
+Full-screen I/O error; "?" aborted.
+ 
+   This message should never appear but indicates a problem with DMSCMD writing
+   to the CMS command line.
+ 
+No previous command to redisplay.
+ 
+   This message appears if DMSCMD is invoked and a ? is immediately issued.
+.CS 6 OFF

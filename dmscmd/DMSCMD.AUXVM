@@ -1,0 +1,8 @@
+HISTORY Add command history                                                     
+MORE31  More 31-bit issues                                                      
+FIXNULL Fix //x/ command                                                        
+AMODE31                                                                         
+CMS12                                                                           
+XAXA Fix DMSCMD for XA-mode (also fix & problem)                                
+XA  FIX DMSCMD FOR CMS 5.5                                                      
+SP5 FIX DMSCMD FOR CMS SP/5                                                     

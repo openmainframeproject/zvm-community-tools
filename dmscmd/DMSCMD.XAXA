@@ -1,0 +1,6 @@
+./ R 04940000 04960000 $ 4944990 4990                 02/25/92 13:22:38         
+         STM   R0,R15,CALLSAVE         Save all registers      XAXA     04944990
+         LA    R1,=CL8'CONWAIT '       Point to silly CONWAIT  XAXA     04949980
+         SVC   202                     Call CONWAIT please     XAXA     04954970
+         DC    AL4(1)                  Ignore impossible error XAXA     04959960
+         LM    R0,R15,CALLSAVE         Restore all registers   XAXA     04964950

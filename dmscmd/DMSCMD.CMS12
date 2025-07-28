@@ -1,0 +1,24 @@
+./ I 00220000          $ 223000 3000                  05/11/95 09:24:53         
+CMDEDIT  RMODE 24                                              CMS12    00223000
+CMDEDIT  AMODE 24                                              CMS12    00226000
+./ R 00350000 00360000 $ 355990 5990                  05/11/95 09:24:53         
+         CMSSTOR OBTAIN,DWORDS=CMDSIZED,                               *00355990
+               SUBPOOL='NUCLEUS',                                      *00361980
+               ERROR=NOSTORE,                                          *00367970
+               TYPCALL=BRANCH,                                         *00373960
+               LOC=BELOW                                       CMS12    00379950
+./ R 02150000 02160000 $ 2151990 1990                 05/11/95 09:24:53         
+         USING USERSAVE,R15            Address USERSAVE        CMS12    02151990
+         SPACE ,                                               CMS12    02153980
+         CLI   USECTYP,X'FF'           Service call??          CMS12    02155970
+         BE    SERVICE                 Yes, go handle it       CMS12    02157960
+         SPACE ,                                               CMS12    02159950
+         DROP  R15                     Done with USERSAVE now  CMS12    02161940
+         SPACE ,                                               CMS12    02163930
+./ I 02300000          $ 2304000 4000                 05/11/95 09:24:53         
+         CLC   20(6,R15),=CL6'DMSINT'  WAS DMSINT OUR CALLER?? CMS12    02304000
+         BE    EDITIT                  YES, GO COMMAND EDIT    CMS12    02308000
+./ R 10220000          $ 10224990 4990                05/11/95 09:24:53         
+*        THE TYPLIN PLIST AT TYPLIN HAS BEEN FILLED IN ALREADY.CMS12    10224990
+./ I 12600000          $ 12605000 5000                05/11/95 09:24:53         
+         USERSAVE ,                                            CMS12    12605000

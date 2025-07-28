@@ -1,0 +1,14 @@
+ &1 &2 DMSCMD   AMODE31  A2                                                     
+ &1 &2 DMSCMD   ASSEMBLE A2                                                     
+ &1 &2 DMSCMD   AUXVM    A2                                                     
+ &1 &2 DMSCMD   CMS12    A2                                                     
+ &1 &2 DMSCMD   FIXNULL  A2                                                     
+ &1 &2 DMSCMD   HISTORY  A2                                                     
+ &1 &2 DMSCMD   MODULE   A2                                                     
+ &1 &2 DMSCMD   MORE31   A2                                                     
+ &1 &2 DMSCMD   SP5      A2                                                     
+ &1 &2 DMSCMD   XA       A2                                                     
+ &1 &2 DMSCMD   XAXA     A2                                                     
+ &1 &2 DMSCMD   HELPCMS  A2                                                     
+ &1 &2 HISTORY  EXEC     A2                                                     
+ &1 &2 HISTORY  FILES    A2                                                     
