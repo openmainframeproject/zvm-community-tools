@@ -41,10 +41,11 @@ class Vif_img_set:                         # handle VM and image operations
     # Handle different sub-commands
     if self.sub_cmd == 'delete':
       self.handle_delete()
-    elif self.sub_cmd == 'network':
-      self.handle_network()
-    else:  # 'set' command
-      self.handle_set()
+    # both network and set are moved to vm grammar
+    # elif self.sub_cmd == 'network':
+    #   self.handle_network()
+    # else:  # 'set' command
+    #   self.handle_set()
 
   def handle_delete(self):
     html = "<table><tr><td><pre>"           # start table, row, cell and preformatted text
@@ -55,62 +56,62 @@ class Vif_img_set:                         # handle VM and image operations
     html += "</pre></td></tr></table></body></html>"
     print(html)
 
-  def handle_network(self):
-    html = "<table><tr><td><pre>"           # start table, row, cell and preformatted text
-    html += "TODO: gather args to call 'vif vm network' - VM name, device, VSWITCH name?\n"
-    html += "</pre></td></tr></table></body></html>"
-    print(html)
+  # def handle_network(self):
+  #   html = "<table><tr><td><pre>"           # start table, row, cell and preformatted text
+  #   html += "TODO: gather args to call 'vif vm network' - VM name, device, VSWITCH name?\n"
+  #   html += "</pre></td></tr></table></body></html>"
+  #   print(html)
 
-  def handle_set(self):
-    html = "<table id='zlma-table'><tr>\n" # start table then add headers
-    html += "<th>Host name</th><th>LPAR</th><th>User ID</th><th>IP address</th><th>CPUs</th>\n"
-    html += "<th>Set</th><th>GB memory</th><th>Set</th>"
-    cmd = "/usr/local/sbin/zlma webdata"   # get all s390x servers
-    try:
-      proc = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    except Exception as e:
-      print(f"search_cmdb(): Exception calling zlma: {e}")
-      exit(3)
-    row_list = proc.stdout.splitlines()
-    for next_row in row_list:
-      list_row = next_row.split(",")
-      html += "<tr>\n"                     # start row
-      cell_num = 0                         # keep track of cell nums
-      for cell in list_row:
-        cell_num += 1
-        match cell_num:
-          case 1:                          # host name 
-            host_name = cell
-            html += f"<td>{cell}</td>\n"
-          case 2:                          # LPAR
-            lpar = cell
-            html += f"<td>{cell}</td>\n"
-          case 3:                          # user ID
-            user_id = cell
-            html += f"<td>{cell}</td>\n"
-          case 5:                          # CPUs - add button to modify them
-            html += f"<td>&nbsp;{cell}</td>\n"
-            html += "<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
-            html += f"<input type='hidden' name='cmd' value='{self.cmd}'>\n"
-            html += f"<input type='hidden' name='sub_cmd' value='set'>\n"
-            html += f"<input type='hidden' name='arg1' value='{user_id}'>\n"
-            html += f"<input type='hidden' name='arg2' value='cpus'>\n"
-            html += f"<input type='hidden' name='arg3' value='{cell}'>\n"
-            html += "<button class='button green-button'>CPUs</button></form></td>\n"
-          case 6:                          # memory - add button to modify it
-            html += f"<td>&nbsp;{cell} GB</td>\n"
-            html += "<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
-            html += f"<input type='hidden' name='cmd' value='{self.cmd}'>\n"
-            html += f"<input type='hidden' name='sub_cmd' value='set'>\n"
-            html += f"<input type='hidden' name='arg1' value='{user_id}'>\n"
-            html += f"<input type='hidden' name='arg2' value='memory'>\n"
-            html += f"<input type='hidden' name='arg3' value='{cell}'>\n"
-            html += "<button class='button green-button'>memory</button></form></td>\n"
-          case _:                         
-            html += f"<td>{cell}</td>\n"
-      html += "</tr>\n"                    # end row
-    html += "</table></body></html>"
-    print(html)
+  # def handle_set(self):
+  #   html = "<table id='zlma-table'><tr>\n" # start table then add headers
+  #   html += "<th>Host name</th><th>LPAR</th><th>User ID</th><th>IP address</th><th>CPUs</th>\n"
+  #   html += "<th>Set</th><th>GB memory</th><th>Set</th>"
+  #   cmd = "/usr/local/sbin/zlma webdata"   # get all s390x servers
+  #   try:
+  #     proc = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+  #   except Exception as e:
+  #     print(f"search_cmdb(): Exception calling zlma: {e}")
+  #     exit(3)
+  #   row_list = proc.stdout.splitlines()
+  #   for next_row in row_list:
+  #     list_row = next_row.split(",")
+  #     html += "<tr>\n"                     # start row
+  #     cell_num = 0                         # keep track of cell nums
+  #     for cell in list_row:
+  #       cell_num += 1
+  #       match cell_num:
+  #         case 1:                          # host name 
+  #           host_name = cell
+  #           html += f"<td>{cell}</td>\n"
+  #         case 2:                          # LPAR
+  #           lpar = cell
+  #           html += f"<td>{cell}</td>\n"
+  #         case 3:                          # user ID
+  #           user_id = cell
+  #           html += f"<td>{cell}</td>\n"
+  #         case 5:                          # CPUs - add button to modify them
+  #           html += f"<td>&nbsp;{cell}</td>\n"
+  #           html += "<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
+  #           html += f"<input type='hidden' name='cmd' value='{self.cmd}'>\n"
+  #           html += f"<input type='hidden' name='sub_cmd' value='set'>\n"
+  #           html += f"<input type='hidden' name='arg1' value='{user_id}'>\n"
+  #           html += f"<input type='hidden' name='arg2' value='cpus'>\n"
+  #           html += f"<input type='hidden' name='arg3' value='{cell}'>\n"
+  #           html += "<button class='button green-button'>CPUs</button></form></td>\n"
+  #         case 6:                          # memory - add button to modify it
+  #           html += f"<td>&nbsp;{cell} GB</td>\n"
+  #           html += "<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
+  #           html += f"<input type='hidden' name='cmd' value='{self.cmd}'>\n"
+  #           html += f"<input type='hidden' name='sub_cmd' value='set'>\n"
+  #           html += f"<input type='hidden' name='arg1' value='{user_id}'>\n"
+  #           html += f"<input type='hidden' name='arg2' value='memory'>\n"
+  #           html += f"<input type='hidden' name='arg3' value='{cell}'>\n"
+  #           html += "<button class='button green-button'>memory</button></form></td>\n"
+  #         case _:                         
+  #           html += f"<td>{cell}</td>\n"
+  #     html += "</tr>\n"                    # end row
+  #   html += "</table></body></html>"
+  #   print(html)
 
 # main()
 vif_img_set = Vif_img_set()                # create a singleton
