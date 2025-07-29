@@ -46,9 +46,9 @@ class Vif:
           elif vif_cmd == "vm" and cell == "create":
             script = "vifvmcreate.py"      
           elif vif_cmd == "vm" and (cell == "delete" or cell == "set" or cell == "network"):
-            script = f"vifimgset.py?sub_cmd={cell}"      
+            script = f"vifvmset.py?sub_cmd={cell}"      
           elif vif_cmd == "vm" and (cell == "start" or cell == "stop" or cell == "stopall"):
-            script = f"vifimgpower.py?sub_cmd={cell}"      
+            script = f"vifvmpower.py?sub_cmd={cell}"      
           elif vif_cmd == "image" and cell == "create":
             script = "vifimgcreate.py"      
           elif vif_cmd == "image" and cell == "delete":
