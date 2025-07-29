@@ -15,7 +15,7 @@ from zlma_conf import Zlma_conf
 import requests
 import json
 
-feilong_url = "http://feilong-mike-wg:8080"
+
 
 class CommandType(Enum):
     # Enumeration of main command types
@@ -353,6 +353,9 @@ class Vif:
     self.log = logging.getLogger(__name__)
     self.lpar = None                       # LPAR we are running on
     self.user_id = None                    # User ID we are running in
+    
+    # set feilong_url from config file
+    self.feilong_url = self.conf.feilong_url
 
     # set log level on the console and to log files
     self.log.debug(f"__init__() user:{self.conf.user} setting log level to {self.conf.log_level}")
@@ -760,7 +763,7 @@ class Vif:
       # Create the VM
       print("Step 1: Creating VM definition...")
       response = requests.post(
-        f"{feilong_url}/guests",
+        f"{self.feilong_url}/guests",
         json=vm_config,
         headers={'Content-Type': 'application/json'},
         timeout=300
@@ -784,7 +787,7 @@ class Vif:
       }
       
       deploy_response = requests.post(
-        f"{feilong_url}/guests/{vm_name.upper()}/action",
+        f"{self.feilong_url}/guests/{vm_name.upper()}/action",
         json={
           "action": "deploy", 
           **deploy_config
@@ -808,7 +811,7 @@ class Vif:
       # Step 3: Start the VM
       print("Step 3: Starting VM...")
       start_response = requests.post(
-        f"{feilong_url}/guests/{vm_name.upper()}/action",
+        f"{self.feilong_url}/guests/{vm_name.upper()}/action",
         json={"action": "start"},
         headers={'Content-Type': 'application/json'},
         timeout=60
@@ -877,7 +880,7 @@ class Vif:
     
     try:
       # Call Feilong API to get guests list
-      response = requests.get(f"{feilong_url}/guests", timeout=10)
+      response = requests.get(f"{self.feilong_url}/guests", timeout=10)
       
       if response.status_code == 200:
         data = response.json()
@@ -896,13 +899,13 @@ class Vif:
         
     except requests.exceptions.ConnectTimeout:
       print("Error: Connection to Feilong API timed out")
-      print(f"URL: {feilong_url}/guests")
+      print(f"URL: {self.feilong_url}/guests")
     except requests.exceptions.ConnectionError:
       print("Error: Unable to connect to Feilong API")
-      print(f"URL: {feilong_url}/guests")
+      print(f"URL: {self.feilong_url}/guests")
     except Exception as e:
       print(f"Error calling Feilong API: {e}")
-      print(f"URL: {feilong_url}/guests")
+      print(f"URL: {self.feilong_url}/guests")
 
   def handle_query_vm(self, vm_name: str):
     # Display configuration of a specific VM
@@ -1127,21 +1130,149 @@ class Vif:
     #  print("You don't have the privilege to query paging")
 
   def handle_query_disks(self):
+    # Display VM DASD utilization using Feilong API
     self.log.debug(f"handle_query_disks() user: {self.conf.user} display VM DASD utilization")
-    print("VM DASD Utilization:")
-    print("TODO: Implement VM disk utilization query")
-    #self.run_vm_cmd("QUERY DASD")
-    #self.run_vm_cmd("QUERY DASD FREE")
-
-  def handle_query_shared(self):
-    self.log.debug(f"handle_query_shared(): user: {self.conf.user} display VMs that share disks")
-    print("VMs sharing disks:")
-    print("TODO: Implement shared disk query")
-
-  def handle_query_volumes(self):
-    self.log.debug(f"handle_query_volumes(): user: {self.conf.user} run 'query volumes'")
-    self.run_vm_cmd("QUERY ALLOC MAP")
-
+    
+    try:
+        # Define the pools to query
+        pool_types = ["ECKD:VMPOOL", "FBA:VMPOOL"]
+        
+        print("=== Disk Pool Information ===")
+        
+        for pool_name in pool_types:
+            print(f"<h2>Pool: {pool_name}</h2>")
+            
+            # First get summary information (without details)
+            print(f"<h3>Summary Information</h3>")
+            try:
+                summary_response = requests.get(
+                    f"{self.feilong_url}/host/diskpool",
+                    params={'poolname': pool_name},
+                    timeout=10
+                )
+                
+                if summary_response.status_code == 200:
+                    summary_data = summary_response.json()
+                    if summary_data.get('rc') == 0:
+                        output = summary_data.get('output', {})
+                        
+                        # Create summary table
+                        print("<table border='1' style='border-collapse: collapse; margin: 10px 0;'>")
+                        print("<thead>")
+                        print("<tr style='background-color: #f0f0f0;'>")
+                        print("<th style='padding: 8px; text-align: left;'>Metric</th>")
+                        print("<th style='padding: 8px; text-align: right;'>Size (GB)</th>")
+                        print("</tr>")
+                        print("</thead>")
+                        print("<tbody>")
+                        print(f"<tr><td style='padding: 8px;'>Total Pool Size</td><td style='padding: 8px; text-align: right;'>{output.get('disk_total', 'N/A')}</td></tr>")
+                        print(f"<tr><td style='padding: 8px;'>Used Space</td><td style='padding: 8px; text-align: right;'>{output.get('disk_used', 'N/A')}</td></tr>")
+                        print(f"<tr><td style='padding: 8px;'>Available Space</td><td style='padding: 8px; text-align: right;'>{output.get('disk_available', 'N/A')}</td></tr>")
+                        
+                        # Calculate and display usage percentage
+                        if output.get('disk_total') and output.get('disk_used'):
+                            usage_pct = round((output['disk_used'] / output['disk_total']) * 100, 1)
+                            print(f"<tr><td style='padding: 8px;'><strong>Usage Percentage</strong></td><td style='padding: 8px; text-align: right;'><strong>{usage_pct}%</strong></td></tr>")
+                        
+                        print("</tbody>")
+                        print("</table>")
+                    else:
+                        print(f"<p>Error in summary response for {pool_name}: {summary_data.get('errmsg', 'Unknown error')}</p>")
+                else:
+                    print(f"<p>Failed to get summary for {pool_name}. HTTP Status: {summary_response.status_code}</p>")
+            
+            except requests.exceptions.Timeout:
+                print(f"<p>Timeout getting summary for {pool_name}</p>")
+            except requests.exceptions.ConnectionError:
+                print(f"<p>Connection error getting summary for {pool_name}</p>")
+            except Exception as e:
+                print(f"<p>Error getting summary for {pool_name}: {str(e)}</p>")
+            
+            # Now get detailed information (with details=true)
+            print(f"<h3>Detailed Volume Information</h3>")
+            try:
+                detail_response = requests.get(
+                    f"{self.feilong_url}/host/diskpool",
+                    params={'poolname': pool_name, 'details': 'true'},
+                    timeout=10
+                )
+                
+                if detail_response.status_code == 200:
+                    detail_data = detail_response.json()
+                    if detail_data.get('rc') == 0:
+                        output = detail_data.get('output', {})
+                        
+                        # Check if we have volume details
+                        if isinstance(output, dict) and len(output) > 0:
+                            # Display detailed volume information
+                            for dasd_group, volumes in output.items():
+                                if isinstance(volumes, list) and len(volumes) > 0:
+                                    print(f"<h4>DASD Group: {dasd_group}</h4>")
+                                    print("<table border='1' style='border-collapse: collapse; margin: 10px 0; width: 100%;'>")
+                                    print("<thead>")
+                                    print("<tr style='background-color: #e6f3ff;'>")
+                                    print("<th style='padding: 8px; text-align: left;'>Volume Name</th>")
+                                    print("<th style='padding: 8px; text-align: left;'>Device Type</th>")
+                                    print("<th style='padding: 8px; text-align: right;'>Start Cylinder</th>")
+                                    print("<th style='padding: 8px; text-align: right;'>Free Size (GB)</th>")
+                                    print("<th style='padding: 8px; text-align: left;'>Region Name</th>")
+                                    print("</tr>")
+                                    print("</thead>")
+                                    print("<tbody>")
+                                    
+                                    total_free = 0
+                                    for volume in volumes:
+                                        volume_name = volume.get('volume_name', 'N/A')
+                                        device_type = volume.get('device_type', 'N/A')
+                                        start_cylinder = volume.get('start_cylinder', 'N/A')
+                                        free_size = volume.get('free_size', 0)
+                                        region_name = volume.get('region_name', 'N/A')
+                                        
+                                        total_free += free_size if isinstance(free_size, (int, float)) else 0
+                                        
+                                        print("<tr>")
+                                        print(f"<td style='padding: 8px;'>{volume_name}</td>")
+                                        print(f"<td style='padding: 8px;'>{device_type}</td>")
+                                        print(f"<td style='padding: 8px; text-align: right;'>{start_cylinder}</td>")
+                                        print(f"<td style='padding: 8px; text-align: right;'>{free_size}</td>")
+                                        print(f"<td style='padding: 8px;'>{region_name}</td>")
+                                        print("</tr>")
+                                    
+                                    # Add summary row for this DASD group
+                                    print("<tr style='background-color: #f9f9f9; font-weight: bold;'>")
+                                    print(f"<td colspan='3' style='padding: 8px;'>Total Free for {dasd_group}</td>")
+                                    print(f"<td style='padding: 8px; text-align: right;'>{total_free} GB</td>")
+                                    print("<td style='padding: 8px;'>-</td>")
+                                    print("</tr>")
+                                    
+                                    print("</tbody>")
+                                    print("</table>")
+                                else:
+                                    print(f"<p>No volume details available for DASD group: {dasd_group}</p>")
+                        else:
+                            print(f"<p>No detailed volume information available for {pool_name}</p>")
+                    else:
+                        print(f"<p>Error querying details for {pool_name}: {detail_data.get('errmsg', 'Unknown error')}</p>")
+                else:
+                    print(f"<p>Failed to get details for {pool_name}. HTTP Status: {detail_response.status_code}</p>")
+                    
+            except requests.exceptions.Timeout:
+                print(f"<p>Timeout querying details for {pool_name}</p>")
+            except requests.exceptions.ConnectionError:
+                print(f"<p>Connection error querying details for {pool_name}</p>")
+            except Exception as e:
+                print(f"<p>Error querying details for {pool_name}: {str(e)}</p>")
+            
+            # Add separator between pools
+            print("<hr style='margin: 20px 0;'>")
+        
+        # Add a note about the data
+        print("<p><em>Note: Disk information retrieved from Feilong API. Free space values are in Gigabytes (GB).</em></p>")
+        
+    except Exception as e:
+        print(f"<p>Unexpected error in handle_query_disks: {str(e)}</p>")
+        self.log.error(f"handle_query_disks(): Unexpected error: {e}")
+        
   def parse_command(self):                 # Parse a command using new parser
     if self.args.verbose:                  # set log level to DEBUG for log file and stdout
       self.log.setLevel(logging.DEBUG)

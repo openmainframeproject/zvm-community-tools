@@ -364,6 +364,8 @@ The ``zlma.conf`` configuration file was copied to ``/etc``.  Set the following 
   - Log file verbosity: error (lowest verbosity), warning, info, debug (highest verbosity)
 - zlma_srvrs
   - List of LPAR/zlma server pairs - one zlma server per LPAR is required
+- feilong_url
+  - url of the feilong api
 
 ```
 # vi /etc/zlma.conf
@@ -376,7 +378,8 @@ The ``zlma.conf`` configuration file was copied to ``/etc``.  Set the following 
   "log_level": "debug",
   "zlma_srvrs": [
     {"lpar": "LPAR1", "zlma_srvr": "zlnx1.domainname.com"},
-    {"lpar": "LPAR2", "zlma_srvr": "zlnx2.domainname.com"}
+    {"lpar": "LPAR2", "zlma_srvr": "zlnx2.domainname.com"},
+    feilong_url": "http://localhost:8080"
   ]
 }
 ```
@@ -568,60 +571,70 @@ The Virtual Image Facility (VIF) is a product that IBM offered in 2000, but then
 
 ```
          help: give help
-   hypervisor: manage z/VM
-        image: manage instances of Linux
-    partition: manage disk partitions
+          hyp: manage z/VM hypervisor 
+        image: manage golden images
+           vm: manage instances of Linux 
+         disk: manage disk partitions
         query: display many types of z/VM information
 ```
 
-## vif hypervisor commands
+## vif hyp commands
 
-The ``vif hypervisor`` command allows management and maintaintence of z/VM. It has the following subcommands:
+The ``vif hyp`` command allows management and maintenance of z/VM. It has the following subcommands:
 
 ```
-      collect: gather problem determination info - could this also send hardware errors?
-         echo: verify connectivity with vif - not needed with localhost, but perhaps cross LPAR
-       errors: report on hardware errors - could this also send problem determination info?
-       export: create a backup of configuration info
-       import: restore a backup of configuration info
+      collect: gather problem determination info
+         disk: add paging or Linux disk space
+       errors: report on hardware errors
       restart: SHUTDOWN REIPL z/VM
-      service: install the latest VIF service (git pull?)
+      service: install the latest VIF service
      shutdown: SHUTDOWN z/VM
        verify: performs consistency checks of vif
-       volume: add paging or image disk space 
+```
+
+## vif vm commands
+The ``vif vm`` commands allow instances of Linux to be managed and modified. It has the following subcommands:
+
+```
+       create: define a new Linux VM
+               Syntax: vif vm create <vm_name> --memory --cpu --image
+       delete: delete an existing Linux VM
+               Syntax: vif vm delete <vm_name>
+         list: list all VMs and their status
+      network: manage network connections for a Linux VM
+               Syntax: vif vm network <vm_name> add|delete <device>
+          set: change memory size or number of CPUs of a Linux VM
+               Syntax: vif vm set <vm_name> (storage <size>)|cpus <num>
+        start: boot a Linux VM
+               Syntax: vif vm start <vm_name>
+         stop: shutdown a Linux VM
+               Syntax: vif vm stop <vm_name>
+      stopall: shutdown all Linux VMs on LPAR
+               Syntax: vif vm stopall
 ```
 
 ## vif image commands
-The ``vif image`` commands allow instances of Linux to be managed and modified.  It has the following subcommands:
+The ``vif image`` commands allow golden images to be managed. It has the following subcommands:
 
 ```
-       create: define a new Linux image
-               Syntax: vif image create <image>
-       delete: delete an existing Linux image
-               Syntax: vif image delete <image>
-      network: manage network connections for a Linux image
-               Syntax: vif image network <image> add|delete <device>
-          set: change memory size or number of CPUs of a Linux image
-               Syntax: vif image set <image> (storage <size>)|cpus <num>)
-        start: boot a Linux image
-               Syntax: vif image start <image>
-         stop: shutdown a Linux image
-               Syntax: vif image stop <image>
-      stopall: shutdown all Linux images on LPAR
-               Syntax: vif image stopall
+       create: create a new Linux golden image
+               Syntax: vif image create <image_name>
+       delete: delete an existing Linux golden image
+               Syntax: vif image delete <image_name>
 ```
 
-## vif partition: manage disk partitions
-  Subcommands:
+## vif disk commands
+The ``vif disk`` commands manage disk partitions. It has the following subcommands:
+
 ```
          copy: copy source partition to newly added target partition
-               Syntax: vif partition copy <image1> <device1> [to] <image2> <device2>
+               Syntax: vif disk copy <vm1> <device1> [to] <vm2> <device2>
        create: add a new partition
-               Syntax: vif partition create <image> <device> <size>
+               Syntax: vif disk create <vm> <device> <size>
        delete: delete an existing partition
-               Syntax: vif partition delete <image1> <device1>
-        share: give read-only access to the partition of another Linux image
-               Syntax: vif partition share <image1> <device1> [with] <image2> <device2>
+               Syntax: vif disk delete <vm> <device>
+        share: give read-only access to the partition of another Linux VM
+               Syntax: vif disk share <vm1> <device1> [with] <vm2> <device2>
 ```
 
 ## vif query    
@@ -629,18 +642,14 @@ The ``vif query`` command displays many types of z/VM information. It has the fo
 
 ```
        active: report which Linux images are running
-          all: invoke all other query subcommands
 configuration: display current vif settings
-       errors: report on hardware errors
-        image: display configuration of a Linux image
-               Syntax: vif query <image>
-        level: report the vif level (version)
+        disks: display Linux and z/VM disk utilization
+        version: show code versions
       network: display network configuration
-       paging: report on amount of page space and how much is being used
-   partitions: display Linux image DASD utilization
   performance: display current CPU, paging and I/O utilization
-       shared: display Linux images that share partitions
-      volumes: display image and paging DASD volumes
+           vm: display configuration of a VM
+               Syntax: vif query vm <image>
+
 ```
 # consolez 
 consolez is an open-source package that allows browser access to z/VM console data and to issue CP commands. It helps alleviate the need for *green screen* access to z/VM.

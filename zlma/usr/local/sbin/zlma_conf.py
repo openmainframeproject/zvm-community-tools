@@ -12,6 +12,7 @@ class Zlma_conf:
     self.db_name = "zlma"                   # default database name
     self.home_dir = "/home/someuser"        # default home directory
     self.log_level = "INFO"                 # default log level
+    self.feilong_url = "http://localhost:8080"  # default Feilong URL
     try:
       self.user = os.getenv('USER')         # user running command
     except KeyError:
@@ -35,4 +36,5 @@ class Zlma_conf:
     self.db_name = confJSON['db_name']
     self.home_dir = confJSON['home_dir']
     self.log_level = confJSON['log_level'].upper()
+    self.feilong_url = confJSON.get('feilong_url', self.feilong_url)
 
