@@ -56,19 +56,19 @@ class Vif_img_create:
 vif_img_create = Vif_img_create()          # create a singleton
 vif_img_create.create_page()               # create a web page
 
-from flask import Flask, request, render_template_string
+# from flask import Flask, request, render_template_string
 
-app = Flask(__name__)
-vif_vm_create = VifVmCreate()
+# app = Flask(__name__)
+# vif_vm_create = VifVmCreate()
 
-@app.route('/', methods=['GET', 'POST'])
-def main():
-    if request.method == 'POST':
-        action = request.form.get('action', '')
-        if action == 'create':
-            return vif_vm_create.process_creation(request.form)
-    return vif_vm_create.create_form_page()
+# @app.route('/', methods=['GET', 'POST'])
+# def main():
+#     if request.method == 'POST':
+#         action = request.form.get('action', '')
+#         if action == 'create':
+#             return vif_vm_create.process_creation(request.form)
+#     return vif_vm_create.create_form_page()
 
-if __name__ == "__main__":
-    app.run(port=8000)
+# if __name__ == "__main__":
+#     app.run(port=8000)
 
