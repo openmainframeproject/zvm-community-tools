@@ -1,14 +1,14 @@
 /* HISTORY:
- 
+
    Extract saved commands from the WAITRD CMS nucleus extension created
    by DMSCMD (if any) and either display them in a full-screen XEDIT
    screen for possible editing and stacking for re-execution, or just
    type or stack them. See label Help or issue "HISTORY ?" for details.
- 
+
 */
    g. = ''                             /* Clear all global variables */
    g._Version = '1.0'
- 
+
    parse source . . execname exectype execmode . env .
    if env = 'XEDIT' then signal XEDIT
    address command
@@ -43,13 +43,13 @@
       else say right(i, 3) g._c.i
    end
    exit 0
- 
+
 FullScreen:
    'EXECSTAT $HISTORY XEDIT'
    if rc <> 0 then
    'EXECLOAD' execname exectype execmode '$HISTORY XEDIT'
    if rc <> 0 & rc <> 1 then exit rc
- 
+
    newxedit = 0
    'SUBCOM XEDIT'
    if rc = 0 then do
@@ -63,7 +63,7 @@ FullScreen:
    r = rc
    'EXECDROP $HISTORY XEDIT'
    exit r
- 
+
 XEDIT:
 /* Display a menu screen and set variables */
    'COMMAND SET STAY ON'
@@ -73,15 +73,15 @@ XEDIT:
    'COMMAND SET TOFEOF OFF'
    'COMMAND SET PREFIX OFF'
    'COMMAND SET SCALE OFF'
- 
+
 /* If you change PF/PA key definitions, change g._pfline too */
-   g._pfline = 'PF1=Help PF2=Top PF3=Quit PF4=Crsr PF5=Last' ,
+   g._pfline = 'PF1=Help PF2=New PF3=Quit PF4=Crsr PF5=Old' ,
      ' PF7=Fwd PF8=Back PA1=CP  PA2=CMS'
    'COMMAND SET PA1 ONLY COMMAND CP'
    'COMMAND SET PA2 ONLY COMMAND CMS'
    'COMMAND SET PA3'
    'COMMAND SET MSGMODE OFF'
-   'COMMAND SET PF01 ONLY COMMAND HELP CMS DMSCMD(ALL'
+   'COMMAND SET PF01 ONLY COMMAND HELP CMS HISTORY(ALL'
    'COMMAND SET PF02 ONLY TOP'                  /* Go to top of list */
    'COMMAND SET PF03 ONLY COMMAND QUIT 0'
    'COMMAND SET PF04 ONLY CURSOR'
@@ -93,7 +93,7 @@ XEDIT:
    'COMMAND SET PF10'
    'COMMAND SET PF11'
    'COMMAND SET PF12'
-   'COMMAND SET PF13 ONLY COMMAND HELP CMS DMSCMD(ALL'
+   'COMMAND SET PF13 ONLY COMMAND HELP CMS HISTORY(ALL'
    'COMMAND SET PF14 ONLY TOGGLEPW'    /* Toggle password visibility */
    'COMMAND SET PF15 ONLY COMMAND QUIT 0'
    'COMMAND SET PF16 COPYKEY'
@@ -113,7 +113,7 @@ XEDIT:
    'COMMAND LOCATE :1'                            /* Goto first line */
    'COMMAND SET MSGMODE ON'
    'COMMAND EXTRACT /LSCREEN/SIZE/'       /* Get logical screen info */
- 
+
 /* Set up our highlight characters */
    'COMMAND SET CTLCHAR % ESCAPE'
    'COMMAND SET CTLCHAR p PROTECT NOHIGH'      /* Default info field */
@@ -122,21 +122,23 @@ XEDIT:
    'COMMAND SET CTLCHAR N NOPROTECT HIGH'    /* Changed input fields */
    'COMMAND SET CTLCHAR & NOPROTECT INVISIBLE'   /* pswd input field */
    passwords = 'OFF'
- 
+
    rline. = '%p'
- 
+
    call GetHistory                        /* Get any history buffers */
    rlines = min(lscreen.1-1, g._c.0)
    if g._c.0 > rlines then g._c.max = g._c.0
    else g._c.max = rlines
- 
-   rline.1 = left('%PCMS Command History',67) 'Version' g._Version
+
    cursorline = g._c.max                             /* Start at top */
    i = 1                              /* Reset counter for next part */
    g._Cursortop = '2 7'
    g._Cursor = g._Cursortop
    'COMMAND MSG   *** Type over any command and hit ENTER to execute it'
    do until enter <> 0
+      rline.1 = '%pCMS Command History  Version' g._Version ,
+      right('%PSaved commands' cursorline ,
+        'to' max(cursorline-lscreen.1+3, 1) 'of' g._c.max, 45)
       do i = 2 to lscreen.1-1 /* Define lines that hold the commands */
          ii = cursorline+-i+2
          if ii < 1 | g._c.ii = '' then
@@ -152,7 +154,7 @@ XEDIT:
       'COMMAND READ NOCHANGE TAG'             /* Get user's response */
       if rc <> 0 then leave
       pfkcmd = ''
- 
+
       'COMMAND extract /cursor'; g._Cursor = cursor.1 '7'
       do while queued() > 0            /* Read them out of the stack */
          parse pull tag tagline        /* Get a line from the screen */
@@ -201,7 +203,7 @@ XEDIT:
             end
             when word(tagline, 2) = 'CURSOR' then do
                if cursor.1 > 1 & cursor.1 <= rlines then
-               cursorline = cursor.1+cursorline-2
+               cursorline = cursorline-cursor.1+2
                g._Cursor = g._Cursortop
             end
             when tag = 'PAK' | tag = 'PFK' then do
@@ -217,30 +219,30 @@ XEDIT:
       trace n                       /* Back to normal tracing please */
       if rc = 1 | rc = 6 then signal Quit
    end
- 
+
 /* All done, stack any charge command(s) and cursor line */
    do v = 1 to g._c.0
       if g._cmd.v <> '' then queue g._cmd.v
    end
    rc = 0
- 
+
 Quit:
    'COMMAND QUIT' rc
    exit rc
- 
+
 /*
    GetHistory -- Extract any command history buffers saved by DMSCMD
                (CMS command editing via a WAITRD nucleus extension).
    Buffers are returned in stem G._C.n; G._C.0 is of course the count.
- 
+
 */
 GetHistory: Procedure expose g.
    arg string
    g._c.0 = 0                                     /* No commands yet */
- 
+
 /*
 Version 1 HISTORY buffer layout (defined in DMSCMD):
- 
+
    HISTORYV Version
    HISTORYC Buffer cursor
    HISTORY1 First buffer address
@@ -248,11 +250,11 @@ Version 1 HISTORY buffer layout (defined in DMSCMD):
    HISTORYN # of buffers (same as CHISTORY)
    HISTORYL Length of a buffer (L'ONECMD)
    HISTORYX History buffers start here
- 
+
    A history buffer comprises a halfword length + the actual data. The
    buffer itself is always full length, but the halfword means that we
    don't stack lines padded with spaces that weren't there before.
- 
+
 */
    hvo = 0                                      /* Offset to version */
    hco = 4                                /* Offset to buffer cursor */
@@ -261,33 +263,35 @@ Version 1 HISTORY buffer layout (defined in DMSCMD):
    hno = 16                                /* Offset to # of buffers */
    hlo = 20                          /* Offset to length of a buffer */
    hxo = 24                        /* Offset to first history buffer */
- 
+
    numeric digits 20                     /* Don't blow up on X2D/D2X */
    address command 'MAKEBUF'
+   q = queued()
    address command 'NUCXMAP WAITRD (STACK FIFO'
    if rc <> 0 then signal NoNucext
+   if queued() = q then signal NoNucext
    pull name entry userword origin bytes attributes
    if userword == '00000000' then signal NotAHistoryVersion
    address command 'DROPBUF'
    userword = x2d(userword)         /* We work with these in decimal */
- 
+
 /* Get the values out of the HISTORY block */
    hv = GetStorage(userword+hvo, 4, 'D')       /* Get version number */
    if hv <> 1 then signal UnknownVersion          /* Not one we know */
    hc = GetStorage(userword+hco, 4, 'D')         /* Get buffer count */
    if hc = 0 then signal NoHistory             /* No history buffers */
- 
+
    h1 = GetStorage(userword+h1o, 4, 'D') /* Offset to a(first entry) */
    hz = GetStorage(userword+hzo, 4, 'D')  /* Offset to a(last entry) */
    hn = GetStorage(userword+hno, 4, 'D')   /* Offset to buffer count */
    hl = GetStorage(userword+hlo, 4, 'D')  /* Offset to buffer length */
    hx = GetStorage(userword+hxo, 4, 'D')
- 
+
    rc = GetStorage(h1, 4, 'D')              /* Is first entry null?? */
    if rc = 0 then signal NoHistory      /* Yes, no history after all */
    rc = GetStorage(hc, 4, 'D')             /* Is cursor entry null?? */
    if rc = 0 then hc = h1      /* Yes, have never filled all buffers */
- 
+
    do i = 1 to hn       /* Now run through the buffers and save them */
       c = GetStorage(hc, hl, 'C')                    /* Get an entry */
       l = c2d(right(c, 1, 2))                  /* Get command length */
@@ -304,7 +308,7 @@ Version 1 HISTORY buffer layout (defined in DMSCMD):
    end
    g._c.0 = i-1                   /* Set number of commands we found */
    return
- 
+
 /* Get storage: takes decimal address, length, and format code
    Codes are:
     D - decimal
@@ -322,35 +326,35 @@ GetStorage: Procedure
       exit 32
    end
    return v
- 
+
 UnknownVersion:
    say 'HISTORY block version "'hv'" is not supported.'
    call QUIT 16
- 
+
 NoNucext:
    say 'No NUCEXT for WAITRD exists.'
-   call QUIT rc
- 
+   call QUIT 1
+
 NotAHistoryVersion:
    say 'NUCEXT for WAITRD does not support command history.'
    call QUIT 24
- 
+
 NoHistory:
    say 'No command history exists yet.'
    call QUIT 8
- 
+
 BadParms:
    say 'Invalid parameter(s) "'parms'"'
    exit 24
- 
+
 BadLimit:
    say 'Invalid limit "'g._limit'" -- must be an integer'
    exit 24
- 
+
 BadOption:
    say 'Invalid option "'option'"'
    exit 24
- 
+
 Help:
    say 'HISTORY displays, stacks, or lets you view, edit, and' ,
      're-execute commands in'
@@ -403,3 +407,4 @@ Help:
    say ''
    say 'Also try HELP CMS DMSCMD for more details about DMSCMD.'
    exit 0
+
