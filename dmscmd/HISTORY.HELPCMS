@@ -1,0 +1,137 @@
+.cs 2 on
+
+¢|HISTORY¢%
+
+             .-Fullscreen-.
+>>-HISTORY---+------------+--+--------.
+             |-Limit------|  |---n----|
+             |-STRing-----|  '-string-'
+             |-Type-------|
+             |-STAck------|
+             '-?----------'
+
+.CS 4 OFF
+.CS 1 ON
+¢|Authorization¢%
+
+General User
+
+.CS 1 OFF
+.CS 1 ON
+¢|Purpose¢%
+
+HISTORY extracts any CMS commands saved by the DMSCMD nucleus extension and
+displays them in a full-screen panel, from which you can optionally modify
+and re-execute one or more of the commands.
+
+Issue HELP CMS DMSCMD for information about DMSCMD.
+
+.CS 1 OFF
+.CS 3 ON
+¢|Operands¢%
+
+Fullscreen
+           (Default): Show the full-screen display of saved commands.
+
+Limit n
+           Only type or stack the most recent n commands (ignored with
+                 FULLSCREEN)
+
+STRing string
+           Only include commands containing "string" (case-insensitive).
+           Ignored if FULLSCREEN. Must be the last parameter, since
+           the string can be any length.
+
+Type
+           Type the last n (or all) saved commands.
+
+STAck
+           Stack the last n (or all) saved commands.
+
+?
+           Display short Help information.
+
+.CS 3 OFF
+.CS 4 ON
+.CS 4 OFF
+.CS 5 ON
+¢|Usage Notes¢%
+
+1. The HISTORY command is provided with DMSCMD and comprises an EXEC that
+   drives an XEDIT dialog. It EXECLOADs (and drops) a copy of itself as
+   $HISTORY XEDIT to drive the XEDIT panel. It can also be used to extract
+   saved commands from DMSCMD and display or stack them.
+
+2. When HISTORY displays the commands, the most recent commands are at the top.
+   If you move the cursor to a command and press ENTER, that command will be
+   stacked for execution and HISTORY will exit.
+
+3. You can modify one or more commands before hitting ENTER and all changed
+   commands will be stacked. If the cursor is also moved to an unmodified
+   command, that command will also be stacked.
+
+4. If a command is modified in error, it can be blanked out (or ERASE EOF hit)
+   and HISTORY will restore the previous value. Pressing ENTER after blanking
+   a command or hitting ERASE EOF will not stack modified commands: a second
+   ENTER will be required. This allows you to continue modifying commands
+   before causing them to be stacked.
+
+5. HISTORY displays a PF and PA key legend at the bottom of the screen.
+
+   The defined keys are:
+
+   Key    Label   Function
+   ----   -----   --------
+   PF 1   Help    Display this Help
+   PF 2   New     Go to "top" (newest commands)
+   PF 3   Quit    Exit without stacking any commands
+   PF 4   Crsr    Make whatever command the cursor is on the current command
+   PF 5   Old     Go to "bottom" (oldest commands)
+   PF 7   Fwd     Scroll forward a screen
+   PF 8   Back    Scroll backward a screen
+   PA 1   CP      Go to CP READ
+   PA 2   CMS     Go to CMS SUBSET
+
+.CS 5 OFF
+.CS 6 ON
+¢|Responses¢%
+
+None.
+
+.CS 6 OFF
+.CS 6 ON
+¢|Messages and Return Codes¢%
+
+*  HISTORY block version "version" is not supported. [RC=16]
+
+   This means that the DMSCMD in use is not a known version.
+
+*  No NUCEXT for WAITRD exists. [RC=1]
+
+   DMSCMD is not loaded.
+
+*  NUCEXT for WAITRD does not support command history. [RC=24]
+
+   An old version of DMSCMD or some other program is loaded as a CMS
+   nucleus extension named WAITRD.
+
+*  No command history exists yet. [RC=8]
+
+   DMSCMD is loaded but has saved no commands yet. Note that since the commands
+   are saved after execution, invoking DMSCMD and immediately running HISTORY
+   will produce this error.
+
+*  Invalid parameter(s) "parms" [RC=24]
+
+   An unrecognized parameter was specified.
+
+*  Invalid limit "limit" -- must be an integer [RC=24]
+
+   A LIMIT value was specified that is not an integer.
+
+*  Invalid option "option" [RC=24]
+
+   An unrecognized option was specified.
+
+.CS 6 OFF
+
