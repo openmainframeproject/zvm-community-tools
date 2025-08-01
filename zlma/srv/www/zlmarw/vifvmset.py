@@ -35,7 +35,8 @@ class Vif_vm_set:
     if self.sub_cmd == 'delete':
       html_code += "TODO: gather args to call 'vif vm delete' - VM name?\n"
     elif self.sub_cmd == 'set':
-      handle_set()
+      self.handle_set()
+      return
       # html_code += "TODO: gather args to call 'vif vm set' - VM name, storage size or CPU count?\n"
     elif self.sub_cmd == 'network':
       html_code += "TODO: gather args to call 'vif vm network' - VM name, device, VSWITCH name?\n"
@@ -46,7 +47,7 @@ class Vif_vm_set:
     html_code += "</body></html>"
     print(html_code)
 
-    def handle_set(self):
+  def handle_set(self):
       html = "<table id='zlma-table'><tr>\n" # start table then add headers
       html += "<th>Host name</th><th>LPAR</th><th>User ID</th><th>IP address</th><th>CPUs</th>\n"
       html += "<th>Set</th><th>GB memory</th><th>Set</th>"
@@ -76,7 +77,7 @@ class Vif_vm_set:
             case 5:                          # CPUs - add button to modify them
               html += f"<td>&nbsp;{cell}</td>\n"
               html += "<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
-              html += f"<input type='hidden' name='cmd' value='{self.cmd}'>\n"
+              html += f"<input type='hidden' name='cmd' value='vm'>\n"
               html += f"<input type='hidden' name='sub_cmd' value='set'>\n"
               html += f"<input type='hidden' name='arg1' value='{user_id}'>\n"
               html += f"<input type='hidden' name='arg2' value='cpus'>\n"
@@ -85,7 +86,7 @@ class Vif_vm_set:
             case 6:                          # memory - add button to modify it
               html += f"<td>&nbsp;{cell} GB</td>\n"
               html += "<td><form action='/zlmarw/vifcmd.py' accept-charset='utf-8'>\n"
-              html += f"<input type='hidden' name='cmd' value='{self.cmd}'>\n"
+              html += f"<input type='hidden' name='cmd' value='vm'>\n"
               html += f"<input type='hidden' name='sub_cmd' value='set'>\n"
               html += f"<input type='hidden' name='arg1' value='{user_id}'>\n"
               html += f"<input type='hidden' name='arg2' value='memory'>\n"
