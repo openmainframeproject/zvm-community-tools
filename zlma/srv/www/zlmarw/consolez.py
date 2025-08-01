@@ -9,6 +9,8 @@ import os
 import sys
 import subprocess
 from pathlib import Path
+sys.path.append('/srv/www/zlma')
+from zlma_buttons import Zlma_buttons
 
 # Add necessary paths
 sys.path.insert(0, '/usr/local/sbin')
@@ -85,7 +87,7 @@ def drawMainTable():
     
     startPage(title)  # start the Web page
     print('<link rel="stylesheet" href="/zlma.css">')
-    drawButtons("using-consoles")
+    zlma_buttons = Zlma_buttons("using-vif")  # add navigation buttons
     
     # Get console data
     try:

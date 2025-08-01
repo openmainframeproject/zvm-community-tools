@@ -2,8 +2,6 @@
 """
 onelpar.py - draw a Web page showing user IDs that have saved console data and
              for admins user IDs that are logged on but don't have any saved data
-
-Python conversion of onelpar bash script
 """
 
 import os
@@ -19,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
     from consfuncs import _get_debug_info, readConfFile
-    from consuifuncs import (startPage, startTable, startRow, drawButtons, 
+    from consuifuncs import (startPage, startTable, startRow, 
                            checkUser, numCols)
 except ImportError as e:
     print(f"Content-type: text/html\n\nERROR: Could not import required modules: {e}")
@@ -267,23 +265,19 @@ def main():
     global userIDs, role, engServer
     
     try:
-        parseQueryString()  # Parse query parameters
-        
-        readConfFile()  # read the /etc/consolez.conf file
+        parseQueryString()    # Parse query parameters
+        readConfFile()        # read the /etc/consolez.conf file
         checkUser()
-        
-        drawMainTable()  # show table with all user IDs that have data
-        
-        if role == "admin":  # admins can add new spool files
-            drawNoDataTable()  # show table with logged on users that don't have data
-        
-        drawButtons("using-consoles")  # add navigation buttons
+        drawMainTable()       # show table with all user IDs that have data
+        if role == "admin":   # admins can add new spool files
+            drawNoDataTable() # show table with logged on users that don't have data
+        zlma_buttons = Zlma_buttons("using-vif")  # add navigation buttons
+        #drawButtons("using-consoles")  # add navigation buttons
         
     except Exception as e:
         print("Content-type: text/html\n\n")
         print(f"<html><body><h1>Error</h1><p>An error occurred: {e}</p></body></html>")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()

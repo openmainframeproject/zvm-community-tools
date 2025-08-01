@@ -10,6 +10,8 @@ import sys
 import subprocess
 import urllib.parse
 from pathlib import Path
+sys.path.append('/srv/www/zlma')
+from zlma_buttons import Zlma_buttons
 
 # Add necessary paths
 sys.path.insert(0, '/usr/local/sbin')
@@ -202,8 +204,7 @@ def doTheWork():
     print('<link rel="icon" type="image/png" href="/zlma.ico">')
     print('<link rel="stylesheet" href="/zlma.css">')
     print('</head><body>')
-    
-    drawButtons("using-consoles")  # add navigation buttons
+    zlma_buttons = Zlma_buttons("using-vif")  # add navigation buttons 
     print(f"<h2>{title}</h2>")
     print("<h3>Choose LPARs</h3>")
     print('<form action="/zlmarw/cpcmds.py" method="GET">')  # rerun this script
