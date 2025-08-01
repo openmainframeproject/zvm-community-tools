@@ -745,15 +745,10 @@ class Vif:
         "user_profile": "LINDFLT",
         "disk_list": [
         {
-          "size": "1g",
+          "size": "8g",
           "is_boot_disk": True,
           "disk_pool": "ECKD:VMPOOL"
         },
-        {
-          "size": "4g",
-          "disk_pool": "ECKD:VMPOOL",
-          "format": "ext3"
-        }
      ],
 
       }
