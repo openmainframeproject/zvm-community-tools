@@ -124,8 +124,9 @@ class VifVmCreate:
         print('<td><label>Base Image:</label></td>')
         print('<td>')
         print('<input type="radio" id="img_sles15sp6" name="image" value="sles15sp6-minimal" checked required>')
-        print('<label for="img_sles15sp6">SLES 15 SP6 Minimal</label>')
-        # print('<br><small>Currently only SLES 15 SP6 Minimal is available</small>')
+        print('<label for="img_sles15sp6">SLES 15 SP6 Minimal</label><br>')
+        print('<input type="radio" id="img_sles15sp6_feilong" name="image" value="sles15sp6-minimal-feilong" required>')
+        print('<label for="img_sles15sp6_feilong">SLES 15 SP6 Minimal (Feilong)</label>')
         print('</td>')
         print('</tr>')
         
