@@ -204,7 +204,7 @@ class VifVmCreate:
         
         try:
             # Execute the VIF command
-            result = subprocess.run(vif_cmd, capture_output=True, text=True, timeout=1000)
+            result = subprocess.run(vif_cmd, capture_output=True, text=True, timeout=1300)
             
             print('<pre class="output">')
             if result.stdout:

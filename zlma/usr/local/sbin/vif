@@ -761,7 +761,7 @@ class Vif:
         f"{self.feilong_url}/guests",
         json=vm_config,
         headers={'Content-Type': 'application/json'},
-        timeout=300
+        timeout=60
       )
       
       if response.status_code not in [200, 201]:
@@ -788,7 +788,7 @@ class Vif:
           **deploy_config
         },
         headers={'Content-Type': 'application/json'},
-        timeout=600  # Image deployment can take longer
+        timeout=1200  # doubling the timeout for image deployment
       )
       
       if deploy_response.status_code == 200:
@@ -832,8 +832,44 @@ class Vif:
       print(f"✗ Unexpected error: {e}")
 
   def handle_vm_delete(self, vm_name: str, args: List[str]):
+    # Enhanced VM deletion handler using Feilong API
     self.log.debug(f"handle_vm_delete(): user: {self.conf.user} delete Linux vm: {vm_name}")
-    print(f"call: 'VIFCMS vm delete {vm_name}' => delete Linux but no PURGE just yet")
+    
+    if not vm_name:
+      print("Error: VM name is required for deletion")
+      return
+    
+    print(f"Deleting VM '{vm_name}'...")
+    
+    try:
+      # Call Feilong API to delete the guest
+      response = requests.delete(
+        f"{self.feilong_url}/guests/{vm_name.upper()}",
+        timeout=60
+      )
+      
+      if response.status_code == 200:
+        print(f"✓ VM '{vm_name}' deleted successfully!")
+        self.log.info(f"VM '{vm_name}' deleted successfully via Feilong API")
+      else:
+        print(f"✗ Failed to delete VM '{vm_name}'")
+        print(f"HTTP Status Code: {response.status_code}")
+        try:
+          error_details = response.json()
+          print(f"Error details: {json.dumps(error_details, indent=2)}")
+        except:
+          print(f"Error response: {response.text}")
+        self.log.error(f"Failed to delete VM '{vm_name}': HTTP {response.status_code}")
+        
+    except requests.exceptions.ConnectTimeout:
+      print("✗ Connection to Feilong API timed out")
+      self.log.error(f"Timeout while deleting VM '{vm_name}'")
+    except requests.exceptions.ConnectionError:
+      print("✗ Cannot connect to Feilong API. Please check if the service is running.")
+      self.log.error(f"Connection error while deleting VM '{vm_name}'")
+    except Exception as e:
+      print(f"✗ Unexpected error: {e}")
+      self.log.error(f"Unexpected error while deleting VM '{vm_name}': {e}")
 
   def handle_vm_network(self, vm_name: str, options: Dict[str, Any], args: List[str]):
     if options:
