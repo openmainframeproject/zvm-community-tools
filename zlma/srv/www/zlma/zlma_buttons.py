@@ -28,7 +28,7 @@ class Zlma_buttons:
     self.html += f"<button class=button {self.green}>Vif</button>&nbsp; "
     self.html += "</form></td>\n"
 
-    self.html += f"<td><a href='https://github.com/mike99mac/zlma#{page}' target='_blank'> "
+    self.html += f"<td><a href='https://github.com/openmainframeproject/zvm-community-tools/tree/main/zlma{page}' target='_blank'> "
     self.html += f"<button class=button {self.yellow}>Help</button><br>"
     self.html += "</a></td></tr></table><br>\n" 
 

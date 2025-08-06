@@ -29,23 +29,98 @@ class Vif_vm_set:
   def create_page(self):                   # make the HTML page
     zlma_buttons = Zlma_buttons("using-vif-vm") # add navigation buttons
     print(f'<h2>{self.title}</h2>') 
-    html_code = '<table>'
-    html_code += "<tr><td><pre>"           # start row, cell, preformatted text
     
     if self.sub_cmd == 'delete':
-      html_code += "TODO: gather args to call 'vif vm delete' - VM name?\n"
+      self.handle_delete()
+      return
     elif self.sub_cmd == 'set':
       self.handle_set()
       return
-      # html_code += "TODO: gather args to call 'vif vm set' - VM name, storage size or CPU count?\n"
     elif self.sub_cmd == 'network':
+      html_code = '<table>'
+      html_code += "<tr><td><pre>"
       html_code += "TODO: gather args to call 'vif vm network' - VM name, device, VSWITCH name?\n"
+      html_code += "</pre></td></tr></table>\n"
+      html_code += "</body></html>"
+      print(html_code)
     else:
+      html_code = '<table>'
+      html_code += "<tr><td><pre>"
       html_code += f"TODO: implement vif vm {self.sub_cmd}\n"
+      html_code += "</pre></td></tr></table>\n"
+      html_code += "</body></html>"
+      print(html_code)
+
+  def handle_delete(self):
+    """Handle VM delete form and processing"""
+    vm_name = self.form.getvalue('vm_name', '')
+    action = self.form.getvalue('action', '')
     
-    html_code += "</pre></td></tr></table>\n" # end cell, row and table
-    html_code += "</body></html>"
-    print(html_code)
+    if action == 'delete' and vm_name:
+      # Process the deletion
+      self.process_delete(vm_name)
+    else:
+      # Show the form
+      self.show_delete_form()
+
+  def show_delete_form(self):
+    """Display simple VM deletion form"""
+    html = '''
+    <form action="/zlmarw/vifvmset.py" method="post">
+      <input type="hidden" name="sub_cmd" value="delete">
+      <input type="hidden" name="action" value="delete">
+      
+      <table>
+        <tr>
+          <td><label for="vm_name">Host name:</label></td>
+          <td><input type="text" id="vm_name" name="vm_name" required placeholder="Enter hostname"></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>
+            <button type="submit" class="button red-button" 
+                    onclick="return confirm('Are you sure you want to delete this VM?');">
+              Delete
+            </button>
+          </td>
+        </tr>
+      </table>
+    </form>
+    </body></html>'''
+    print(html)
+
+  def process_delete(self, vm_name):
+    """Process the VM deletion using vif command"""
+    import subprocess
+    
+    print(f'<h3>Deleting VM: {vm_name}</h3>')
+    print('<pre>')
+    
+    try:
+      # Call the vif command to delete the VM
+      cmd = ['/usr/local/sbin/vif', 'vm', 'delete', vm_name]
+      result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+      
+      # Display the output
+      if result.stdout:
+        print(result.stdout)
+      if result.stderr:
+        print(f"Error: {result.stderr}")
+      
+      # Check if successful
+      if result.returncode == 0 and "successfully" in result.stdout.lower():
+        print(f"\n✓ Success: VM '{vm_name}' deleted successfully!")
+      else:
+        print(f"\n✗ Error: Failed to delete VM '{vm_name}'")
+        
+    except subprocess.TimeoutExpired:
+      print(f"✗ Timeout: Delete operation took too long")
+    except Exception as e:
+      print(f"✗ Error: {e}")
+    
+    print('</pre>')
+    print('<p><a href="/zlmarw/vifvmset.py?sub_cmd=delete">Delete Another VM</a></p>')
+    print('</body></html>')
 
   def handle_set(self):
       html = "<table id='zlma-table'><tr>\n" # start table then add headers
