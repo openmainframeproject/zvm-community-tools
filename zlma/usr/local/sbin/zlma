@@ -20,17 +20,17 @@ The data is stored in a mariadb database named 'zlma' in a table named 'servers'
 - env        Environment running in (dev, test, qa, prod)
 - grp        Another way of grouping servers
 - owner      Owner of the server
-- last_ping  Last time server was pinged or ssh'd to
+- last_ping  Last time server was connected to via IUCV
 - created    When the server was created 
 
 It supports the following commands:
-- init              Creates the table 'servers' in database 'zlma'
-- add <SERVER>      If SERVER already exists, record is updated
-- desc(ribe)        Show format of the 'servers' database
-- query <PATTERN>   If no PATTERN is supllied, return all rows
-- remove <SERVER>   Remove row for specified server
-- update            Refresh entire database
-- webdata           Return host_name, lpar, userid, ip_addr, cpus and mem_gb for web pages
+- init                    Creates the table 'servers' in database 'zlma'
+- add <USER_ID>           If USER_ID already exists, record is updated (uses IUCV)
+- desc(ribe)              Show format of the 'servers' database
+- query <PATTERN>         If no PATTERN is supllied, return all rows
+- remove <USER_ID>        Remove row for specified z/VM user ID
+- update                  Refresh entire database using IUCV
+- webdata                 Return host_name, lpar, userid, ip_addr, cpus and mem_gb for web pages
 
 Return codes:
 0 - Success
@@ -40,8 +40,9 @@ Return codes:
 Examples:
 - zlma -v init
 - zlma desc
-- zlma -v add --server model1000
+- zlma -v add --server LINUX01 --copyscript
 - zlma -v query
+- zlma remove --server LINUX01
 """
 import argparse
 import datetime
@@ -72,11 +73,11 @@ class Zlma:
     self.console.setLevel(self.conf.log_level)
     self.parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     self.parser.add_argument("-V", "--version", help="show current version", action="store_true")
-    self.parser.add_argument("-C", "--copyscript", help="copy script 'zlmainfo' to target server before add", action="store_true")
+    self.parser.add_argument("-C", "--copyscript", help="copy script 'zlmainfo' to target z/VM guest via IUCV before add", action="store_true")
     self.parser.add_argument("-c", "--column", help="column name to search", action="append")
     self.parser.add_argument("subcommand", help="Can be 'add', 'desc', 'init', 'query', 'remove' or 'update'", nargs='?')
     self.parser.add_argument("-p", "--pattern", help="pattern to search for", action="append")
-    self.parser.add_argument("-s", "--server", help="server to add or remove", action="append")
+    self.parser.add_argument("-s", "--server", help="z/VM user ID to add or remove", action="append")
     self.args = self.parser.parse_args()
     self.conn = None                       # mariadb connection
     self.cursor = None                     # mariadb cursor
@@ -244,48 +245,84 @@ class Zlma:
       exit(8)
     self.commit_changes()  
   
-  def ping_server(self):
+  def check_iucv_connectivity(self):
     """
-    Ping the server passed in with the --server option
+    Check IUCV connectivity to the user_id passed in with the --server option
     """
-    if self.args.server == None:           # no server name specified
-      self.log.error(f"ping_server(): Option '--server SERVER' must be specified with command '{self.args.command}'")
+    if self.args.server == None:           # no user_id specified
+      self.log.error(f"check_iucv_connectivity(): Option '--server USER_ID' must be specified with command '{self.args.subcommand}'")
       return 1
-    server = str(self.args.server[0])  
-    self.log.debug(f"ping_server() user: {self.conf.user}  server = {server}")
-    ping_cmd = f"ping -c1 -W 0.5 {server}" # send 1 packet, timeout after 500ms
-    proc = subprocess.run(ping_cmd, shell=True, capture_output=True, text=True)
+    user_id = str(self.args.server[0]).upper()  # z/VM user IDs are typically uppercase
+    self.log.debug(f"check_iucv_connectivity() user: {self.conf.user} user_id = {user_id}")
+    
+    # Test IUCV connectivity by trying to execute a simple command
+    test_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} bash 'echo IUCV_TEST_OK'"
+    proc = subprocess.run(test_cmd, shell=True, capture_output=True, text=True, timeout=10)
     rc = proc.returncode
-    self.log.debug(f"ping_server() user: {self.conf.user} command {ping_cmd} returned {rc}")
-    if rc != 0:                          # just give warning
-      self.log.error(f"ping_server() user: {self.conf.user} cannot ping server: {server}")
+    self.log.debug(f"check_iucv_connectivity() user: {self.conf.user} command {test_cmd} returned {rc}")
+    
+    if rc != 0:                          # IUCV connection failed
+      self.log.error(f"check_iucv_connectivity() user: {self.conf.user} cannot connect to user_id via IUCV: {user_id}")
+      self.log.debug(f"check_iucv_connectivity() stderr: {proc.stderr}")
       return 1
     else:
-      return 0 
-
-  def find_server(self, server):
-    """
-    Get data from a server
-    - if requested, copy the script 'zlmainfo' to the target server's script directory
-    - run it on the target node
-    - sample output:
-    model800,192.168.12.176,4,4,aarch64,Linux,Ubuntu 22.04.4 LTS,5.15.0-1053-raspi #56-Ubuntu SMP PREEMPT Mon Apr 15 18:50:10 UTC 2024
-    """
-    self.log.debug(f"find_server() user: {self.conf.user} server = {server}")
-    if self.args.copyscript:               # copy script first
-      scp_cmd = f"scp {self.conf.home_dir}/zlmainfo {server}:{self.conf.home_dir}" 
-      proc = subprocess.run(scp_cmd, shell=True, capture_output=True, text=True) 
-      if proc.returncode != 0:             # just give warning
-        self.log.warning(f"find_server() user: {self.conf.user} command {scp_cmd} returned {proc.returncode}")
+      if "IUCV_TEST_OK" in proc.stdout:
+        self.log.debug(f"check_iucv_connectivity() user: {self.conf.user} IUCV connectivity confirmed for {user_id}")
+        return 0
       else:
-        self.log.debug(f"find_server() user: {self.conf.user} command {scp_cmd} returned {proc.returncode}")
-    ssh_cmd = f"ssh -o ConnectTimeout=5 {server} {self.conf.home_dir}/zlmainfo"  # run script 'zlmainfo' and get output
-    proc = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
+        self.log.error(f"check_iucv_connectivity() user: {self.conf.user} unexpected response from {user_id}")
+        return 1 
+
+  def find_server(self, user_id):
+    """
+    Get data from a z/VM guest using IUCV
+    - if requested, copy the script 'zlmainfo' to the target guest's /tmp directory via IUCV
+    - run it on the target guest via IUCV
+    - sample output:
+    model800,LPAR1,LINUX01,192.168.12.176,4,4,s390x,zlinux,Linux,SLES 15.5,5.15.0-1053-raspi #56-Ubuntu SMP PREEMPT Mon Apr 15 18:50:10 UTC 2024,85,24-08-21 10:30:15,24-01-15,hostname
+    """
+    user_id = user_id.upper()              # z/VM user IDs are typically uppercase
+    self.log.debug(f"find_server() user: {self.conf.user} user_id = {user_id}")
+    
+    if self.args.copyscript:               # copy script first via IUCV
+      iucv_copy_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} iucv_file_transport /usr/local/sbin/zlmainfo /tmp/zlmainfo" 
+      proc = subprocess.run(iucv_copy_cmd, shell=True, capture_output=True, text=True, timeout=30) 
+      if proc.returncode != 0:             # file transfer failed
+        self.log.warning(f"find_server() user: {self.conf.user} command {iucv_copy_cmd} returned {proc.returncode}")
+        self.log.debug(f"find_server() stderr: {proc.stderr}")
+      else:
+        self.log.debug(f"find_server() user: {self.conf.user} successfully copied zlmainfo to {user_id}")
+        
+        # Make the script executable
+        chmod_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} bash 'chmod +x /tmp/zlmainfo'"
+        proc_chmod = subprocess.run(chmod_cmd, shell=True, capture_output=True, text=True, timeout=10)
+        if proc_chmod.returncode != 0:
+          self.log.warning(f"find_server() user: {self.conf.user} failed to make zlmainfo executable on {user_id}")
+    
+    # Execute zlmainfo script via IUCV
+    iucv_exec_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} bash /tmp/zlmainfo"
+    proc = subprocess.run(iucv_exec_cmd, shell=True, capture_output=True, text=True, timeout=60)
+    
     if proc.returncode != 0:               # call to 'zlmainfo' failed
-      self.log.error(f"find_server() user: {self.conf.user} command {ssh_cmd} returned {proc.returncode}")
+      self.log.error(f"find_server() user: {self.conf.user} command {iucv_exec_cmd} returned {proc.returncode}")
+      self.log.debug(f"find_server() stderr: {proc.stderr}")
+      self.log.debug(f"find_server() stdout: {proc.stdout}")
       return 1
-    self.server_data = proc.stdout.split(",")
-    self.log.debug(f"find_server(): user {self.conf.user} command {ssh_cmd} returncode: {proc.returncode} stdout: {self.server_data}")
+      
+    # Parse the output from zlmainfo
+    output_line = proc.stdout.strip()
+    if not output_line:
+      self.log.error(f"find_server() user: {self.conf.user} empty output from zlmainfo on {user_id}")
+      return 1
+      
+    self.server_data = output_line.split(",")
+    self.log.debug(f"find_server(): user {self.conf.user} command {iucv_exec_cmd} returncode: {proc.returncode} stdout: {self.server_data}")
+    
+    # Validate that we got the expected number of fields
+    if len(self.server_data) < 14:  # Minimum expected fields from zlmainfo
+      self.log.error(f"find_server() user: {self.conf.user} insufficient data from zlmainfo on {user_id}: {self.server_data}")
+      return 1
+      
     return 0
 
   def update_row(self, op_type: str): 
@@ -320,30 +357,30 @@ class Zlma:
 
   def delete_row(self):
     """
-    Delete a row with a "host_name" of the specified server 
+    Delete a row with a "host_name" of the specified z/VM user ID 
     """
     self.log.debug(f"delete_row() user: {self.conf.user} self.args.server = {self.args.server}")
-    if self.args.server == None:           # no server name specified
-      self.log.error("delete_row() --server SERVER must be specified with delete")
+    if self.args.server == None:           # no user_id specified
+      self.log.error("delete_row() --server USER_ID must be specified with delete")
       return 1
     self.connect_to_zlma()
-    server = str(self.args.server[0])  
-    cmd = self.delete_cmd.replace("pattern", "'"+server+"'") # add target server in single quotes
+    user_id = str(self.args.server[0]).upper()  # z/VM user IDs are typically uppercase
+    cmd = self.delete_cmd.replace("pattern", "'"+user_id+"'") # add target user_id in single quotes
     self.log.debug(f"delete_row()  user: {self.conf.user} cmd = {cmd}")  
     try: 
       self.cursor.execute(cmd)  
-      if self.cursor.rowcount == 0:        # no matching server
+      if self.cursor.rowcount == 0:        # no matching user_id
         self.log.debug(f"delete_row() user: {self.conf.user} cursor.rowcount = {self.cursor.rowcount}")  
-        self.log.error(f"delete_row() user: {self.conf.user} did not find server {server} in CMDB")
+        self.log.error(f"delete_row() user: {self.conf.user} did not find user_id {user_id} in CMDB")
         return 2 
       else:   
-        self.log.debug(f"delete_row() user: {self.conf.user} deleted server: {server} cursor.rowcount: {self.cursor.rowcount}")  
+        self.log.debug(f"delete_row() user: {self.conf.user} deleted user_id: {user_id} cursor.rowcount: {self.cursor.rowcount}")  
     except mariadb.Error as e:
       self.log.error(f"delete_row() user: {self.conf.user} error deleting row in table 'servers': {e}")
       self.conn.close()                    # close connection
       return 1    
     self.commit_changes()  
-    self.log.info(f"delete_row() user: {self.conf.user} deleted row for server {server}")
+    self.log.info(f"delete_row() user: {self.conf.user} deleted row for user_id {user_id}")
   
   def describe_table(self):
     """
@@ -368,7 +405,7 @@ class Zlma:
 
   def update_zlma(self):
     """
-    Update all rows in 'server' table
+    Update all rows in 'server' table using IUCV
     """
     successes = 0
     if self.connect_to_zlma() == -1:
@@ -382,6 +419,10 @@ class Zlma:
       for next_server in servers:
         next_server = str(next_server).strip("'").strip("(").strip(")").strip(",").strip("'")
         self.log.debug(f"update_zlma() user: {self.conf.user} next_server: {next_server}")
+        
+        # For update operation, we assume next_server is the hostname, but we need to find the user_id
+        # This is a limitation - we might need to store user_id separately or derive it from hostname
+        # For now, let's assume the hostname IS the user_id (which should be the case with the new approach)
         rc = self.find_server(next_server)
         self.log.debug(f"update_zlma() user: {self.conf.user} server_data: {self.server_data}")
         if rc == 1:                        # did not get server data
@@ -412,12 +453,12 @@ class Zlma:
       case "init"|"initialize":
         rc = self.initialize() 
       case "add":  
-        if self.args.server == None:       # no server name specified
-          self.log.error("run_command() user: {self.conf.user} Option '--server SERVER' must be specified with subcommand 'add'")
+        if self.args.server == None:       # no user_id specified
+          self.log.error("run_command() user: {self.conf.user} Option '--server USER_ID' must be specified with subcommand 'add'")
           return 1
-        rc = self.ping_server()
-        if rc == 0:                        # server pings
-          self.log.debug(f"run_command() user: {self.conf.user} server pings, calling find_server")
+        rc = self.check_iucv_connectivity()
+        if rc == 0:                        # IUCV connection successful
+          self.log.debug(f"run_command() user: {self.conf.user} IUCV connectivity confirmed, calling find_server")
           rc = self.find_server(self.args.server[0])
           if rc != 0:
             self.log.error(f"run_command() user: {self.conf.user} find_server() returned {rc}")
@@ -426,8 +467,8 @@ class Zlma:
       case "describe"|"desc":
         rc = self.describe_table() 
       case "remove":
-        if self.args.server == None:       # no server name specified
-          self.log.error("run_command() Option '--server SERVER' must be specified with subcommand 'remove'")
+        if self.args.server == None:       # no user_id specified
+          self.log.error("run_command() Option '--server USER_ID' must be specified with subcommand 'remove'")
           return 1
         rc = self.delete_row()  
       case "query":
