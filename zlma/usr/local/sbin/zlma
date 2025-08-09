@@ -293,11 +293,11 @@ class Zlma:
       else:
         self.log.debug(f"find_server() user: {self.conf.user} successfully copied zlmainfo to {user_id}")
         
-        # Make the script executable
-        chmod_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} bash 'chmod +x /tmp/zlmainfo'"
-        proc_chmod = subprocess.run(chmod_cmd, shell=True, capture_output=True, text=True, timeout=10)
-        if proc_chmod.returncode != 0:
-          self.log.warning(f"find_server() user: {self.conf.user} failed to make zlmainfo executable on {user_id}")
+        # # Make the script executable
+        # chmod_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} bash 'chmod +x /tmp/zlmainfo'"
+        # proc_chmod = subprocess.run(chmod_cmd, shell=True, capture_output=True, text=True, timeout=10)
+        # if proc_chmod.returncode != 0:
+        #   self.log.warning(f"find_server() user: {self.conf.user} failed to make zlmainfo executable on {user_id}")
     
     # Execute zlmainfo script via IUCV
     iucv_exec_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} bash /tmp/zlmainfo"
@@ -456,7 +456,8 @@ class Zlma:
         if self.args.server == None:       # no user_id specified
           self.log.error("run_command() user: {self.conf.user} Option '--server USER_ID' must be specified with subcommand 'add'")
           return 1
-        rc = self.check_iucv_connectivity()
+        # rc = self.check_iucv_connectivity() //skipping check bcs our image dont have echo binary
+        rc = 0
         if rc == 0:                        # IUCV connection successful
           self.log.debug(f"run_command() user: {self.conf.user} IUCV connectivity confirmed, calling find_server")
           rc = self.find_server(self.args.server[0])

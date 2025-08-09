@@ -788,7 +788,7 @@ class Vif:
           **deploy_config
         },
         headers={'Content-Type': 'application/json'},
-        timeout=1200  # doubling the timeout for image deployment
+        timeout=2400 # doubling the timeout for image deployment
       )
       
       if deploy_response.status_code == 200:
@@ -820,6 +820,12 @@ class Vif:
         print(f"- Memory: {memory_mb}MB")
         print(f"- Base Image: {image}")
         print(f"- Status: Running")
+        # add the VM to zlma
+        rc = subprocess.run(f"zlma add --server {vm_name} --copyscript")
+        if rc.returncode == 0:
+          print(f"✓ VM '{vm_name}' added to zlma successfully!")
+        else:
+          print(f"✗ Failed to add VM '{vm_name}' to zlma. Please check the script.")
       else:
         print(f"⚠ VM created and image deployed, but failed to start automatically.")
         print(f"You can start it manually with: vif vm start {vm_name}")
@@ -851,6 +857,11 @@ class Vif:
       if response.status_code == 200:
         print(f"✓ VM '{vm_name}' deleted successfully!")
         self.log.info(f"VM '{vm_name}' deleted successfully via Feilong API")
+        rc = subprocess.run(f"zlma delete --server {vm_name}", shell=True)
+        if rc.returncode == 0:
+          print(f"✓ VM '{vm_name}' removed from zlma successfully!")
+        else:
+          print(f"✗ Failed to remove VM '{vm_name}' from zlma. Please check the script.")
       else:
         print(f"✗ Failed to delete VM '{vm_name}'")
         print(f"HTTP Status Code: {response.status_code}")
