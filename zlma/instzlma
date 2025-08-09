@@ -76,9 +76,9 @@ function checkBase
       exit 1
     fi
   fi
-  if [ ! -d $HOME/zlma ]; then
+  if [ ! -d $repoDir ]; then
     echo 'ERROR: zlma repo not found under $HOME' 
-    echo "Try:   cd; git clone https://github.com/mike99mac/zlma"
+    echo "Try:   cd; git clone https://github.com/openmainframeproject/zvm-community-tools/"
     exit 2
   fi
   id apache > /dev/null 2>&1
@@ -442,7 +442,7 @@ function confApache
     svcFile="/usr/lib/systemd/system/httpd.service"
     if [ ! -f $svcFile.orig ]; then         # no backup
       runCmd sudo cp $svcFile $svcFile.orig # make a backup
-      runCmd sudo cp $HOME/zlma/httpd.service.RHEL /usr/lib/systemd/system/httpd.service
+      runCmd sudo cp $repoDir/httpd.service.RHEL /usr/lib/systemd/system/httpd.service
       runCmd sudo systemctl daemon-reload   # reload modified file
     fi
     runCmd sudo cp /etc/mime.types /etc/httpd/conf # copy mime.types to Apache conf dir
@@ -465,16 +465,16 @@ function mkCustom
   echo | tee -a $outFile
   echo "Step 14): Customizing environment ..." | tee -a $outFile
 
-  runCmd sudo cp $HOME/zlma/bash_profile $HOME/.bash_profile
+  runCmd sudo cp $repoDir/bash_profile $HOME/.bash_profile
   if [ "$webUser" = "apache" ]; then       # RHEL-based:
     if [ ! -f /etc/vimrc.orig ]; then
-      runCmd sudo mv /etc/vimrc /etc/vimrc.orig                   
-      runCmd sudo cp $HOME/zlma/vimrc /etc/                       
+      runCmd sudo mv /etc/vimrc /etc/vimrc.orig
+      runCmd sudo cp $repoDir/vimrc /etc/
     fi
     if [ -f /etc/zlma.conf ]; then         # already exists
       echo "/etc/zlma.conf exists - not overwriting"
     else                                   # copy it
-      runCmd sudo cp $HOME/zlma/zlma.conf /etc/                       
+      runCmd sudo cp $repoDir/zlma.conf /etc/                       
     fi
     cd /usr/share/vim/vim8*
     if [ -f indent.vim ]; then             # turn off annoying indent rules
@@ -483,7 +483,7 @@ function mkCustom
   else                                     # assume Debian-based  
     if [ ! -f /etc/vim/vimrc.orig ]; then
       runCmd sudo mv /etc/vim/vimrc /etc/vim/vimrc.orig                   
-      runCmd sudo cp $HOME/zlma/vimrc /etc/vimrc                       
+      runCmd sudo cp $repoDir/vimrc /etc/vimrc                       
     fi
     cd /usr/share/vim/vim9*
     if [ -f indent.vim ]; then             # turn off annoying indent rules
@@ -492,10 +492,9 @@ function mkCustom
     cd /usr/share/vim/vim9*/colors
     if [ -f desert.vim -a ! -f desert.vim.orig ]; then      # replace desert.vim with strange colors
       runCmd sudo cp desert.vim desert.vim.orig
-      runCmd sudo cp $HOME/zlma/desert.vim . 
+      runCmd sudo cp $repoDir/desert.vim . 
     fi
   fi	    
-  runCmd sudo cp $HOME/zlma/zlma.conf /etc/                       
  }                                         # mkCustom()
 
 #+--------------------------------------------------------------------------+
