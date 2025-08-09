@@ -12,13 +12,14 @@ else
   lpar="unknown"
   userID="unknown"
 fi  
-IPaddr=`ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}'`
-if [ ${#IPaddr} = 0 ]; then                # empty var
-  IPaddr=`curl -4 ifconfig.co`             # try a different way
-  if [ ${#IPaddr} = 0 ]; then
-    IPaddr="unknown"
-  fi
-fi
+# IPaddr=`ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}'`
+# if [ ${#IPaddr} = 0 ]; then                # empty var
+#   IPaddr=`curl -4 ifconfig.co`             # try a different way
+#   if [ ${#IPaddr} = 0 ]; then
+#     IPaddr="unknown"
+#   fi
+# fi
+IPaddr = "Unknown" # our vms dont have an IP address as for now
 numCPUs=`grep ^processor /proc/cpuinfo | wc -l`
 memKB=`cat /proc/meminfo | head -1 | awk '{print $2}'`
 let memGB="( $memKB + 524288 ) / (1024 * 1024 )" # round to nearest GB
