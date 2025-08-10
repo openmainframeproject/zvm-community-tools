@@ -84,7 +84,7 @@ class Zlma:
     self.log.debug(f"Zlma.__init__(): user: {self.conf.user} self.args: {str(self.args)}")
     self.create_db_cmd = f"CREATE DATABASE {self.conf.db_name};"
     self.describe_cmd = "DESC servers;"
-    self.delete_cmd = "DELETE FROM servers WHERE host_name = pattern;"
+    self.delete_cmd = "DELETE FROM servers WHERE userid = pattern;"
     self.create_table_cmd = """
       CREATE TABLE IF NOT EXISTS servers (
         host_name VARCHAR(255) NOT NULL UNIQUE,
@@ -116,7 +116,7 @@ class Zlma:
     self.update_row_cmd = """
       UPDATE servers 
       SET lpar = ?, userid = ?, ip_addr = ?, cpus = ?, mem_gb = ?, arch = ?, arch_com = ?, os = ?, os_ver = ?, kern_ver = ?, kern_rel = ?, rootfs = ?, last_ping = ?, created = ?
-      WHERE host_name = ?
+      WHERE userid = ?
       """
     self.select_cmd = """
       SELECT * FROM servers WHERE host_name LIKE ptrn 

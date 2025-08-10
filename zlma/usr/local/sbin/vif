@@ -821,7 +821,7 @@ class Vif:
         print(f"- Base Image: {image}")
         print(f"- Status: Running")
         # add the VM to zlma
-        rc = subprocess.run(f"zlma add --server {vm_name} --copyscript")
+        rc = subprocess.run(f"zlma add --server {vm_name} --copyscript", shell=True)
         if rc.returncode == 0:
           print(f"✓ VM '{vm_name}' added to zlma successfully!")
         else:
@@ -857,7 +857,7 @@ class Vif:
       if response.status_code == 200:
         print(f"✓ VM '{vm_name}' deleted successfully!")
         self.log.info(f"VM '{vm_name}' deleted successfully via Feilong API")
-        rc = subprocess.run(f"zlma delete --server {vm_name}", shell=True)
+        rc = subprocess.run(f"zlma remove --server {vm_name}", shell=True)
         if rc.returncode == 0:
           print(f"✓ VM '{vm_name}' removed from zlma successfully!")
         else:

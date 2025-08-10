@@ -286,6 +286,7 @@ function copyFiles
     copyOneFile $repoDir/usr/local/sbin $nextFile /usr/local/sbin
   done
   copyOneFile $repoDir zlmainfo $HOME      # copy zlmainfo to user's home directory
+  copyOneFile $repoDir zlmainfo /usr/local/sbin # copy zlmainfo to /usr/local/sbin
  }                                         # copyFiles()
 
 #+--------------------------------------------------------------------------+
