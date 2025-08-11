@@ -956,6 +956,19 @@ class Vif:
       if response.status_code == 200:
         print(f"✓ VM '{vm_name}' CPU count changed to {cpu_cnt}")
         print("Note: Changes take effect after VM restart")
+        
+        # Update ZLMA database after successful CPU change
+        try:
+          print("Updating ZLMA database...")
+          zlma_result = subprocess.run("/usr/local/sbin/zlma update", shell=True, capture_output=True, text=True, timeout=30)
+          if zlma_result.returncode == 0:
+            print("✓ ZLMA database updated successfully")
+          else:
+            print(f"⚠ ZLMA update warning (exit code {zlma_result.returncode})")
+        except subprocess.TimeoutExpired:
+          print("⚠ ZLMA update timed out")
+        except Exception as e:
+          print(f"⚠ ZLMA update error: {e}")
       else:
         print(f"✗ Failed to resize CPUs for VM '{vm_name}'")
         print(f"HTTP Status: {response.status_code}")
@@ -993,6 +1006,19 @@ class Vif:
       if response.status_code == 200:
         print(f"✓ VM '{vm_name}' memory changed to {gb_value}GB")
         print("Note: Changes take effect after VM restart")
+        
+        # Update ZLMA database after successful memory change
+        try:
+          print("Updating ZLMA database...")
+          zlma_result = subprocess.run("/usr/local/sbin/zlma update", shell=True, capture_output=True, text=True, timeout=30)
+          if zlma_result.returncode == 0:
+            print("✓ ZLMA database updated successfully")
+          else:
+            print(f"⚠ ZLMA update warning (exit code {zlma_result.returncode})")
+        except subprocess.TimeoutExpired:
+          print("⚠ ZLMA update timed out")
+        except Exception as e:
+          print(f"⚠ ZLMA update error: {e}")
       else:
         print(f"✗ Failed to resize memory for VM '{vm_name}'")
         print(f"HTTP Status: {response.status_code}")
