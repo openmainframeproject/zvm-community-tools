@@ -139,7 +139,7 @@ class Zlma:
         """
     self.select_all_cmd = "SELECT * FROM servers"
     self.select_webdata_cmd = "SELECT host_name, lpar, userid, ip_addr, cpus, mem_gb FROM servers WHERE arch='s390x'"
-    self.select_host_names_cmd = "SELECT host_name FROM servers"
+    self.select_host_names_cmd = "SELECT userid FROM servers"
     self.server_data = []
     self.use_cmd = f"USE {self.conf.db_name}" 
     self.version = "24.08.21"

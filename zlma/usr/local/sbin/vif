@@ -595,7 +595,8 @@ class Vif:
     print("      network: add OSA triplet - need VSWITCH name as an arg?")
     print("               Syntax: vif vm network <vm_name> add <device>")
     print("          set: change memory size or number of CPUs of a VM")
-    print("               Syntax: vif vm set <vm_name> (storage <size>|cpus <num>)")
+    print("               Syntax: vif vm set <vm_name> cpus <count>  (count: 1-4)")
+    print("               Syntax: vif vm set <vm_name> memory <gb>  (gb: 1, 2, 3, 4)")
     print("        start: start a VM")
     print("               Syntax: vif vm start <vm_name>")
     print("         stop: stop a VM")
@@ -894,15 +895,114 @@ class Vif:
       print(f"call: 'VIFCMS vm network {vm_name} {args_str}' => add OSA triplet - need VSWITCH name as an arg?")
 
   def handle_vm_set(self, vm_name: str, options: Dict[str, Any], args: List[str]):
+    """
+    Set VM properties: CPU count or memory size
+    Syntax: vif vm set <vm_name> cpus <count>  (count: 1-4)
+    Syntax: vif vm set <vm_name> memory <gb>  (gb: 1, 2, 3, 4)
+    """
+    self.log.debug(f"handle_vm_set(): user: {self.conf.user} vm: {vm_name}")
+    
+    if not vm_name:
+      print("Error: VM name is required")
+      return
+    
+    # Parse arguments - either from options or args
+    property_type = None
+    value = None
+    
     if options:
-      property_name = options.get('property', '')
+      # From structured parser
+      property_type = options.get('property', '').lower()
       value = options.get('value', '')
-      self.log.debug(f"handle_vm_set(): user: {self.conf.user} vm: {vm_name} set {property_name} {value}")
-      print(f"call: 'VIFCMS vm set {vm_name} {property_name} {value}'")
+    elif len(args) >= 2:
+      # From simple args: ['cpus', '2'] or ['memory', '2048']
+      property_type = args[0].lower()
+      value = args[1]
     else:
-      args_str = ' '.join(args)
-      self.log.debug(f"handle_vm_set(): user: {self.conf.user} vm: {vm_name} args: {args_str}")
-      print(f"call: 'VIFCMS vm set {vm_name} {args_str}'")
+      print("Error: Invalid syntax")
+      print("Usage: vif vm set <vm_name> cpus <count>")
+      print("       vif vm set <vm_name> memory <gb>")
+      return
+    
+    if property_type == 'cpus':
+      self._resize_vm_cpus(vm_name, value)
+    elif property_type == 'memory':
+      self._resize_vm_memory(vm_name, value)
+    else:
+      print(f"Error: Unknown property '{property_type}'")
+      print("Supported properties: cpus, memory")
+  
+  def _resize_vm_cpus(self, vm_name: str, cpu_count: str):
+    """Resize VM CPU count using Feilong API"""
+    try:
+      cpu_cnt = int(cpu_count)
+      
+      if cpu_cnt < 1 or cpu_cnt > 4:
+        print(f"Error: CPU count must be between 1 and 4, got: {cpu_cnt}")
+        return
+      
+      print(f"Resizing VM '{vm_name}' to {cpu_cnt} CPUs...")
+      
+      response = requests.post(
+        f"{self.feilong_url}/guests/{vm_name.upper()}/action",
+        json={
+          "action": "resize_cpus",
+          "cpu_cnt": cpu_cnt
+        },
+        headers={'Content-Type': 'application/json'},
+        timeout=60
+      )
+      
+      if response.status_code == 200:
+        print(f"✓ VM '{vm_name}' CPU count changed to {cpu_cnt}")
+        print("Note: Changes take effect after VM restart")
+      else:
+        print(f"✗ Failed to resize CPUs for VM '{vm_name}'")
+        print(f"HTTP Status: {response.status_code}")
+        
+    except ValueError:
+      print(f"Error: Invalid CPU count '{cpu_count}'. Must be a number between 1-4.")
+    except requests.exceptions.ConnectionError:
+      print("✗ Cannot connect to Feilong API")
+    except Exception as e:
+      print(f"✗ Error: {e}")
+  
+  def _resize_vm_memory(self, vm_name: str, memory_gb: str):
+    """Resize VM memory using Feilong API - accepts GB values: 1, 2, 3, 4"""
+    try:
+      gb_value = int(memory_gb)
+      
+      if gb_value not in [1, 2, 3, 4]:
+        print(f"Error: Memory must be 1, 2, 3, or 4 GB, got: {gb_value}")
+        return
+      
+      api_size = f"{gb_value}g"
+      
+      print(f"Resizing VM '{vm_name}' to {gb_value}GB memory...")
+      
+      response = requests.post(
+        f"{self.feilong_url}/guests/{vm_name.upper()}/action",
+        json={
+          "action": "resize_mem",
+          "size": api_size
+        },
+        headers={'Content-Type': 'application/json'},
+        timeout=60
+      )
+      
+      if response.status_code == 200:
+        print(f"✓ VM '{vm_name}' memory changed to {gb_value}GB")
+        print("Note: Changes take effect after VM restart")
+      else:
+        print(f"✗ Failed to resize memory for VM '{vm_name}'")
+        print(f"HTTP Status: {response.status_code}")
+        
+    except ValueError:
+      print(f"Error: Invalid memory size '{memory_gb}'. Must be 1, 2, 3, or 4.")
+    except requests.exceptions.ConnectionError:
+      print("✗ Cannot connect to Feilong API")
+    except Exception as e:
+      print(f"✗ Error: {e}")
 
   def handle_vm_start(self, vm_name: str, args: List[str]):
     self.log.debug(f"handle_vm_start(): user: {self.conf.user} start vm: {vm_name}")
