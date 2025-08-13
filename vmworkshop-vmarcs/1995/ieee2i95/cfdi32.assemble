@@ -1,0 +1,224 @@
+       TITLE ' Convert Floating Single => IEEE 32 bit long '            CFD00010
+         MACRO                  standard entrance                       CFD00020
+.*                                                                      CFD00030
+.*------------------------------------------------------------------- * CFD00040
+.*                                                                    * CFD00050
+.*  COPYRIGHT -  VAL GARGER, CORNELL NATIONAL SUPERCOMPUTE FACILITY,  * CFD00060
+.*               (JUNE 1990) CORNELL UNIVERSITY, ITHACA, N.           * CFD00070
+.*               CONTAINS RESTRICTED MATERIALS OF CORNELL NIVERSITY,  * CFD00080
+.*               (C) COPYRIGHT CORNELL UNIVERSITY 1990                * CFD00090
+.*                                                                    * CFD00100
+.*------------------------------------------------------------------- * CFD00110
+.*                                                                      CFD00120
+&CSECT   BEGIN &BASE=13,&TEMP=2,&SAVEA=,&REQU=YES,&LABEL=,&DATE=        CFD00130
+.*COPY                                                *** BEGIN ***     CFD00140
+         GBLA  &M                                                       CFD00150
+         LCLA  &L,&D,&T                                                 CFD00160
+.*                                                                      CFD00170
+.*   &CSECT = CSECT NAME                                                CFD00180
+.*   &BASE  = BASE REGISTER /INTEGER/                                   CFD00190
+.*   &TEMP  = TEMP REGISTER (FOR SAVE AREA LINKAGE) /INTEGER/           CFD00200
+.*   &SAVEA = ADDRESS OF EXTERNALLY DEFINED SAVE AREA /SYMBOL/          CFD00210
+.*   &REQU  = REGISTER EQUATES INCLUSION /YES OR NO/                    CFD00220
+.*   &LABEL = LABEL ON SAVEAREA /SYMBOL/                                CFD00230
+.*   &DATE  = ADDITIONAL INFORMATION: DATE, VERSION, ETC. /TEXT/        CFD00240
+.*                                                                      CFD00250
+&L       SETA  K'&CSECT                                                 CFD00260
+&T       SETA  K'&DATE                                                  CFD00270
+&D       SETA  ((&L+&T+2)/2)*2+4                                        CFD00280
+.*                                                                      CFD00290
+         AIF   ('&CSECT' EQ '').ERROR1                                  CFD00300
+         AIF   ('&REQU' NE 'YES' AND '&REQU' NE 'NO').ERROR2            CFD00310
+         AIF   (&BASE EQ 13 AND '&SAVEA' NE '').ERROR3                  CFD00320
+         AIF   (&TEMP GE 13 OR &TEMP LE 1).ERROR4                       CFD00330
+.*                                                                      CFD00340
+&CSECT   CSECT                                                          CFD00350
+         USING &CSECT,15                                                CFD00360
+         B     &D.(,15)           BRANCH AROUND IDENTIFIER              CFD00370
+         DC    AL1(&L+&T)         IDENTIFIER LENGTH                     CFD00380
+         DC    CL&L.'&CSECT'      IDENTIFIER                            CFD00390
+         AIF   ('&DATE' EQ '').STM                                      CFD00400
+         DC    CL&T.'&DATE'       DATE OF CODE PREPARATION              CFD00410
+.STM     ANOP                                                           CFD00420
+         STM   14,12,12(13)       SAVE REGISTERS                        CFD00430
+         AIF   ('&SAVEA' EQ '').SAVE                                    CFD00440
+         LA    &TEMP,&SAVEA        LOAD ROUTINE SAVE AREA ADDRESS       CFD00450
+         AGO   .LINK                                                    CFD00460
+.*                                                                      CFD00470
+.SAVE    ANOP                                                           CFD00480
+         CNOP  0,4                                                      CFD00490
+         BAS   &TEMP,*+76         LOAD SAVE AREA ADDRESS                CFD00500
+         AIF   (&BASE NE 13 OR '&LABEL' NE '').SAREA                    CFD00510
+         AIF   ('&LABEL' NE '').SAREA                                   CFD00520
+&M       SETA  &M+1                                                     CFD00530
+$$SA00&M DC    18F'0'                                                   CFD00540
+         AGO   .LINK                                                    CFD00550
+.SAREA   ANOP                                                           CFD00560
+&LABEL   DC   18F'0'              SAVE AREA                             CFD00570
+.*                                                                      CFD00580
+.LINK    ANOP                                                           CFD00590
+         ST    &TEMP,8(,13)       LINK ROUTINE SAVE AREA                CFD00600
+         ST    13,4(,&TEMP)       LINK CALLER'S SAVE AREA               CFD00610
+         LR    13,&TEMP           LOAD SAVE AREA ADDRESS                CFD00620
+         AIF   (&BASE EQ 15).REQU                                       CFD00630
+         AIF   (&BASE NE 13).ALLSET                                     CFD00640
+         AIF   ('&LABEL' NE '').GIVEN                                   CFD00650
+         USING $$SA00&M,&BASE                                           CFD00660
+         AGO   .DROP                                                    CFD00670
+.GIVEN   ANOP                                                           CFD00680
+         USING &LABEL,&BASE                                             CFD00690
+.DROP    ANOP                                                           CFD00700
+         DROP  15                                                       CFD00710
+         AGO   .REQU                                                    CFD00720
+.ALLSET  ANOP                                                           CFD00730
+         LR    &BASE,15           LOAD ROUTINE BASE REGISTER            CFD00740
+         DROP  15                                                       CFD00750
+.*                                                                      CFD00760
+.USING   ANOP                                                           CFD00770
+         USING &CSECT,&BASE       ESTABLISH ROUTINE BASE REGISTER       CFD00780
+         SPACE                                                          CFD00790
+.REQU    ANOP                                                           CFD00800
+         AIF   ('&REQU' EQ 'NO').EXIT                                   CFD00810
+R0       EQU   0                  SYMBOLIC REGISTER EQUATES             CFD00820
+R1       EQU   1                                                        CFD00830
+R2       EQU   2                                                        CFD00840
+R3       EQU   3                                                        CFD00850
+R4       EQU   4                                                        CFD00860
+R5       EQU   5                                                        CFD00870
+R6       EQU   6                                                        CFD00880
+R7       EQU   7                                                        CFD00890
+R8       EQU   8                                                        CFD00900
+R9       EQU   9                                                        CFD00910
+R10      EQU   10                                                       CFD00920
+R11      EQU   11                                                       CFD00930
+R12      EQU   12                                                       CFD00940
+R13      EQU   13                                                       CFD00950
+R14      EQU   14                                                       CFD00960
+R15      EQU   15                                                       CFD00970
+         SPACE                                                          CFD00980
+.EXIT    MEXIT                                                          CFD00990
+.*                                                                      CFD01000
+.ERROR1  MNOTE 30,'NO CSECT NAME PROVIDE'                               CFD01010
+         MEXIT                                                          CFD01020
+.ERROR2  MNOTE 30,'INVALID REQU SPECIFICATION'                          CFD01030
+         MEXIT                                                          CFD01040
+.ERROR3  MNOTE 50,'INVALID COMBINATION OF BASE AND SAVEA SPECICATIONS'  CFD01050
+         MEXIT                                                          CFD01060
+.ERROR4  MNOTE 30,'ILLEGAL USE OF TEMP REGISTER'                        CFD01070
+         MEND                                                           CFD01080
+* ------------------------------------------------------------------- * CFD01090
+*      subroutine cfdi32(ibm, ieee, n)                                * CFD01100
+*      integer    n, ibm(2*n), ieee(n)                                * CFD01110
+*-------------------------------------------------------------------- * CFD01120
+* PROCESSOR    - ASSEMBLER H VERSION 2, RELEASE 1, CMS VM/XA.         * CFD01130
+*                                                                     * CFD01140
+* DEPENDENCIES - NONE                                                 * CFD01150
+*                                                                     * CFD01160
+* ATTRIBUTES   - SERIALLY REUSABLE                                    * CFD01170
+*                                                                     * CFD01180
+* ENTRY POINT  - CFDI32                                               * CFD01190
+*                                                                     * CFD01200
+* STATUS       - NEW:           16 June 1989                          * CFD01210
+*                LAST REVISION: 07 June 1990                          * CFD01220
+*                                                                     * CFD01230
+*                            Val I. Garger, Technology Integration    * CFD01240
+*                            Group, CNSF, Cornell University          * CFD01250
+*                                                                     * CFD01260
+*                               vig@cornellf.tn.cornell.edu           * CFD01270
+*                               vig@eagle.cnsf.cornell.edu            * CFD01280
+*                               vig@cornellf.bitnet                   * CFD01290
+*-------------------------------------------------------------------- * CFD01300
+*                                                                     * CFD01310
+*  COPYRIGHT -  VAL GARGER, CORNELL NATIONAL SUPERCOMPUTER FACILITY,  * CFD01320
+*               (JUNE 1990) CORNELL UNIVERSITY, ITHACA, NY.           * CFD01330
+*               CONTAINS RESTRICTED MATERIALS OF CORNELL UNIVERSITY,  * CFD01340
+*               (C) COPYRIGHT CORNELL UNIVERSITY 1990                 * CFD01350
+*                                                                     * CFD01360
+*-------------------------------------------------------------------- * CFD01370
+* Change log:                                                         * CFD01380
+*                            Rounding up is fixed                     * CFD01390
+*                                     02 May 1990         Val Garger  * CFD01400
+* ------------------------------------------------------------------- * CFD01410
+* Convert floating point, 64-bit IBM to 32-bit IEEE standard.         * CFD01420
+*                                                                     * CFD01430
+*   Example: call cfdi32(ibm, ieee, n)                                * CFD01440
+*                                                                     * CFD01450
+*   input: ibm    Array of IBM floating point numbers, REAL*8 values. * CFD01460
+*          n      Number of elements in ibm to convert, integer.      * CFD01470
+*  output: ieee   Array of 32-bit IEEE floating point numbers,        * CFD01480
+*                  single  precision.                                 * CFD01490
+*                                                                     * CFD01500
+* Format (bits, left to right):            |    Exponent bias:        * CFD01510
+*              sign   exponent   mantissa  |                          * CFD01520
+*  IBM           1      7           56     |     64 hex               * CFD01530
+*  IEEE          1     11           52     |     1023                 * CFD01540
+*                                          |                          * CFD01550
+* Usage notes:                                                        * CFD01560
+* 1. Data could be converted "inplace" in which case an ieee array    * CFD01570
+*    will occupy the first half of ibm data space.                    * CFD01580
+* 2. IBM values that didn't fit to IEEE standard are converted to     * CFD01590
+*    either infinite IEEE values (positive or negative) or to zero.   * CFD01600
+* 3. Non-normalized with zero exponent values are kept intact.        * CFD01610
+* 4. Precision in the mantissa could be lost by rounding off the      * CFD01620
+*    least significant bits.    0 =< |error| = < 0.3E-7               * CFD01630
+*    (29 to 32 least significant bits out of 56 mantissa bits could   * CFD01640
+*    be rounded.)                                                     * CFD01650
+* =================================================================== * CFD01660
+CFDI32 RMODE      ANY                                                   CFD01670
+CFDI32 AMODE      ANY                                                   CFD01680
+CFDI32 BEGIN      DATE=/5-02-90/version#1.9/                            CFD01690
+       LM         R2,R4,00(R1)                                          CFD01700
+       L          R11,00(,R4)          r11: n                           CFD01710
+       LTR        R11,R11                                               CFD01720
+       BZ         EXIT                                                  CFD01730
+*                                                                       CFD01740
+NEXT   DS         0H                                                    CFD01750
+       L          R8,00(,R2)           current number                   CFD01760
+       L          R9,04(,R2)                                            CFD01770
+       LR         R6,R8                                                 CFD01780
+       N          R6,=X'80000000'      r6: sign                         CFD01790
+       LR         R7,R8                                                 CFD01800
+       N          R7,=X'7F000000'      r7: exponent                     CFD01810
+       N          R8,=X'00FFFFFF'      r8-r9: mantissa                  CFD01820
+*                                                                       CFD01830
+TISSA  DS         0H                                                    CFD01840
+       SLDL       R8,8                                                  CFD01850
+       LA         R5,4                 see if normalized for ieee       CFD01860
+TISHFT DS         0H                                                    CFD01870
+       LTR        R8,R8                                                 CFD01880
+       SLDL       R8,1                                                  CFD01890
+       BM         TISNRM                                                CFD01900
+       BCT        R5,TISHFT                                             CFD01910
+       SRDL       R8,12                denormalized, reload back        CFD01920
+       B          STORE                and save as is                   CFD01930
+TISNRM DS         0H                   accepted for conversion          CFD01940
+       SRDL       R8,8                 tiss to the place with           CFD01950
+       LA         R8,1(R8)             rounding: last bit will be       CFD01960
+       SRDL       R8,1                 shifted away                     CFD01970
+*                                                                       CFD01980
+EXP    SRL        R7,22                quadruple exponent as is         CFD01990
+       S          R7,=F'134'           - 256  + 127 - 5                 CFD02000
+       AR         R7,R5                + j; i.e. -256 + 127 - k(see F)  CFD02010
+       BNM        EXPOS                                                 CFD02020
+       SR         R8,R8                                                 CFD02030
+       B          STSGN                store with sign                  CFD02040
+EXPOS  DS         0H                                                    CFD02050
+       C          R7,=F'255'                                            CFD02060
+       BM         EXPRDY                                                CFD02070
+       LA         R7,=F'255'                                            CFD02080
+       SR         R8,R8                                                 CFD02090
+EXPRDY SLL        R7,23                                                 CFD02100
+*                                                                       CFD02110
+STORE  DS         0H                                                    CFD02120
+       OR         R8,R7                .or. exponent                    CFD02130
+STSGN  OR         R8,R6                .or. sign                        CFD02140
+*                                                                       CFD02150
+DONE   ST         R8,00(,R3)                                            CFD02160
+       LA         R2,8(R2)                                              CFD02170
+       LA         R3,4(R3)                                              CFD02180
+       BCT        R11,NEXT                                              CFD02190
+* -----------------------------------------------------------------     CFD02200
+EXIT   L          R13,4(R13)                                            CFD02210
+       RETURN     (14,12),,RC=0      Reload caller's registers and ret. CFD02220
+* -----------------------------------------------------------------     CFD02230
+       END                                                              CFD02240

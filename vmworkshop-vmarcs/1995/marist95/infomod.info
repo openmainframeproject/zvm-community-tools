@@ -1,0 +1,109 @@
+This file contains the original INFO mod written at McGill University                                                               
+by Anne-Marie Marcoux.  Its purpose is to allow the definition of                                                                   
+synonym for a CWIS (Campus Wide Information System).  This synonym                                                                  
+will dial a guest machine above a specified address.  Therefore, the                                                                
+ports in the machine can be dedicated to a specific application, ie.                                                                
+a CWIS.  This mod has been enhanced by Martha McConaghy of Marist                                                                   
+College to handle more than one synonym.  This mod is contained in                                                                  
+INFOFOX INFO on LISTSERV@MARIST.  This mod is current for VM/ESA ESA 1.0.                                                           
+                                                                                                                                    
+                                                                                                   PAGE 00001                       
+./ * HCPCOM INFO                                                                                                                    
+./ * new command to dial to specific MUSICA ports for CWIS                                                                          
+./ * Anne-Marie Marcoux, McGill University   marie@vm1.mcgill.ca                                                                    
+./ I 00661420 $ 00661500 100                                                                                                        
+**************************************************************     INFO                                                             
+*                                                            *     INFO                                                             
+*  INFO COMMAND                                              *     INFO                                                             
+*                                                            *     INFO                                                             
+**************************************************************     INFO                                                             
+                                                       SPACE ,     INFO                                                             
+         COMMD COMMAND=(INFOMCGILL,4),FL=CMDONLY+CMDALOG+CMDOLOG,      *                                                            
+               CLASS=*,EP=HCPDIAIN                                 INFO                                                             
+                                                       SPACE ,     INFO                                                             
+                                                                                                   PAGE 00001                       
+                                                                                                                                    
+./ * HCPSCN INFO                                                                                                                    
+./ * new command to dial to specific MUSICA ports for CWIS                                                                          
+./ * Anne-Marie Marcoux, McGill University   marie@vm1.mcgill.ca                                                                    
+./ * first byte of R0 contains flag for INFOCMD                                                                                     
+./ I 01240000 $ 01240100 100                                                                                                        
+         CLI   PFXBALSV+24,INFOCMD doing info thing?               INFO                                                             
+         BNE   SCNVTALL           nope                             INFO                                                             
+         CLC   =AL2(X'0100'),VDEVDEV yes, vaddr 100 or above ?     INFO                                                             
+         BH    VTSCNMOR           no, reject it then               INFO                                                             
+         SPACE 1                                                   INFO                                                             
+./ I 02929000 $ 02929100 100                                                                                                        
+* mapping hcpdia r0 saved in PFXBALSV+24                                                                                            
+OTHERCMD EQU   X'00'                                               INFO                                                             
+INFOCMD  EQU   X'01'                                               INFO                                                             
+                                                                                                   PAGE 00001                       
+                                                                                                                                    
+./ * HCPMES INFO                                                                                                                    
+./ * new command to dial to specific MUSICA ports for CWIS                                                                          
+./ * merged in with HCPMES PFKDIAL                                                                                                  
+./ * Anne-Marie Marcoux, McGill University   marie@vm1.mcgill.ca                                                                    
+                                                                                                   PAGE 00001                       
+                                                                                                                                    
+./ * HCPBVM INFO                                                                                                                    
+./ * new command to dial to specific MUSICA ports for CWIS                                                                          
+./ * Anne-Marie Marcoux, McGill University   marie@vm1.mcgill.ca                                                                    
+./ I 07380480 $ 07380481 1                                                                                                          
+         TM    SYSFLAG,SYSCMD was that just a command?             INFO                                                             
+         BNO   NOTCMD1       nope, leave as is                     INFO                                                             
+         MVC   GSDDATA(L'SYSNAME),SYSNAME move pfdata part 1       INFO                                                             
+         MVC   GSDDATA+L'SYSNAME(L'DIAL),PFXBLANK                  INFO                                                             
+NOTCMD1  DS    0H                                                  INFO                                                             
+./ I 07380600 $ 07380601 1                                                                                                          
+         TM    SYSFLAG,SYSCMD was that just a command?             INFO                                                             
+         BNO   NOTCMD2       nope, leave as is                     INFO                                                             
+         MVC   GSDDATA(L'SYSNAME),SYSNAME move pfdata part 1       INFO                                                             
+         MVC   GSDDATA+L'SYSNAME(L'DIAL),PFXBLANK                  INFO                                                             
+NOTCMD2  DS    0H                                                  INFO                                                             
+./ I 07970800 $ 07970810                                                                                                            
+*                               X'80' --> command name, no DIAL    INFO                                                             
+./ I 07971200 $ 07971210                                                                                                            
+         DC    AL1(3),X'80',CL8'INFO'                              INFO                                                             
+./ I 07972300 $ 07972310                                                                                                            
+SYSCMD   EQU   X'80'         command, not system to dial to        INFO                                                             
+                                                                                                   PAGE 00001                       
+                                                                                                                                    
+./ * HCPDIA INFO                                                                                                                    
+./ * new command to dial to specific MUSICA ports for CWIS                                                                          
+./ * Anne-Marie Marcoux, McGill University   marie@vm1.mcgill.ca                                                                    
+./ I 03730000 $ 03730100                                                                                                            
+         MVI   WHICHCMD,OTHERCMD  indicate normal DIAL             INFO                                                             
+./ I 03814990 $ 03815000                                                                                                            
+GETVMDBK DS    0H            join here for INFO command            INFO                                                             
+./ I 04130000 $ 04130100                                                                                                            
+         CLI   WHICHCMD,INFOCMD   are we doing the INFO thing?     INFO                                                             
+         BE    DIAL02             yes, all set                     INFO                                                             
+./ I 06602240 $ 06602250                                                                                                            
+         ICM   R0,B'1000',WHICHCMD pass flag for type of dial      INFO                                                             
+./ I 13940000 $ 13940100 10                                                                                                         
+*START OF SPECIFICATIONS*******************************************INFO                                                             
+*                                                                  INFO                                                             
+* Entry point name - HCPDIAIN                                      INFO                                                             
+*                                                                  INFO                                                             
+* Descriptive name - Dial processing for INFO command              INFO                                                             
+*                                                                  INFO                                                             
+* Function - The INFO command is really DIAL MUSICA vaddr          INFO                                                             
+*                     where: vaddr >= 100                          INFO                                                             
+*            Warning: no upper bound is checked, assuming the portsINFO                                                             
+*                     are at the very end of the dial range        INFO                                                             
+*                                                                  INFO                                                             
+* SAVEWRK7 holds the flag, set a few things and join HCPDIAL code  INFO                                                             
+*                                                                  INFO                                                             
+*END OF SPECIFICATIONS*************************************************                                                             
+HCPDIAIN HCPENTER CALL,SAVE=DYNAMIC                                INFO                                                             
+         MVI   WHICHCMD,INFOCMD        indicate INFO command       INFO                                                             
+         MVC   SAVEWRK8(8),=CL8'MUSICA' userid to DIAL to          INFO                                                             
+         LA    R0,8                    setup length for SCVMD call INFO                                                             
+         LA    R1,SAVEWRK8             setup address for SCVMD callINFO                                                             
+         B     GETVMDBK                join common code            INFO                                                             
+         EJECT                                                     INFO                                                             
+./ I 15530000 $ 15530100 100                                                                                                        
+         ORG   SAVEWRK7                                            INFO                                                             
+WHICHCMD DS    XL1                is it INFO or normal DIAL ?      INFO                                                             
+OTHERCMD EQU   X'00'                                               INFO                                                             
+INFOCMD  EQU   X'01'                                               INFO                                                             

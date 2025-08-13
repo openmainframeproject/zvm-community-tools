@@ -1,0 +1,104 @@
+.cm ********************************************************************
+.cm **                                                                **
+.CM ** HELP FOR CALVIEWV, THE RESPONSE SCREEN FOR CALVIEW.            **
+.cm **                                                                **
+.cm ** 04171995 BAJ Original Author                                   **
+.cm ** 04241995 BAJ Included help when disk full situation happens.   **
+.cm ** 05261995 BAJ Put into full production.                         **
+.cm **                                                                **
+.cm ********************************************************************
+.cs 0 on
+ 
+CALVIEWV                     VIEW CALENDARS
+ 
+The CALVIEW  routine provides  view-only access  to OfficeVision  calendars for
+those customers who don't have full OfficeVision access themselves.
+ 
+From this screen, you can view or  print the requested calendar or the messages
+that resulted if the calendar could not be retrieved.
+ 
+ 
+ 
+Press PF1 for more details.
+.cs 0 off
+.cs 2 on
+ 
+Key Descriptions
+----------------
+ 
+PF1/PF9  (Help)       Brings you to this help screen.
+ 
+PF2      (Print       Displays the CHOOSE A PRINTER selection
+          Calendar)   screen where you can select the printer on
+                      which to print the calendar (or message).
+ 
+PF3/PF12 (Quit)       Exits from CALVIEW.
+ 
+PF7      (Scroll      Scrolls backward (towards the top) of the file
+          Backward)   being viewed.
+ 
+PF8      (Scroll      Scrolls forward (towards the end) of the file
+          Forward)    being viewed.
+.cs 2 off
+.cs 5 on
+ 
+Usage Notes
+-----------
+ 
+1. Use PF7/PF8 to scroll through the calendar display or
+   PF2 to print the calendar file.
+ 
+2. If you get a message instead of a calendar, here are the most
+   likely messages and a little more about what they mean:
+ 
+   message:  USERID is not a known OfficeVision userid.
+             No calendar is available.
+ 
+   means:    The userid requested on the previous screen is not
+             defined as an OfficeVision customer. Only OfficeVision(OV)
+             accounts can have calendars. It may be a valid userid
+             on the university's IBM, but it is not an OV account.
+ 
+ 
+   message:  USERID has not authorized you to view the calendar.
+ 
+   means:    The owner of the calendar you requested to view
+             has restricted your access through OfficeVision
+             calendar authorizations.
+ 
+ 
+   message:  USERID has restricted your view of the calendar through
+             this service.
+ 
+   means:    This userid has set up their OfficeVision calendar so
+             the special userid "STUDENTS" does not have access.
+ 
+ 
+   message:  Calendar cannot be retrieved at this time.
+ 
+   means:    More than likely, the calendar system is over burdened at
+             the time of the request. Try CALVIEW again in a few
+             minutes and if the problem persists, notify the HelpDesk.
+ 
+ 
+   message:  DMSWRC671E Error receiving file ...
+             Unable to read in the calendar.... Press PF3/PF12 to quit.
+ 
+   means:    You did not have enough room on your A(191) disk for the
+             temporary file used by CALVIEW to display the retrieved
+             calendar. Erase some disk space or retrieve fewer days.
+ 
+ 
+   message:  You may not view calendars prior to April 24, 1995, using CALVIEW.
+ 
+   means:    CALVIEW cannot be used to look at calendars that existed
+             before the CALVIEW routine became available.
+ 
+3. OfficeVision calendar owners have the ability to set authorizations
+   for their own calendars.  The default standard authorization allows
+   anyone else to see all times and descriptions of non-personal and
+   non-confidential entries unless an authorization for a particular
+   userid overrides the default.  If a particular userid has been
+   restricted to view times only, for example, then CALVIEW will
+   return only that much of their calendar.
+.cs 5 off
