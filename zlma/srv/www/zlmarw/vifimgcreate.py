@@ -21,13 +21,8 @@ class Vif_img_create:
     query_params = parse_qs(query_string)  # parse query string
     self.sub_cmd = query_params.get('sub_cmd', [''])[0] # get first element of 'sub_cmd' value
     self.cmd = query_params.get('cmd', ['image'])[0]   # get command type (vm or image)
-    
-    if self.cmd == 'vm':
-      self.title = "zlma vif vm create"
-      self.nav_context = "using-vif-vm"
-    else:
-      self.title = "zlma vif image create"
-      self.nav_context = "using-vif-image"
+    self.title = "zlma vif image create"
+    self.nav_context = "using-vif-image"
       
     print('Content-Type: text/html')       # start the HTML page
     print()
@@ -43,10 +38,7 @@ class Vif_img_create:
     html_code = '<table>'
     html_code += "<tr><td><pre>"           # start row, cell, preformatted text
     
-    if self.cmd == 'vm':
-      html_code += "TODO: gather args to call 'vif vm create' - VM name, template image?\n"
-    else:
-      html_code += "TODO: gather args to call 'vif image create' - host name, distro and T-shirt size?\n"
+    html_code += "TODO: gather args to call 'vif image create' - host name, distro and T-shirt size?\n"
     
     html_code += "</pre></td></tr></table>\n" # end cell, row and table
     html_code += "</body></html>"

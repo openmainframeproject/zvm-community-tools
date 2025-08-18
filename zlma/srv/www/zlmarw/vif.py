@@ -52,9 +52,7 @@ class Vif:
           elif vif_cmd == "image" and cell == "create":
             script = "vifimgcreate.py"      
           elif vif_cmd == "image" and cell == "delete":
-            script = f"vifimgset.py?sub_cmd={cell}"      
-          elif vif_cmd == "query" and cell == "vm":
-            script = f"vifimgset.py?sub_cmd={cell}"      
+            script = f"vifimgset.py?sub_cmd={cell}"          
           elif vif_cmd == "disk":
             script = f"vifdisk.py?sub_cmd={cell}"      
           else:                            # no arguments needed

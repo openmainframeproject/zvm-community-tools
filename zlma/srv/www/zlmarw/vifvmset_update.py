@@ -35,7 +35,7 @@ print('<tr><td>New value:</td><td>')
 for val in ['1','2','3','4']:
     checked = 'checked' if val == current_value else ''
     disabled = 'disabled' if val == current_value else ''
-    print(f'<label><input type="radio" name="arg3" value="{val}" {checked} {disabled}> {val}</label>&nbsp;')
+    print(f'<label><input type="radio" name="arg3" value="{val}" {checked} {disabled}> {val}</label><br>')
 print('</td></tr>')
 print('<tr><td colspan="2"><button type="submit" class="button green-button">Update</button></td></tr>')
 print('</table></form>')

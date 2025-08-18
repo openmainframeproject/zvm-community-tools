@@ -19,7 +19,7 @@ fi
 #     IPaddr="unknown"
 #   fi
 # fi
-IPaddr = "Unknown" # our vms dont have an IP address as for now
+IPaddr="Unknown" # our vms dont have an IP address as for now
 numCPUs=`grep ^processor /proc/cpuinfo | wc -l`
 memKB=`cat /proc/meminfo | head -1 | awk '{print $2}'`
 let memGB="( $memKB + 524288 ) / (1024 * 1024 )" # round to nearest GB
@@ -54,5 +54,5 @@ fi
 kern_ver=`uname -v | sed -e 's/PREEMPT_DYNAMIC //g' -e 's/PREEMPT //g'` 
 kern_rel=`uname -r`                          
 rootfsFull=`df -h / | tail -1 | awk '{print $5}' | sed 's/%//g'`
-echo -n "$lpar,$userID,$IPaddr,$numCPUs,$memGB,$arch,$arch_com,$os,$distro,$kern_ver,$kern_rel,$rootfsFull,$last_ping,$created,$hostName"
+echo -n "$lpar,$userID,$IPaddr,$numCPUs,$memGB,$arch,$arch_com,$os,$distro,$kern_ver,$kern_rel,$rootfsFull,$last_ping,$created,${userID}_${hostName}"
 

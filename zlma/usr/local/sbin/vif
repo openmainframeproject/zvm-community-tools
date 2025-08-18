@@ -1238,7 +1238,7 @@ class Vif:
   def handle_query_active(self):
     # Get a list of all VMs in this LPAR
     # Ping each server (1 packet, 500 ms max) and show which are up and which are down
-    self.get_lpar_userid()                 # save LPAR and user ID we are running on
+    # self.get_lpar_userid()                 # save LPAR and user ID we are running on
     cmd = "/usr/local/sbin/zlma webdata"
     try:
       proc = subprocess.run(cmd, shell=True, capture_output=True, text=True)
