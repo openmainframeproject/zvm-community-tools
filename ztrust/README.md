@@ -15,3 +15,14 @@ contributed by members of the community. Some of these are signed
 using PGP.
 
 
+## Multiplicity
+
+This sub-directory exists in two repositories:
+
+https://github.com/openmainframeproject/zvm-community-tools/tree/main/ztrust
+
+https://github.com/trothr/vmworkshop/tree/master/ztrust
+
+Eventually we hope to include keys and certs from the larger mainframe community.
+
+
