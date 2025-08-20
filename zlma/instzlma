@@ -275,6 +275,7 @@ function copyFiles
   echo "Step 5): Copying CGI files from repo to /srv/www ..." | tee -a $outFile
   copyAllFiles $repoDir/srv/www/zlma   /srv/www/zlma
   copyAllFiles $repoDir/srv/www/zlmarw /srv/www/zlmarw
+  copyOneFile $repoDir/srv/www/zlma/version /srv/www/zlma/version
 
   # copy files one at a time to /usr/local/sbin
   echo | tee -a $outFile
