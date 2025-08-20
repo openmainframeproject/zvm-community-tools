@@ -1077,11 +1077,55 @@ class Vif:
       print(f"URL: {self.feilong_url}/guests")
 
   def handle_query_vm(self, vm_name: str):
-    # Display configuration of a specific VM
+    # Display configuration of a specific VM using Feilong API
     self.log.debug(f"handle_query_vm() user: {self.conf.user} query VM {vm_name}")
-    print(f"Querying VM configuration for: {vm_name}")
-    # TODO: Call Feilong API to get VM details
-    print("TODO: Implement VM configuration query via Feilong API")
+    
+    if not vm_name:
+      print("Error: VM name is required")
+      return
+    
+    print(f"=== VM Configuration for: {vm_name.upper()} ===")
+    print()
+    
+    try:
+      # Call Feilong API to get guest definition
+      response = requests.get(
+        f"{self.feilong_url}/guests/{vm_name.upper()}",
+        timeout=10
+      )
+      
+      if response.status_code == 200:
+        data = response.json()
+        
+        if data.get('rc') == 0:
+          output = data.get('output', {})
+          user_direct = output.get('user_direct', [])
+          
+          if user_direct:
+            print("User Directory Definition:")
+            print("-" * 26)
+            
+            # Just print each line of the user directory as-is
+            for line in user_direct:
+              print(line)
+              
+          else:
+            print("No user directory information found for this VM.")
+        else:
+          error_msg = data.get('errmsg', 'Unknown error')
+          print(f"Error from Feilong API: {error_msg}")
+      else:
+        print(f"Failed to query VM. HTTP Status: {response.status_code}")
+        if response.status_code == 404:
+          print(f'VM "{vm_name.upper()}" not found. Please check the VM name.')
+        
+    except requests.exceptions.ConnectTimeout:
+      print("Timeout connecting to Feilong API")
+    except requests.exceptions.ConnectionError:
+      print("Cannot connect to Feilong API. Please check if the service is running.")
+    except Exception as e:
+      print(f"Error: {e}")
+      self.log.error(f"handle_query_vm(): Error: {e}")
 
   def handle_query_all(self):
     # Invoke all other query subcommands
