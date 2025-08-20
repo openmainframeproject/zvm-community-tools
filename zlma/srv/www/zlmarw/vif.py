@@ -95,7 +95,7 @@ class Vif:
                   # ["share", "Give R/O access to a disk of another image"]
                  ]
     query_data = [["active", "Report which VMs are running"],
-                  # ["all", "Invoke all other query subcommands"],
+                  ["all", "Invoke all other query subcommands"],
                   ["configuration", "Display current vif settings"],
                   ["disks", "Display Linux and z/VM disks"],
                   # ["errors", "Report on hardware errors"],

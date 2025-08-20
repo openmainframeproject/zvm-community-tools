@@ -1121,8 +1121,136 @@ class Vif:
   def handle_query_performance(self):
     # Display current CPU, paging and I/O utilization
     self.log.debug(f"handle_query_performance(): user: {self.conf.user} display performance metrics")
-    print("Performance metrics:")
-    print("TODO: Implement performance query")
+    
+    print("=== z/VM System Performance Metrics ===")
+    print()
+    
+    try:
+      # Run INDICATE command for system performance
+      print("System Performance Indicators:")
+      print("-" * 35)
+      
+      ind_output = self.run_vm_cmd("IND")
+      if ind_output.strip():
+        lines = ind_output.strip().split('\n')
+        
+        for line in lines:
+          line = line.strip()
+          if not line:
+            continue
+            
+          # Parse different types of performance data
+          if "AVGPROC-" in line:
+            # Average processor utilization
+            parts = line.split()
+            for part in parts:
+              if "AVGPROC-" in part:
+                cpu_util = part.split("-")[1]
+                print(f"Average CPU Utilization: {cpu_util}")
+                
+          elif "MDC READS-" in line:
+            # Memory cache statistics
+            print(f"Memory Cache: {line}")
+            
+          elif "PAGING-" in line:
+            # Paging activity
+            paging_rate = line.split("-")[1] if "-" in line else "Unknown"
+            print(f"Paging Rate: {paging_rate}")
+            
+          elif line.startswith("Q") and ("DORMANT-" in line or "EXPAN-" in line):
+            # Queue statistics
+            print(f"Queue Status: {line}")
+            
+          elif line.startswith("PROC ") and "%" in line:
+            # Individual processor utilization
+            print(f"Processor Details: {line}")
+            
+          elif "LIMITED-" in line:
+            # Limited resource information
+            limited_count = line.split("-")[1] if "-" in line else "Unknown"
+            print(f"Limited Resources: {limited_count}")
+      else:
+        print("No performance indicator data available")
+      
+      print()
+      print("Storage Allocation:")
+      print("-" * 20)
+      
+      # Run QUERY ALLOC MAP for storage allocation
+      alloc_output = self.run_vm_cmd("QUERY ALLOC MAP")
+      if alloc_output.strip():
+        lines = alloc_output.strip().split('\n')
+        
+        # Find and display header
+        header_found = False
+        for line in lines:
+          line = line.strip()
+          if not line:
+            continue
+            
+          # Look for the header line
+          if "VOLID" in line and "RDEV" in line and "EXTENT" in line:
+            print(f"{'VOLID':<8} {'RDEV':<6} {'START':<10} {'END':<10} {'TOTAL':<8} {'IN USE':<8} {'HIGH':<8} {'%':<4} {'TYPE':<12}")
+            print("-" * 80)
+            header_found = True
+            continue
+            
+          # Skip the separator line
+          if "------" in line:
+            continue
+            
+          # Display data lines
+          if header_found and line and not line.startswith("EXTENT"):
+            # Parse volume information
+            parts = line.split()
+            if len(parts) >= 8:
+              volid = parts[0]
+              rdev = parts[1]
+              start = parts[2]
+              end = parts[3]
+              total = parts[4]
+              in_use = parts[5]
+              high = parts[6]
+              percent = parts[7]
+              vol_type = ' '.join(parts[8:]) if len(parts) > 8 else ""
+              
+              print(f"{volid:<8} {rdev:<6} {start:<10} {end:<10} {total:<8} {in_use:<8} {high:<8} {percent:<4} {vol_type:<12}")
+      else:
+        print("No storage allocation data available")
+      
+      print()
+      print("=" * 50)
+      print("Performance Summary:")
+      
+      # Extract key metrics for summary
+      cpu_util = "N/A"
+      paging_rate = "N/A"
+      total_volumes = 0
+      
+      if ind_output:
+        if "AVGPROC-" in ind_output:
+          for part in ind_output.split():
+            if "AVGPROC-" in part:
+              cpu_util = part.split("-")[1]
+              break
+        if "PAGING-" in ind_output:
+          for part in ind_output.split():
+            if "PAGING-" in part:
+              paging_rate = part.split("-")[1]
+              break
+      
+      if alloc_output:
+        total_volumes = len([line for line in alloc_output.split('\n') 
+                           if line.strip() and not any(x in line for x in ['VOLID', 'EXTENT', '------', '']) 
+                           and len(line.split()) >= 8])
+      
+      print(f"CPU Utilization: {cpu_util}")
+      print(f"Paging Rate: {paging_rate}")
+      print(f"Storage Volumes: {total_volumes}")
+      
+    except Exception as e:
+      print(f"Error querying performance information: {str(e)}")
+      self.log.error(f"handle_query_performance(): Error: {e}")
 
   # New disk command handlers for the new format
   def handle_disk_copy_new(self, options: Dict[str, Any]):
@@ -1284,7 +1412,131 @@ class Vif:
 
   def handle_query_network(self):
     self.log.debug(f"handle_query_network() user: {self.conf.user} running QUERY VSWITCH DETAILS")
-    self.run_vm_cmd("QUERY VSWITCH DETAILS")
+    
+    try:
+      vmcp_output = self.run_vm_cmd("QUERY VSWITCH DETAILS")
+      
+      if not vmcp_output.strip():
+        print("No VSWITCH information available")
+        return
+      
+      print("=== z/VM VSWITCH Network Information ===")
+      print()
+      
+      # Parse and format the VSWITCH output
+      lines = vmcp_output.strip().split('\n')
+      current_vswitch = None
+      
+      for line in lines:
+        line = line.strip()
+        if not line:
+          continue
+          
+        # Check if this is a VSWITCH header line
+        if line.startswith('VSWITCH SYSTEM'):
+          if current_vswitch:
+            print()  # Add space between VSWITCHes
+          current_vswitch = line.split()[2]  # Extract VSWITCH name
+          
+          # Parse VSWITCH summary info
+          parts = line.split()
+          vswitch_name = parts[2] if len(parts) > 2 else "Unknown"
+          
+          # Extract Type, Connected, Maxconn
+          type_info = "Unknown"
+          connected_info = "0"
+          maxconn_info = "Unknown"
+          
+          for i, part in enumerate(parts):
+            if part == "Type:":
+              type_info = parts[i+1] if i+1 < len(parts) else "Unknown"
+            elif part == "Connected:":
+              connected_info = parts[i+1] if i+1 < len(parts) else "0"
+            elif part == "Maxconn:":
+              maxconn_info = parts[i+1] if i+1 < len(parts) else "Unknown"
+          
+          print(f"VSWITCH: {vswitch_name}")
+          print("-" * (len(vswitch_name) + 9))
+          print(f"Type: {type_info}    Connected: {connected_info}    Max Connections: {maxconn_info}")
+          
+        elif "PERSISTENT" in line or "RESTRICTED" in line:
+          # Configuration line
+          config_parts = [part.strip() for part in line.split() if part.strip()]
+          print(f"Configuration: {' '.join(config_parts)}")
+          
+        elif "MAC address:" in line:
+          # Extract MAC address info
+          mac_match = line.split("MAC address:")
+          if len(mac_match) > 1:
+            mac_info = mac_match[1].strip()
+            print(f"MAC Address: {mac_info}")
+            
+        elif "Uplink Port:" in line:
+          print("Uplink Port:")
+          
+        elif "State:" in line and "Uplink" not in line:
+          state = line.split("State:")[1].strip() if "State:" in line else "Unknown"
+          print(f"  State: {state}")
+          
+        elif "RDEV:" in line:
+          print(f"  {line}")
+          
+        elif "Adapter Connections:" in line:
+          conn_info = line.split("Connected:")
+          connected_count = conn_info[1].strip() if len(conn_info) > 1 else "0"
+          print(f"\nAdapter Connections (Connected: {connected_count}):")
+          print("-" * 40)
+          
+        elif "Adapter Owner:" in line:
+          # Parse adapter info
+          parts = line.split()
+          owner = "Unknown"
+          nic = "Unknown"
+          adapter_type = "Unknown"
+          
+          for i, part in enumerate(parts):
+            if part == "Owner:":
+              owner = parts[i+1] if i+1 < len(parts) else "Unknown"
+            elif part == "NIC:":
+              nic = parts[i+1] if i+1 < len(parts) else "Unknown"
+            elif part == "Type:":
+              adapter_type = parts[i+1] if i+1 < len(parts) else "Unknown"
+          
+          print(f"  Owner: {owner}    NIC: {nic}    Type: {adapter_type}")
+          
+        elif "RX Packets:" in line or "TX Packets:" in line:
+          # Traffic statistics
+          print(f"    {line}")
+          
+        elif "RX Bytes:" in line or "TX Bytes:" in line:
+          print(f"    {line}")
+          
+        elif "Unicast MAC Addresses:" in line:
+          print("    Unicast MAC Addresses:")
+          
+        elif "Multicast MAC Addresses:" in line:
+          print("    Multicast MAC Addresses:")
+          
+        elif line.startswith("02-00-00") or line.startswith("01-00-5E") or line.startswith("33-33") or line.startswith("01-80-C2"):
+          # MAC address with possible IP
+          print(f"      {line}")
+          
+        elif "Device:" in line and "Unit:" in line:
+          print(f"    {line}")
+          
+        elif "Options:" in line:
+          print(f"    {line}")
+      
+      print("\n" + "=" * 50)
+      print("Summary:")
+      
+      # Count VSWITCHes and total connections
+      vswitch_count = vmcp_output.count('VSWITCH SYSTEM')
+      print(f"Total VSWITCHes: {vswitch_count}")
+      
+    except Exception as e:
+      print(f"Error querying network information: {str(e)}")
+      self.log.error(f"handle_query_network(): Error: {e}")
 
   def handle_query_paging(self):
     self.log.debug(f"handle_query_paging() user: {self.conf.user} running 'QUERY ALLOC PAGE'")
@@ -1327,7 +1579,7 @@ class Vif:
                         # Create summary table
                         print("<table border='1' style='border-collapse: collapse; margin: 10px 0;'>")
                         print("<thead>")
-                        print("<tr style='background-color: #f0f0f0;'>")
+                        print("<tr style='background-color: #1E1E1E;'>")
                         print("<th style='padding: 8px; text-align: left;'>Metric</th>")
                         print("<th style='padding: 8px; text-align: right;'>Size (GB)</th>")
                         print("</tr>")
@@ -1378,7 +1630,7 @@ class Vif:
                                     print(f"<h4>DASD Group: {dasd_group}</h4>")
                                     print("<table border='1' style='border-collapse: collapse; margin: 10px 0; width: 100%;'>")
                                     print("<thead>")
-                                    print("<tr style='background-color: #e6f3ff;'>")
+                                    print("<tr style='background-color: #1E1E1E;'>")
                                     print("<th style='padding: 8px; text-align: left;'>Volume Name</th>")
                                     print("<th style='padding: 8px; text-align: left;'>Device Type</th>")
                                     print("<th style='padding: 8px; text-align: right;'>Start Cylinder</th>")
@@ -1407,7 +1659,7 @@ class Vif:
                                         print("</tr>")
                                     
                                     # Add summary row for this DASD group
-                                    print("<tr style='background-color: #f9f9f9; font-weight: bold;'>")
+                                    print("<tr style='background-color: #1E1E1E; font-weight: bold;'>")
                                     print(f"<td colspan='3' style='padding: 8px;'>Total Free for {dasd_group}</td>")
                                     print(f"<td style='padding: 8px; text-align: right;'>{total_free} GB</td>")
                                     print("<td style='padding: 8px;'>-</td>")
@@ -1434,8 +1686,6 @@ class Vif:
             # Add separator between pools
             print("<hr style='margin: 20px 0;'>")
         
-        # Add a note about the data
-        print("<p><em>Note: Disk information retrieved from Feilong API. Free space values are in Gigabytes (GB).</em></p>")
         
     except Exception as e:
         print(f"<p>Unexpected error in handle_query_disks: {str(e)}</p>")

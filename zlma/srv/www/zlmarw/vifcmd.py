@@ -12,16 +12,7 @@ class Vif_cmd:
     """
     Initialize globals, create page header, set background
     """
-    self.title = "zlma vif run command"
-    print('Content-Type: text/html')       # start the HTML page
-    print()
-    print('<!DOCTYPE html>')
-    print(f'<html><head><title>{self.title}</title>')
-    print('<link rel="icon" type="image/png" href="/zlma.ico">')
-    print('<link rel="stylesheet" href="/zlma.css">')
-    print('</head><body>')
-    zlma_buttons = Zlma_buttons("using-vif")     # add navigation buttons
-    print(f'<h2>{self.title}</h2>')
+    self.base_title = "zlma vif"
 
   def run_vif_cmd(self, cmd: str, sub_cmd: str, arg1: str, arg2: str, arg3: str, arg4: str) -> str:
     """
@@ -51,6 +42,24 @@ class Vif_cmd:
     arg2 = query_params.get('arg2', [''])[0].rstrip()
     arg3 = query_params.get('arg3', [''])[0].rstrip()
     arg4 = query_params.get('arg4', [''])[0].rstrip()
+
+    # Create dynamic title based on command
+    if cmd and sub_cmd:
+      dynamic_title = f"{self.base_title} {cmd} {sub_cmd}"
+    elif cmd:
+      dynamic_title = f"{self.base_title} {cmd}"
+    else:
+      dynamic_title = f"{self.base_title} run command"
+
+    print('Content-Type: text/html')       # start the HTML page
+    print()
+    print('<!DOCTYPE html>')
+    print(f'<html><head><title>{dynamic_title}</title>')
+    print('<link rel="icon" type="image/png" href="/zlma.ico">')
+    print('<link rel="stylesheet" href="/zlma.css">')
+    print('</head><body>')
+    zlma_buttons = Zlma_buttons("using-vif")     # add navigation buttons
+    print(f'<h2>{dynamic_title}</h2>')
 
     html_code = '<table class="greenScreenTable">' # start a 'green screen' table
     html_code += "<tr><td><pre>"                   # start row, cell, preformatted text
