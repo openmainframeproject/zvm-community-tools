@@ -55,6 +55,8 @@ class Vif:
             script = f"vifimgset.py?sub_cmd={cell}"          
           elif vif_cmd == "disk":
             script = f"vifdisk.py?sub_cmd={cell}"      
+          elif vif_cmd == "query" and cell == "vm":
+            script = "vifqueryvm.py"
           else:                            # no arguments needed
             script = "vifcmd.py" 
           html_code += f"<td><form action='/zlmarw/{script}' target='_blank' accept-charset='utf-8'>\n"

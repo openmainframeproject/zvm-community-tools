@@ -19,6 +19,45 @@ th, td {
 .button {
   border:solid #1323a7 1px;
   border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: Verdana, arial;
+  font-size: 14px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.green-button {
+  background-color: #28a745;
+  color: white;
+  border-color: #1e7e34;
+}
+
+.green-button:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
+.red-button {
+  background-color: #dc3545;
+  color: white;
+  border-color: #bd2130;
+}
+
+.red-button:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+
+.yellow-button {
+  background-color: #ffc107;
+  color: #212529;
+  border-color: #e0a800;
+}
+
+.yellow-button:hover {
+  background-color: #e0a800;
+  border-color: #d39e00;
 }
 body {
     font-family: Verdana, arial;
@@ -37,10 +76,6 @@ table {
 }
 .wrapper {
   text-align: center;
-}
-.button {
-  border:solid #1323a7 1px;
-  border-radius: 6px;
 }
 form {
  margin: 0px;

@@ -14,6 +14,7 @@ from enum import Enum
 from zlma_conf import Zlma_conf
 import requests
 import json
+import os
 
 
 
@@ -1076,11 +1077,55 @@ class Vif:
       print(f"URL: {self.feilong_url}/guests")
 
   def handle_query_vm(self, vm_name: str):
-    # Display configuration of a specific VM
+    # Display configuration of a specific VM using Feilong API
     self.log.debug(f"handle_query_vm() user: {self.conf.user} query VM {vm_name}")
-    print(f"Querying VM configuration for: {vm_name}")
-    # TODO: Call Feilong API to get VM details
-    print("TODO: Implement VM configuration query via Feilong API")
+    
+    if not vm_name:
+      print("Error: VM name is required")
+      return
+    
+    print(f"=== VM Configuration for: {vm_name.upper()} ===")
+    print()
+    
+    try:
+      # Call Feilong API to get guest definition
+      response = requests.get(
+        f"{self.feilong_url}/guests/{vm_name.upper()}",
+        timeout=10
+      )
+      
+      if response.status_code == 200:
+        data = response.json()
+        
+        if data.get('rc') == 0:
+          output = data.get('output', {})
+          user_direct = output.get('user_direct', [])
+          
+          if user_direct:
+            print("User Directory Definition:")
+            print("-" * 26)
+            
+            # Just print each line of the user directory as-is
+            for line in user_direct:
+              print(line)
+              
+          else:
+            print("No user directory information found for this VM.")
+        else:
+          error_msg = data.get('errmsg', 'Unknown error')
+          print(f"Error from Feilong API: {error_msg}")
+      else:
+        print(f"Failed to query VM. HTTP Status: {response.status_code}")
+        if response.status_code == 404:
+          print(f'VM "{vm_name.upper()}" not found. Please check the VM name.')
+        
+    except requests.exceptions.ConnectTimeout:
+      print("Timeout connecting to Feilong API")
+    except requests.exceptions.ConnectionError:
+      print("Cannot connect to Feilong API. Please check if the service is running.")
+    except Exception as e:
+      print(f"Error: {e}")
+      self.log.error(f"handle_query_vm(): Error: {e}")
 
   def handle_query_all(self):
     # Invoke all other query subcommands
@@ -1188,19 +1233,19 @@ class Vif:
           if not line:
             continue
             
-          # Look for the header line
-          if "VOLID" in line and "RDEV" in line and "EXTENT" in line:
-            print(f"{'VOLID':<8} {'RDEV':<6} {'START':<10} {'END':<10} {'TOTAL':<8} {'IN USE':<8} {'HIGH':<8} {'%':<4} {'TYPE':<12}")
-            print("-" * 80)
+          # Look for the header line (VOLID RDEV START END TOTAL IN USE HIGH USED TYPE)
+          if "VOLID" in line and "RDEV" in line and ("START" in line or "EXTENT" in line):
+            print(f"{'VOLID':<8} {'RDEV':<6} {'START':<10} {'END':<10} {'TOTAL':<8} {'IN USE':<8} {'HIGH':<8} {'%':<6} {'TYPE':<12}")
+            print("-" * 85)
             header_found = True
             continue
             
-          # Skip the separator line
-          if "------" in line:
+          # Skip the separator line and EXTENT header
+          if "------" in line or line.startswith("EXTENT"):
             continue
             
           # Display data lines
-          if header_found and line and not line.startswith("EXTENT"):
+          if header_found and line:
             # Parse volume information
             parts = line.split()
             if len(parts) >= 8:
@@ -1214,7 +1259,7 @@ class Vif:
               percent = parts[7]
               vol_type = ' '.join(parts[8:]) if len(parts) > 8 else ""
               
-              print(f"{volid:<8} {rdev:<6} {start:<10} {end:<10} {total:<8} {in_use:<8} {high:<8} {percent:<4} {vol_type:<12}")
+              print(f"{volid:<8} {rdev:<6} {start:<10} {end:<10} {total:<8} {in_use:<8} {high:<8} {percent:<6} {vol_type:<12}")
       else:
         print("No storage allocation data available")
       
@@ -1366,7 +1411,7 @@ class Vif:
   def handle_query_active(self):
     # Get a list of all VMs in this LPAR
     # Ping each server (1 packet, 500 ms max) and show which are up and which are down
-    # self.get_lpar_userid()                 # save LPAR and user ID we are running on
+    self.get_lpar_userid()                 # save LPAR and user ID we are running on
     cmd = "/usr/local/sbin/zlma webdata"
     try:
       proc = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -1428,8 +1473,95 @@ class Vif:
     print("TO DO: write this!")
 
   def handle_query_version(self):
-    self.log.debug(f"handle_query_version() user: {self.conf.user} calling CP QUERY CPLEVEL")
-    self.run_vm_cmd("QUERY CPLEVEL")
+    self.log.debug(f"handle_query_version() user: {self.conf.user} querying system versions")
+    
+    print("=== System Version Information ===")
+    print()
+    
+    # 1. Get z/VM CP Level
+    print("z/VM Control Program Level:")
+    print("-" * 30)
+    try:
+      cp_output = self.run_vm_cmd("QUERY CPLEVEL")
+      if cp_output.strip():
+        print(cp_output.strip())
+      else:
+        print("Unable to retrieve z/VM CP level")
+    except Exception as e:
+      print(f"Error querying z/VM CP level: {e}")
+    
+    print()
+    
+    # 2. Get Feilong API Version
+    print("Feilong API Version:")
+    print("-" * 20)
+    try:
+      response = requests.get(f"{self.feilong_url}/", timeout=10)
+      
+      if response.status_code == 200:
+        data = response.json()
+        
+        if data.get('rc') == 0:
+          output = data.get('output', {})
+          version = output.get('version', 'Unknown')
+          api_version = output.get('api_version', 'Unknown')
+          max_version = output.get('max_version', 'Unknown')
+          min_version = output.get('min_version', 'Unknown')
+          
+          print(f"Feilong Version: {version}")
+          print(f"API Version: {api_version}")
+          print(f"Supported API Range: {min_version} - {max_version}")
+        else:
+          print(f"Error in Feilong response: {data.get('errmsg', 'Unknown error')}")
+      else:
+        print(f"Failed to connect to Feilong API (HTTP {response.status_code})")
+        
+    except requests.exceptions.ConnectTimeout:
+      print("Timeout connecting to Feilong API")
+    except requests.exceptions.ConnectionError:
+      print("Cannot connect to Feilong API")
+    except Exception as e:
+      print(f"Error querying Feilong API: {e}")
+    
+    print()
+    
+    # 3. Get ZLMA Version
+    print("ZLMA Version:")
+    print("-" * 13)
+    try:
+      # Try to read version from version file - check multiple possible locations
+      home_dir = os.path.expanduser("~")
+      version_paths = [
+        os.path.join(home_dir, 'version'),
+        os.path.join(home_dir,'zvm-community-tools', 'zlma', 'version')
+      ]
+      
+      zlma_version = None
+      for version_path in version_paths:
+        try:
+          with open(version_path, 'r') as f:
+            zlma_version = f.read().strip()
+            print(f"ZLMA Version: {zlma_version}")
+            break
+        except FileNotFoundError:
+          continue
+      
+      if not zlma_version:
+        print("ZLMA version file not found")
+            
+    except Exception as e:
+      print(f"Error reading ZLMA version: {e}")
+    
+    print()
+    
+    # 4. Get VIF Script Version (this file)
+    print("VIF Command Interface:")
+    print("-" * 22)
+    print("VIF Version: Part of ZLMA")
+    print(f"Configuration: {self.conf.feilong_url}")
+    
+    print()
+    print("=" * 40)
 
   def handle_query_network(self):
     self.log.debug(f"handle_query_network() user: {self.conf.user} running QUERY VSWITCH DETAILS")
