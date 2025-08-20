@@ -14,6 +14,7 @@ from enum import Enum
 from zlma_conf import Zlma_conf
 import requests
 import json
+import os
 
 
 
@@ -1464,10 +1465,9 @@ class Vif:
     print("-" * 13)
     try:
       # Try to read version from version file - check multiple possible locations
+      home_dir = os.path.expanduser("~")
       version_paths = [
-        '/usr/local/zlma/version',
-        '/opt/zlma/version',
-        '/home/elliot/Desktop/zvm-community-tools/zlma/version'
+        os.path.join(home_dir, '/zvm-community-tools/zlma/version')
       ]
       
       zlma_version = None
@@ -1482,29 +1482,6 @@ class Vif:
       
       if not zlma_version:
         print("ZLMA version file not found")
-      
-      # Also try to get more details from release notes
-      release_note_paths = [
-        '/usr/local/zlma/RELEASE-NOTES.md',
-        '/opt/zlma/RELEASE-NOTES.md', 
-        '/home/elliot/Desktop/zvm-community-tools/zlma/RELEASE-NOTES.md'
-      ]
-      
-      for notes_path in release_note_paths:
-        try:
-          with open(notes_path, 'r') as f:
-            release_notes = f.read()
-            
-            # Find the latest version entry
-            lines = release_notes.split('\n')
-            for line in lines:
-              if line.startswith('### Version'):
-                latest_release = line.replace('### Version ', '').strip()
-                print(f"Latest Release: {latest_release}")
-                break
-          break
-        except FileNotFoundError:
-          continue
             
     except Exception as e:
       print(f"Error reading ZLMA version: {e}")
