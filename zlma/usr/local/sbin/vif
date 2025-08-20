@@ -1467,7 +1467,7 @@ class Vif:
       # Try to read version from version file - check multiple possible locations
       home_dir = os.path.expanduser("~")
       version_paths = [
-        os.path.join(home_dir, 'zlma', 'version'),
+        os.path.join(home_dir, 'version'),
         os.path.join(home_dir,'zvm-community-tools', 'zlma', 'version')
       ]
       
