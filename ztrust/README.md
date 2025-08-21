@@ -14,6 +14,13 @@ The `pki` sub-directory has a number of PKI root certificates
 contributed by members of the community. Some of these are signed
 using PGP.
 
+## BYOK - Bring Your Own Key
+
+One of the biggest problems, of course, is that folks don't understand
+ the caveats, go in with both feet first, and get burned. All of the CSPs,
+ for example, offer some sort of cryptographic service. None of them are
+ BYOK (Bring Your Own Key)-in other words, you're trusting the service itself
+ not to attack you or to get compromised and allow an attack. WCGW?
 
 ## Multiplicity
 
