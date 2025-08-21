@@ -1441,7 +1441,28 @@ class Vif:
 
   def handle_query_all(self):
     self.log.debug(f"handle_query_all() user: {self.conf.user} run all other query commands")
-    print("handle_query_all() TO DO: call all other query commands")
+    # print("handle_query_all() TO DO: call all other query commands")
+    print("Running all query commands:")
+    self.handle_query_active()
+    print()
+    self.handle_query_configuration()
+    print()
+    self.handle_query_disks()
+    print()
+    self.handle_query_errors()
+    print()
+    self.handle_query_version()
+    print()
+    self.handle_query_network()
+    print()
+    self.handle_query_paging()
+    print()
+    self.handle_query_performance()
+    print()
+    self.handle_query_shared()
+    print()
+    self.handle_query_volumes()
+
 
   def handle_query_errors(self):
     self.log.debug(f"handle_query_errors() user: {self.conf.user} report hardware errors => HMC RESTful API?")
