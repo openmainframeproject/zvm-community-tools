@@ -1,0 +1,36 @@
+SYSOPTAP: a Disconnected Service Virtual for Displaying VMTAPE mounts
+ 
+                         Version 1.2, May, 1996
+                     Roger Deschner (rogerd@uic.edu)
+                    University of Illinois at Chicago
+ 
+ 
+SYSOPTAP runs disconnected, and drives any number of ATTACHED or DIALED
+displays, showing in large letters the tapes to be mounted for VMTAPE.
+These displays are constantly updated, and so can be located in various
+areas to tell operators and tape librarians what is being requested.
+ 
+SYSOPTAP also intercepts FOREIGN tape mounts and assumes that they are
+for Standard Labeled tapes which are being mounted by their internal
+label name, such as from the DMSTVI exit. Then it looks these up in the
+TMC and shows the slot number for the operator to find that tape. Such
+tapes must belong to the user requesting the mount, due to the
+possibility that there may be more than one tape in the system with the
+same internal label name.
+ 
+SYSOPTAP REQUIRES:
+ 
+    Sterling VM:Tape (of course)
+    WAKEUP from CMS Utilities (can be replaced by HMF or PIPE)
+    CMS Pipelines 1.0106 (CMS8) or later
+ 
+See file SYSOPTAP INSTALL for installation details.
+ 
+Even if you have no interest in tape mounting, SYSOPTAP is a working
+example of a server which runs disconnected, and which drives displays
+connected to it using DEDICATE, ATTACH, or DIAL commands. These are
+driven using the CMS Pipelines FULLSCREEN device driver. This is a
+superior method, avoiding most of the problems of attempting to use a
+virtual machine's console as an informational display.
+ 
+Roger Deschner    University of Illinois at Chicago   R.Deschner@uic.edu

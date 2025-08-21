@@ -1,0 +1,99 @@
+.cm ********************************************************************        
+.cm **                                                                **        
+.cm ** Help for CALVIEW                                               **        
+.cm **                                                                **        
+.cm ** 04171995 baj Original author                                   **        
+.cm ** 05261995 baj In full production.                               **        
+.cm **                                                                **        
+.cm ********************************************************************        
+.cs 0 on                                                                        
+                                                                                
+CALVIEW                      VIEW CALENDARS                                     
+                                                                                
+                                                                                
+The CALVIEW routine provides view-only access to OfficeVision calendars         
+for those customers who don't have full OfficeVision access themselves.         
+                                                                                
+For example, a student wants to schedule an appointment with an                 
+instructor who keeps her schedule online in OfficeVision calendars.             
+The student can use CALVIEW to check the availability of the instructor         
+and then contact the instructor about a specific meeting time.                  
+                                                                                
+To use CALVIEW, enter the command CALVIEW at the main menu command line.        
+                                                                                
+Fill in the screen with the appropriate userid, starting date and               
+number of days to view and then press Enter.                                    
+                                                                                
+For more details, press PF1.                                                    
+.cs 0 off                                                                       
+.cs 2 on                                                                        
+                                                                                
+Field Descriptions                                                              
+------------------                                                              
+                                                                                
+Userid         Specify any valid OfficeVision userid.                           
+                                                                                
+Date           Specify any valid date in mm/dd/yy format if a starting          
+               date other than the current date is desired.                     
+                                                                                
+Number of      Specify the number of days of the calendar to view if            
+ Days          more than one is desired.                                        
+                                                                                
+                                                                                
+Key Descriptions                                                                
+----------------                                                                
+                                                                                
+PF1/PF9    (Help)        Brings you to this help screen.                        
+                                                                                
+PF3/PF12   (Quit)        Exits from CALVIEW.                                    
+                                                                                
+.cs 2 off                                                                       
+.cs 5 on                                                                        
+                                                                                
+Usage Notes                                                                     
+-----------                                                                     
+                                                                                
+1. Once you press Enter, a message is displayed indicating that the             
+   request is processing. This screen will clear and the requested              
+   calendar will display within moments. If you have been restricted            
+   from viewing the requested calendar, an appropriate message will             
+   return instead of the calendar.                                              
+                                                                                
+2. OfficeVision calendar owners have the ability to set                         
+   authorizations for their own calendars.  The default standard                
+   authorization allows anyone else to see all times and descriptions           
+   for non-personal and non-confidential entries.  If a particular              
+   userid has been restricted to view times only, for example, then             
+   CALVIEW will return only that much of their calendar.                        
+                                                                                
+3. Calendar access for non-OfficeVision customers via CALVIEW is                
+   controlled by the one special userid 'STUDENTS'.  If an                      
+   OfficeVision customer wants to allow all students to see times only          
+   and not their full calendar descriptions, for example, the STUDENTS          
+   userid should be authorized with the 'times-only' selection.                 
+   Following are the steps to restrict calendar authorizations for              
+   STUDENTS.  From the OfficeVision main menu                                   
+                                                                                
+   a. Press PF1 Process Calendars.                                              
+   b. Press PF10 View calendar main menu 2.                                     
+   c. Press PF1 Change user access to the calendar.                             
+   d. On screen W11, type "STUDENTS" and press Enter.                           
+   e. Press the PF keys to select/de-select the appropriate authorization.      
+      For example, press "PF1 User may view times of entries only" to authorize 
+      the viewer to see only the times on your calendar but not descriptions.   
+      If all selections are turned off for this userid, then access is          
+      completely denied for all students (and all other non-OV accounts).       
+      To change an authorization back to the standard authorization             
+      leave just PF2 SELECTED. Once reset to the default of PF2 only,           
+      the userid will no longer display in your calendar authorization list.    
+   f. Press PF12 until you return to the main menu.                             
+                                                                                
+4.  Under times of heavy load for the OfficeVision calendar services,           
+    CALVIEW may display a message that it is retrying the request.              
+    This should be considered normal on occasion. If the calendar               
+    service facility cannot respond after several retries, a message            
+    to this affect will be displayed. If you try the CALVIEW command            
+    again after a few minutes and encounter the same error, please              
+    report the problem to the Information Technology HelpDesk as the            
+    message indicates.                                                          
+.cs 5 off                                                                       

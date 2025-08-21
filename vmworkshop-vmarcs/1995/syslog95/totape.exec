@@ -1,0 +1,42 @@
+/* archive console files to tape */
+ 
+'CP SPOOL CONSOLE START TO marie'
+ 
+'PIPE',
+  '< tovmarc totape a',
+  '| var action.'
+ 
+IF action.1 = 'totape done' THEN SIGNAL dotovmarc
+ 
+/* position tape, empty tape must have 2 tape marks */
+'VMFPLC2 SKIP (EOT'          /* go to end of tape */
+'VMFPLC2 BSF 2'              /* and position right before 2nd tape mark*/
+'VMFPLC2 FSF 1'
+ 
+'VMFPLC2 MODESET ( COMP'     /* select best compression for device */
+ 
+'VMFPLC2 DUMP * vmarc'
+retcode = RC
+ 
+'VMFPLC2 WTM 2'              /* finish off */
+ 
+IF retcode ^= 0 THEN SIGNAL eot
+ 
+'PIPE (endchar %)',
+  '  literal totape done',
+  '| fileslow tovmarc totape a from 1',
+  '%',
+  '  cp detach 181'
+ 
+'CP SPOOL CONSOLE STOP CLOSE'
+ 
+EXIT
+ 
+dotovmarc:
+   SAY 'Run TOVMARC before TOTAPE!!!'
+EXIT 99
+ 
+eot:
+   SAY 'Check for possible end-of-tape condition'
+   SAY 'VMFPLC2 return code' RC
+EXIT 98
