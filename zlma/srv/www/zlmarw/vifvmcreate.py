@@ -203,8 +203,7 @@ class VifVmCreate:
         print(f'<p><strong>Executing:</strong> <code>{html.escape(" ".join(vif_cmd))}</code></p>')
         
         try:
-            # Execute the VIF command
-            result = subprocess.run(vif_cmd, capture_output=True, text=True, timeout=2500)
+            result = subprocess.run(vif_cmd, capture_output=True, text=True)
             
             print('<pre class="output">')
             if result.stdout:
@@ -220,8 +219,6 @@ class VifVmCreate:
             else:
                 print(f'<p class="error">✗ Command failed with return code: {result.returncode}</p>')
                 
-        except subprocess.TimeoutExpired:
-            print('<p class="error">✗ Command timed out after 2 minutes</p>')
         except Exception as e:
             print(f'<p class="error">✗ Error executing command: {html.escape(str(e))}</p>')
         

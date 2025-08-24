@@ -61,7 +61,7 @@ class Vif_vm_set:
     print('<input type="hidden" name="arg4" value="">')
     print('<table>')
     print('<tr><td><label for="vm_name">VM Name :</label></td>')
-    print('<td><input type="text" id="vm_name" name="arg1" required placeholder="Enter VM name/userid"></td></tr>')
+    print('<td><input type="text" id="vm_name" name="arg1" required placeholder="Enter VM name"></td></tr>')
     print('<tr><td colspan="2">')
     print('<button type="submit" class="button red-button" ')
     print('onclick="return confirm(\'Are you sure you want to delete this VM?\');">Delete VM</button>')

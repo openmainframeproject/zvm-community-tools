@@ -1032,16 +1032,144 @@ class Vif:
       print(f"✗ Error: {e}")
 
   def handle_vm_start(self, vm_name: str, args: List[str]):
+    """Start a VM using Feilong API"""
     self.log.debug(f"handle_vm_start(): user: {self.conf.user} start vm: {vm_name}")
-    print(f"call: 'VIFCMS vm start {vm_name}'")
+    
+    if not vm_name:
+      print("Error: VM name is required")
+      return
+    
+    print(f"Starting VM: {vm_name}")
+    
+    try:
+      # Prepare request data for Feilong API
+      request_data = {"action": "start"}
+      
+      # Call Feilong API to start the guest
+      response = requests.post(
+        f"{self.feilong_url}/guests/{vm_name}/action",
+        json=request_data,
+        timeout=30
+      )
+      
+      if response.status_code == 200:
+        print(f"✓ Success: VM '{vm_name}' started successfully")
+      else:
+        print(f"✗ Error: Failed to start VM '{vm_name}'")
+        print(f"HTTP Status: {response.status_code}")
+        if response.text:
+          print(f"Response: {response.text}")
+          
+    except requests.exceptions.Timeout:
+      print(f"✗ Timeout: VM start operation took too long")
+    except requests.exceptions.ConnectionError:
+      print(f"✗ Error: Cannot connect to Feilong API")
+      print(f"URL: {self.feilong_url}/guests/{vm_name}/action")
+    except Exception as e:
+      print(f"✗ Error starting VM: {e}")
 
   def handle_vm_stop(self, vm_name: str, args: List[str]):
+    """Stop a VM using Feilong API"""
     self.log.debug(f"handle_vm_stop(): user: {self.conf.user} stop vm: {vm_name}")
-    print(f"call: 'VIFCMS vm stop {vm_name}'")
+    
+    if not vm_name:
+      print("Error: VM name is required")
+      return
+    
+    print(f"Stopping VM: {vm_name}")
+    
+    try:
+      # Prepare request data for Feilong API
+      request_data = {"action": "stop"}
+      
+      # Call Feilong API to stop the guest
+      response = requests.post(
+        f"{self.feilong_url}/guests/{vm_name}/action",
+        json=request_data,
+        timeout=30
+      )
+      
+      if response.status_code == 200:
+        print(f"✓ Success: VM '{vm_name}' stopped successfully")
+      else:
+        print(f"✗ Error: Failed to stop VM '{vm_name}'")
+        print(f"HTTP Status: {response.status_code}")
+        if response.text:
+          print(f"Response: {response.text}")
+          
+    except requests.exceptions.Timeout:
+      print(f"✗ Timeout: VM stop operation took too long")
+    except requests.exceptions.ConnectionError:
+      print(f"✗ Error: Cannot connect to Feilong API")
+      print(f"URL: {self.feilong_url}/guests/{vm_name}/action")
+    except Exception as e:
+      print(f"✗ Error stopping VM: {e}")
 
   def handle_vm_stopall(self):
+    """Stop all VMs by getting list from zlma database"""
     self.log.debug(f"handle_vm_stopall(): user: {self.conf.user} stop all VMs")
-    print(f"call: 'VIFCMS vm stopall' => better: loop through all images and call 'vm stop' on them")
+    
+    print("Stopping all VMs in LPAR...")
+    print("Getting VM list from database...")
+    
+    try:
+      # Get VM list from zlma webdata
+      cmd = ['/usr/local/sbin/zlma', 'webdata']
+      result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+      
+      if result.returncode != 0:
+        print("✗ Error: Could not retrieve VM list from database")
+        return
+      
+      # Parse the VM list
+      vm_list = []
+      for line in result.stdout.splitlines():
+        fields = line.split(',')
+        if len(fields) >= 3:
+          user_id = fields[2].strip()  # User ID is in column 3 (0-indexed: 2)
+          if user_id:
+            vm_list.append(user_id)
+      
+      if not vm_list:
+        print("No VMs found in database")
+        return
+      
+      print(f"Found {len(vm_list)} VMs to stop: {', '.join(vm_list)}")
+      
+      # Stop each VM
+      stopped_count = 0
+      failed_count = 0
+      
+      for vm_name in vm_list:
+        print(f"\nStopping VM: {vm_name}")
+        
+        try:
+          request_data = {"action": "stop"}
+          response = requests.post(
+            f"{self.feilong_url}/guests/{vm_name}/action",
+            json=request_data,
+            timeout=30
+          )
+          
+          if response.status_code == 200:
+            print(f"  ✓ {vm_name} stopped successfully")
+            stopped_count += 1
+          else:
+            print(f"  ✗ Failed to stop {vm_name} (HTTP {response.status_code})")
+            failed_count += 1
+            
+        except Exception as e:
+          print(f"  ✗ Error stopping {vm_name}: {e}")
+          failed_count += 1
+      
+      # Summary
+      print(f"\n=== Stop All Summary ===")
+      print(f"Total VMs: {len(vm_list)}")
+      print(f"Successfully stopped: {stopped_count}")
+      print(f"Failed: {failed_count}")
+      
+    except Exception as e:
+      print(f"✗ Error in stopall operation: {e}")
 
   def handle_vm_list(self, args: List[str]):
     # List all VMs and their status using Feilong API
