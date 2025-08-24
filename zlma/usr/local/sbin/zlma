@@ -245,82 +245,87 @@ class Zlma:
       exit(8)
     self.commit_changes()  
   
-  def check_iucv_connectivity(self):
-    """
-    Check IUCV connectivity to the user_id passed in with the --server option
-    """
-    if self.args.server == None:           # no user_id specified
-      self.log.error(f"check_iucv_connectivity(): Option '--server USER_ID' must be specified with command '{self.args.subcommand}'")
-      return 1
-    user_id = str(self.args.server[0]).upper()  # z/VM user IDs are typically uppercase
-    self.log.debug(f"check_iucv_connectivity() user: {self.conf.user} user_id = {user_id}")
-    
-    # Test IUCV connectivity by trying to execute a simple command
-    test_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} bash 'echo IUCV_TEST_OK'"
-    proc = subprocess.run(test_cmd, shell=True, capture_output=True, text=True, timeout=10)
-    rc = proc.returncode
-    self.log.debug(f"check_iucv_connectivity() user: {self.conf.user} command {test_cmd} returned {rc}")
-    
-    if rc != 0:                          # IUCV connection failed
-      self.log.error(f"check_iucv_connectivity() user: {self.conf.user} cannot connect to user_id via IUCV: {user_id}")
-      self.log.debug(f"check_iucv_connectivity() stderr: {proc.stderr}")
-      return 1
-    else:
-      if "IUCV_TEST_OK" in proc.stdout:
-        self.log.debug(f"check_iucv_connectivity() user: {self.conf.user} IUCV connectivity confirmed for {user_id}")
-        return 0
-      else:
-        self.log.error(f"check_iucv_connectivity() user: {self.conf.user} unexpected response from {user_id}")
-        return 1 
-
   def find_server(self, user_id):
     """
-    Get data from a z/VM guest using IUCV
+    Get data from a z/VM guest using IUCV with retry logic for newly created VMs
     - if requested, copy the script 'zlmainfo' to the target guest's /tmp directory via IUCV
-    - run it on the target guest via IUCV
+    - run it on the target guest via IUCV with retry logic
     - sample output:
     model800,LPAR1,LINUX01,192.168.12.176,4,4,s390x,zlinux,Linux,SLES 15.5,5.15.0-1053-raspi #56-Ubuntu SMP PREEMPT Mon Apr 15 18:50:10 UTC 2024,85,24-08-21 10:30:15,24-01-15,hostname
     """
     user_id = user_id.upper()              # z/VM user IDs are typically uppercase
     self.log.debug(f"find_server() user: {self.conf.user} user_id = {user_id}")
     
+    # First, try to connect with retry logic
+    return self.find_server_with_retry(user_id)
+
+  def find_server_with_retry(self, user_id):
+    """
+    Find server with retry logic for newly created VMs that need time to initialize IUCV
+    """
+    import time
+    
+    max_retries = 10                       # Maximum number of retry attempts  
+    base_wait_time = 30                    # Base wait time in seconds
+    max_wait_time = 300                    # Maximum wait time (5 minutes)
+    
+    for attempt in range(max_retries + 1):  # +1 to include attempt 0
+      if attempt > 0:                      # Don't wait on first attempt
+        # Calculate wait time with exponential backoff, but cap at max_wait_time
+        wait_time = min(base_wait_time * (1.5 ** (attempt - 1)), max_wait_time)
+        self.log.info(f"find_server_with_retry() user: {self.conf.user} Attempt {attempt + 1}/{max_retries + 1} for {user_id}, waiting {wait_time:.0f} seconds...")
+        time.sleep(wait_time)
+      
+      # Attempt to get server data
+      result = self.attempt_find_server(user_id)
+      
+      if result == 0:                      # Success
+        self.log.info(f"find_server_with_retry() user: {self.conf.user} Successfully connected to {user_id} on attempt {attempt + 1}")
+        return 0
+      elif attempt == max_retries:         # Last attempt failed
+        self.log.error(f"find_server_with_retry() user: {self.conf.user} Failed to connect to {user_id} after {max_retries + 1} attempts")
+        return 1
+      else:                                # Retry
+        self.log.warning(f"find_server_with_retry() user: {self.conf.user} Attempt {attempt + 1} failed for {user_id}, will retry...")
+    
+    return 1                               # Should never reach here, but just in case
+
+  def attempt_find_server(self, user_id):
+    """
+    Single attempt to find server data via IUCV (extracted from original find_server method)
+    """
     if self.args.copyscript:               # copy script first via IUCV
       iucv_copy_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} iucv_file_transport /usr/local/sbin/zlmainfo /tmp/zlmainfo" 
       proc = subprocess.run(iucv_copy_cmd, shell=True, capture_output=True, text=True, timeout=30) 
       if proc.returncode != 0:             # file transfer failed
-        self.log.warning(f"find_server() user: {self.conf.user} command {iucv_copy_cmd} returned {proc.returncode}")
-        self.log.debug(f"find_server() stderr: {proc.stderr}")
+        self.log.debug(f"attempt_find_server() user: {self.conf.user} command {iucv_copy_cmd} returned {proc.returncode}")
+        self.log.debug(f"attempt_find_server() stderr: {proc.stderr}")
+        return 1                           # Return early if copy fails
       else:
-        self.log.debug(f"find_server() user: {self.conf.user} successfully copied zlmainfo to {user_id}")
-        
-        # # Make the script executable
-        # chmod_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} bash 'chmod +x /tmp/zlmainfo'"
-        # proc_chmod = subprocess.run(chmod_cmd, shell=True, capture_output=True, text=True, timeout=10)
-        # if proc_chmod.returncode != 0:
-        #   self.log.warning(f"find_server() user: {self.conf.user} failed to make zlmainfo executable on {user_id}")
+        self.log.debug(f"attempt_find_server() user: {self.conf.user} successfully copied zlmainfo to {user_id}")
     
     # Execute zlmainfo script via IUCV
     iucv_exec_cmd = f"/opt/zthin/bin/IUCV/iucvclnt {user_id} bash /tmp/zlmainfo"
     proc = subprocess.run(iucv_exec_cmd, shell=True, capture_output=True, text=True, timeout=60)
     
     if proc.returncode != 0:               # call to 'zlmainfo' failed
-      self.log.error(f"find_server() user: {self.conf.user} command {iucv_exec_cmd} returned {proc.returncode}")
-      self.log.debug(f"find_server() stderr: {proc.stderr}")
-      self.log.debug(f"find_server() stdout: {proc.stdout}")
+      self.log.debug(f"attempt_find_server() user: {self.conf.user} command {iucv_exec_cmd} returned {proc.returncode}")
+      self.log.debug(f"attempt_find_server() stderr: {proc.stderr}")
+      self.log.debug(f"attempt_find_server() stdout: {proc.stdout}")
       return 1
       
     # Parse the output from zlmainfo
     output_line = proc.stdout.strip()
     if not output_line:
-      self.log.error(f"find_server() user: {self.conf.user} empty output from zlmainfo on {user_id}")
+      self.log.debug(f"attempt_find_server() user: {self.conf.user} empty output from zlmainfo on {user_id}")
       return 1
       
     self.server_data = output_line.split(",")
-    self.log.debug(f"find_server(): user {self.conf.user} command {iucv_exec_cmd} returncode: {proc.returncode} stdout: {self.server_data}")
+    self.log.debug(f"attempt_find_server(): user {self.conf.user} command {iucv_exec_cmd} returncode: {proc.returncode} stdout: {self.server_data}")
     
     # Validate that we got the expected number of fields
     if len(self.server_data) < 14:  # Minimum expected fields from zlmainfo
-      self.log.error(f"find_server() user: {self.conf.user} insufficient data from zlmainfo on {user_id}: {self.server_data}")
+      self.log.debug(f"attempt_find_server() user: {self.conf.user} insufficient data from zlmainfo on {user_id}: {self.server_data}")
       return 1
       
     return 0
@@ -351,9 +356,10 @@ class Zlma:
     except mariadb.Error as e:
       self.log.error(f"update_row() user: {self.conf.user} e: {e}")
       self.conn.close()                    # close connection
-      return 
+      return 1                             # return error code instead of None
     self.commit_changes() 
     self.log.info(f"update_row(): user: {self.conf.user} replaced row for server {self.server_data[0]}")
+    return 0                               # return success code
 
   def delete_row(self):
     """
@@ -456,15 +462,15 @@ class Zlma:
         if self.args.server == None:       # no user_id specified
           self.log.error("run_command() user: {self.conf.user} Option '--server USER_ID' must be specified with subcommand 'add'")
           return 1
-        # rc = self.check_iucv_connectivity() //skipping check bcs our image dont have echo binary
-        rc = 0
-        if rc == 0:                        # IUCV connection successful
-          self.log.debug(f"run_command() user: {self.conf.user} IUCV connectivity confirmed, calling find_server")
-          rc = self.find_server(self.args.server[0])
-          if rc != 0:
-            self.log.error(f"run_command() user: {self.conf.user} find_server() returned {rc}")
-          else:  
-            rc = self.update_row("insert")
+        # Instead, use find_server with retry logic which handles connectivity internally
+        self.log.debug(f"run_command() user: {self.conf.user} calling find_server with retry logic")
+        rc = self.find_server(self.args.server[0])
+        if rc != 0:
+          self.log.error(f"run_command() user: {self.conf.user} find_server() returned {rc}")
+        else:  
+          rc = self.update_row("insert")
+          if rc != 0:                      # update_row failed
+            self.log.error(f"run_command() user: {self.conf.user} update_row() returned {rc}")
       case "describe"|"desc":
         rc = self.describe_table() 
       case "remove":
