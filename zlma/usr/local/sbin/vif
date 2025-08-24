@@ -1128,8 +1128,8 @@ class Vif:
       self.log.error(f"handle_query_vm(): Error: {e}")
 
   def handle_query_all(self):
-    # Invoke all other query subcommands
-    self.log.debug(f"handle_query_all() user: {self.conf.user} run all query commands")
+    self.log.debug(f"handle_query_all() user: {self.conf.user} run all other query commands")
+    # print("handle_query_all() TO DO: call all other query commands")
     print("Running all query commands:")
     self.handle_query_active()
     print()
@@ -1137,19 +1137,20 @@ class Vif:
     print()
     self.handle_query_disks()
     print()
-    self.handle_query_errors()
-    print()
+    # self.handle_query_errors()
+    # print()
     self.handle_query_version()
     print()
     self.handle_query_network()
     print()
-    self.handle_query_paging()
-    print()
+    # self.handle_query_paging()
+    # print()
     self.handle_query_performance()
     print()
-    self.handle_query_shared()
-    print()
-    self.handle_query_volumes()
+    #self.handle_query_vm()
+    # self.handle_query_shared()
+    # print()
+    # self.handle_query_volumes()
 
   def handle_query_configuration(self):
     # Display current vif settings
@@ -1172,7 +1173,7 @@ class Vif:
     
     try:
       # Run INDICATE command for system performance
-      print("System Performance Indicators:")
+      print("Use of system resources: INDICATE LOAD")
       print("-" * 35)
       
       ind_output = self.run_vm_cmd("IND")
@@ -1218,7 +1219,7 @@ class Vif:
         print("No performance indicator data available")
       
       print()
-      print("Storage Allocation:")
+      print("Disk space allocate, in use and available: QUERY ALLOC MAP")
       print("-" * 20)
       
       # Run QUERY ALLOC MAP for storage allocation
@@ -1439,31 +1440,6 @@ class Vif:
     print(f"VMs up  : {up_count}") 
     print(f"VMs down: {down_count}") 
 
-  def handle_query_all(self):
-    self.log.debug(f"handle_query_all() user: {self.conf.user} run all other query commands")
-    # print("handle_query_all() TO DO: call all other query commands")
-    print("Running all query commands:")
-    self.handle_query_active()
-    print()
-    self.handle_query_configuration()
-    print()
-    self.handle_query_disks()
-    print()
-    self.handle_query_errors()
-    print()
-    self.handle_query_version()
-    print()
-    self.handle_query_network()
-    print()
-    self.handle_query_paging()
-    print()
-    self.handle_query_performance()
-    print()
-    self.handle_query_shared()
-    print()
-    self.handle_query_volumes()
-
-
   def handle_query_errors(self):
     self.log.debug(f"handle_query_errors() user: {self.conf.user} report hardware errors => HMC RESTful API?")
     print("call: 'VIFCMS query errors' => write errors to /var/log/zlma/errors.report.<timestamp>")
@@ -1554,13 +1530,13 @@ class Vif:
     
     print()
     
-    # 4. Get VIF Script Version (this file)
-    print("VIF Command Interface:")
-    print("-" * 22)
-    print("VIF Version: Part of ZLMA")
-    print(f"Configuration: {self.conf.feilong_url}")
+    # # 4. Get VIF Script Version (this file)
+    # print("VIF Command Interface:")
+    # print("-" * 22)
+    # print("VIF Version: Part of ZLMA")
+    # print(f"Configuration: {self.conf.feilong_url}")
     
-    print()
+    # print()
     print("=" * 40)
 
   def handle_query_network(self):
@@ -1573,7 +1549,7 @@ class Vif:
         print("No VSWITCH information available")
         return
       
-      print("=== z/VM VSWITCH Network Information ===")
+      print("VSWITCH information: QUERY VSWITCH DETAILS")
       print()
       
       # Parse and format the VSWITCH output
@@ -1708,7 +1684,7 @@ class Vif:
     
     try:
         # Define the pools to query
-        pool_types = ["ECKD:VMPOOL", "FBA:VMPOOL"]
+        pool_types = ["ECKD:VMPOOL"]
         
         print("=== Disk Pool Information ===")
         
@@ -1740,8 +1716,11 @@ class Vif:
                         print("<tbody>")
                         print(f"<tr><td style='padding: 8px;'>Total Pool Size</td><td style='padding: 8px; text-align: right;'>{output.get('disk_total', 'N/A')}</td></tr>")
                         print(f"<tr><td style='padding: 8px;'>Used Space</td><td style='padding: 8px; text-align: right;'>{output.get('disk_used', 'N/A')}</td></tr>")
-                        print(f"<tr><td style='padding: 8px;'>Available Space</td><td style='padding: 8px; text-align: right;'>{output.get('disk_available', 'N/A')}</td></tr>")
                         
+                        # Calculate and display free percentage
+                        if output.get('disk_total') and output.get('disk_available'):
+                            free_pct = round((output['disk_available'] / output['disk_total']) * 100, 1)
+                            print(f"<tr><td style='padding: 8px;'>Percent Free</td><td style='padding: 8px; text-align: right;'>{free_pct}%</td></tr>")
                         # Calculate and display usage percentage
                         if output.get('disk_total') and output.get('disk_used'):
                             usage_pct = round((output['disk_used'] / output['disk_total']) * 100, 1)

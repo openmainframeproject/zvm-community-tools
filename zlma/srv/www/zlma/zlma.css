@@ -19,22 +19,15 @@ th, td {
 .button {
   border:solid #1323a7 1px;
   border-radius: 6px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-family: Verdana, arial;
-  font-size: 14px;
-  text-decoration: none;
-  display: inline-block;
 }
 
 .green-button {
-  background-color: #28a745;
-  color: white;
+  background-color: #8CFF66;
   border-color: #1e7e34;
 }
 
 .green-button:hover {
-  background-color: #218838;
+  background-color: #66FF33;
   border-color: #1e7e34;
 }
 

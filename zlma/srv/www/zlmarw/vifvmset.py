@@ -52,74 +52,21 @@ class Vif_vm_set:
       print(html_code)
 
   def handle_delete(self):
-    """Handle VM delete form and processing"""
-    vm_name = self.form.getvalue('vm_name', '')
-    action = self.form.getvalue('action', '')
-    
-    if action == 'delete' and vm_name:
-      # Process the deletion
-      self.process_delete(vm_name)
-    else:
-      # Show the form
-      self.show_delete_form()
 
-  def show_delete_form(self):
-    """Display simple VM deletion form"""
-    html = '''
-    <form action="/zlmarw/vifvmset.py" method="post">
-      <input type="hidden" name="sub_cmd" value="delete">
-      <input type="hidden" name="action" value="delete">
-      
-      <table>
-        <tr>
-          <td><label for="vm_name">Host name:</label></td>
-          <td><input type="text" id="vm_name" name="vm_name" required placeholder="Enter hostname"></td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>
-            <button type="submit" class="button red-button" 
-                    onclick="return confirm('Are you sure you want to delete this VM?');">
-              Delete
-            </button>
-          </td>
-        </tr>
-      </table>
-    </form>
-    </body></html>'''
-    print(html)
-
-  def process_delete(self, vm_name):
-    """Process the VM deletion using vif command"""
-    import subprocess
-    
-    print(f'<h3>Deleting VM: {vm_name}</h3>')
-    print('<pre>')
-    
-    try:
-      # Call the vif command to delete the VM
-      cmd = ['/usr/local/sbin/vif', 'vm', 'delete', vm_name]
-      result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-      
-      # Display the output
-      if result.stdout:
-        print(result.stdout)
-      if result.stderr:
-        print(f"Error: {result.stderr}")
-      
-      # Check if successful
-      if result.returncode == 0 and "successfully" in result.stdout.lower():
-        print(f"\n✓ Success: VM '{vm_name}' deleted successfully!")
-      else:
-        print(f"\n✗ Error: Failed to delete VM '{vm_name}'")
-        
-    except subprocess.TimeoutExpired:
-      print(f"✗ Timeout: Delete operation took too long")
-    except Exception as e:
-      print(f"✗ Error: {e}")
-    
-    print('</pre>')
-    print('<p><a href="/zlmarw/vifvmset.py?sub_cmd=delete">Delete Another VM</a></p>')
+    print('<form method="get" action="/zlmarw/vifcmd.py">')
+    print('<input type="hidden" name="cmd" value="vm">')
+    print('<input type="hidden" name="sub_cmd" value="delete">')
+    print('<input type="hidden" name="arg2" value="">')
+    print('<input type="hidden" name="arg3" value="">')
+    print('<input type="hidden" name="arg4" value="">')
+    print('<table>')
+    print('<tr><td><label for="vm_name">VM Name :</label></td>')
+    print('<td><input type="text" id="vm_name" name="arg1" required placeholder="Enter VM name/userid"></td></tr>')
+    print('<tr><td colspan="2">')
+    print('<button type="submit" class="button red-button" ')
+    print('onclick="return confirm(\'Are you sure you want to delete this VM?\');">Delete VM</button>')
+    print('</td></tr>')
+    print('</table></form>')
     print('</body></html>')
 
   def handle_set(self):
