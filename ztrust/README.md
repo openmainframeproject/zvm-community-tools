@@ -46,7 +46,13 @@ or to get compromised and allow an attack. What could go wrong?
 
 Here we have a combination of cross-signed PGP keys forming a
 web of trust. We also then have PKI root certificates which have been
-signed by PGP keys from that trust web.
+signed by PGP keys from that trust web. Signature verification using
+`gpg` is easy. Both GPG and (especially) OpenSSL are common on Linux
+systems (Z or otherwise) and available for z/OS.
+
+You can (should!) bring your own key to this party.
+If you don't know how to generate a PGP key pair, there are markdown
+docs in this folder to guide you.
 
 ## Multiplicity
 
