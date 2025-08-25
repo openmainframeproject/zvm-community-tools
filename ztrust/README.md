@@ -29,6 +29,11 @@ The `pki` sub-directory has a number of PKI root certificates
 contributed by members of the community. Some of these are signed
 using PGP.
 
+Most readers will understand that PKI is the differentiator between
+`http` and `https` on the web. The latter is secured via SSL (now known
+as TLS). Web servers speaking HTTPS must have a server certificate.
+Technically, that certificate is a "PKI server certificate".
+
 Ordinarily, PKI certificates are issued by a Certificate Authority (CA).
 There are cases where a CA is not available or where an in-house
 or home-grown CA is preferred. Root certificates found here are
@@ -52,7 +57,10 @@ systems (Z or otherwise) and available for z/OS.
 
 You can (should!) bring your own key to this party.
 If you don't know how to generate a PGP key pair, there are markdown
-docs in this folder to guide you.
+docs in this folder to guide you. The collection of keys and certs here
+is for your consumption. When the time comes that you want to go further
+and protect your own email and content, you will want to use PGP
+and are then welcome to connect with this web of trust.
 
 ## Multiplicity
 
