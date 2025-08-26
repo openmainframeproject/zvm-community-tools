@@ -1,11 +1,5 @@
 ![z/VM Community Tools Logo](https://raw.githubusercontent.com/openmainframeproject/artwork/5b27f85f886da75ddf53511eb5289c53c972415c/projects/zvm-community-tools/horizontal/color/zvm-community-tools-horizontal-color.svg)
 
-```gfm
-# Add badges that point to your LICENSE, CII status, and build environment (if it exists). Check out other badges to add at https://shields.io/
-![GitHub](https://img.shields.io/github/license/openmainframeproject/z/VM Community Tools)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/CII ID/badge)](https://bestpractices.coreinfrastructure.org/projects/CII ID)
-```
-
 # z/VM Community Tools
 
 z/VM Community Tools
@@ -13,9 +7,10 @@ z/VM Community Tools
 ## Install
 
 Each subdirectory has its own install process:  
-- ``execs`` - Download the ``https://github.com/openmainframeproject/zvm-community-tools/blob/main/execs/zvmtools.vmarc`` file and copy it to z/VM in binary, and unpack it.
-
-- ``zlma`` - Work in progress - not ready to install yet ...
+- ``execs/`` - Download the ``https://github.com/openmainframeproject/zvm-community-tools/blob/main/execs/zvmtools.vmarc`` file and copy it to z/VM in binary, and unpack it.
+- ``dmscmd/`` - Follow the instructions here: https://github.com/openmainframeproject/zvm-community-tools/tree/main/dmscmd#building-dmscmd 
+- ``zlma`` - Use the ``instzlma`` bash script 
+- ``ztrust/`` - Follow the instructions here: https://github.com/openmainframeproject/zvm-community-tools/tree/main/ztrust
 
 ## Build
 

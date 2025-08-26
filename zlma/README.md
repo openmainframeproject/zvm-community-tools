@@ -69,71 +69,16 @@ Following is a block diagram of zlma:
 
 **zlma block diagram**
 
-# Items TO DO 
-- Add code so all writes go to two places
-  - For CMDB use mariadb master-slave
-  - For consoles, use ``rsync``
-- Allow Web UI "green screens" to be more conventional with CSSs
-- Finish vif pages to gather parameters, example: vif image set => choose memory/CPUs
-- "Chunkify" console data to work in say 20000 lines with "More" and # of chunks 
-- Create certificates and switch from http: to https:
-- Write equivalent of SMAPI to support DirMaint and VMSECURE - output from ``testvif`` script:
-
-```
-call: 'VIFCMS hyp collect' => return problem determination data to /var/log/zlma/problem.report.<timestamp>
-call: 'VIFCMS hyp disk add image 1234'
-call: 'VIFCMS hyp disk add paging abcd'
-call: 'VIFCMS hyp errors' => return hardware errors /var/log/zlma/error.report.<timestamp>
-call: 'VIFCMS hyp restart' => SHUTDOWN REIPL
-call: 'VIFCMS hyp service' => z/VM Dvlpmnt needs to enable this to modernize z/VM
-call: 'VIFCMS hyp shutdown' => SHUTDOWN
-call: 'VIFCMS hyp verify' => perform z/VM consistency checks
-call: 'VIFCMS image create linux1' => clone a Linux
-call: 'VIFCMS image delete linux1' => delete Linux but no PURGE just yet
-call: 'VIFCMS image network linux1 add 360' => add OSA triplet - need VSWITCH name as an arg?
-call: 'VIFCMS image set linux1 storage 8'
-call: 'VIFCMS image set linux1 cpus 4'
-call: 'VIFCMS image start linux1'
-call: 'VIFCMS image stop linux1'
-call: 'VIFCMS image stopall' => better: loop through all images and call 'image stop' on them
-call: 'VIFCMS disk copy linux1 150 linux2 150'
-call: 'VIFCMS disk copy linux1 150 to linux2 150'
-call: 'VIFCMS disk create linux1 150 2G'
-call: 'VIFCMS disk delete linux1 150'
-call: 'VIFCMS disk share linux1 151 linux2 151'
-call: 'VIFCMS disk share linux1 151 with linux2 151'
-call: 'VIFCMS query errors' => write errors to /var/log/zlma/errors.report.<timestamp>
-call: 'VIFCMS query paging'
-```
-
-HOW TO UPDATE USER DIRECTORY LIKE THIS?:
-
-```
-if self.conf.dir_mgmt == "dirmaint":
-  self.dir_entry = self.dirm_get(userid)
-  self.dir_entry = self.mod_dir_entry()
-  self.dirm_replace(self.dir_entry)
-elif self.conf.dir_mgmt == "vmsecure":
-  self.dir_entry = self.vmsecure_get(userid)
-  self.dir_entry = self.mod_dir_entry()
-  self.vmsecure_replace(self.dir_entry)
-else:
-  print("no directory maintenance product set")
-
-```
-
 # Preparing for installation 
 
-The script ``instzlma`` is included for easier installation.  There are prerequisites as follow. 
+The script ``instzlma`` allows for easy installation.  There are prerequisites as follow. 
 
 This code has been tested on Debian-based (Ubuntu server 22.04) and RHEL-based (AlmaLinux 9.4) distros, both zLinux (s390x architecture).  When there are differences, separate steps are given for each. 
 
 ## Set up SSH access
 Key-based authentication, or *Passwordless* SSH access is needed for one user from the zlma server to all systems that will be managed.  ``zlma`` commands must be run by that user and they must have ``sudo`` access.  
 
-Details on it are outside the scope of this document, howerver, there is a script, ``sshall``, which tests SSH connectivity in the directory /usr/local/sbin/sshall
-
-Once SSH access is set up, the solution can be installed. 
+Once SSH access is set up, zlma can be installed. 
 
 ## Update your system
 If this is a fresh install of Linux, it is best to update your system. To do so, perform the following steps:
