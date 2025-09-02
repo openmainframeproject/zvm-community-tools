@@ -1,32 +1,30 @@
 #!/srv/venv/bin/python3
-"""
-Note the above "shebang" - this must be run from virtual environment /srv/venv/
-
-restapi.py - the zlma RESTful API - accesses the table 'servers' in the mariadb database 'zlma'.
-Format: http://<hostname>/restapi.py?<operation>&param1&param2 ...
-
-Input:
-Operation   Return                              Parameters
----------   ------                              ----------
-- active    Number of servers that ping         <col>=<value>&...
-- count     Number of servers                   <col>=<value>&...
-- hostname  Host names of servers               <col>=<value>&...
-- ping      Servers pinged out of total         <col>=<value>&...
-- query     All server data                     <col>=<value>&...
-- update    Update server's env/app/grp/owner   hostname&app&env&grp&owner
-- webdata   host_name, lpar, userid, ip_addr, cpus, mem_gb          
-
-Output: JSON
-
-Examples: 
-http://<server>/restapi.py?update&model1000&myApp&myGroup&myOwner => update metadata in "servers" table
-http://<server>/restapi.py?count => { "num_servers": 4 }
-http://<server>/restapi.py?count&cpus=4&mem_gb=4 => number of servers with 4 CPUs and 4 GB of memory
-http://<server>/restapi.py?hostname => {"servers": ["model1000", "model1500", "model2000", "model800"]}
-http://<server>/restapi.py?hostname&cpus<4 => host names of servers with fewer than 4 CPUs
-http://<server>/restapi.py?linuxip => {"servers": ["z-graf1", "10.1.1.1"], ["z-graf2", "10.1.1.2"]]}
-http://<server>/restapi.py?ping => { "up_servers": 3, "num_servers": 4 }
-"""
+# Note the above "shebang" - this must be run from virtual environment /srv/venv/
+# 
+# restapi.py - the zlma RESTful API - accesses the table 'servers' in the mariadb database 'zlma'.
+# Format: http://<hostname>/restapi.py?<operation>&param1&param2 ...
+# 
+# Input:
+# Operation   Return                              Parameters
+# ---------   ------                              ----------
+# - active    Number of servers that ping         <col>=<value>&...
+# - count     Number of servers                   <col>=<value>&...
+# - hostname  Host names of servers               <col>=<value>&...
+# - ping      Servers pinged out of total         <col>=<value>&...
+# - query     All server data                     <col>=<value>&...
+# - update    Update server's env/app/grp/owner   hostname&app&env&grp&owner
+# - webdata   host_name, lpar, userid, ip_addr, cpus, mem_gb          
+# 
+# Output: JSON
+# 
+# Examples: 
+# http://<server>/restapi.py?update&model1000&myApp&myGroup&myOwner => update metadata in "servers" table
+# http://<server>/restapi.py?count => { "num_servers": 4 }
+# http://<server>/restapi.py?count&cpus=4&mem_gb=4 => number of servers with 4 CPUs and 4 GB of memory
+# http://<server>/restapi.py?hostname => {"servers": ["model1000", "model1500", "model2000", "model800"]}
+# http://<server>/restapi.py?hostname&cpus<4 => host names of servers with fewer than 4 CPUs
+# http://<server>/restapi.py?linuxip => {"servers": ["z-graf1", "10.1.1.1"], ["z-graf2", "10.1.1.2"]]}
+# http://<server>/restapi.py?ping => { "up_servers": 3, "num_servers": 4 }
 import base64
 import json
 import logging
@@ -59,9 +57,7 @@ class ZlmaAPI():
     print()                                # required empty line
 
   def print_env(self):
-    """
-    Show all environment variables with the 'env' command
-    """
+    # Show all environment variables with the 'env' command
     proc = subprocess.run("env", shell=True, capture_output=True, text=True)
     rc = proc.returncode
     env_vars = []
@@ -73,9 +69,7 @@ class ZlmaAPI():
     print("")
 
   def load_config_file(self):
-    """
-    read the JSON config file /etc/zlma.conf
-    """
+    # read the JSON config file /etc/zlma.conf
     try:
       conf_file = open("/etc/zlma.conf", 'r')
     except Exception as e:
@@ -89,9 +83,7 @@ class ZlmaAPI():
     self.log_level = confJSON['log_level'].upper()
 
   def connect_to_cmdb(self):
-    """
-    Connect to mariadb, use datase cmdb and establish a cursor
-    """
+    # Connect to mariadb, use datase cmdb and establish a cursor
     try:
       self.conn = mariadb.connect(user=self.db_user, password=self.db_pw, host=self.db_host, database=self.db_name)
       self.cursor = self.conn.cursor(dictionary=True) # open cursor returning dictionary
@@ -100,9 +92,7 @@ class ZlmaAPI():
       exit(3)
 
   def run_sql_query(self, cmd: str) -> str:
-    """
-    run the SQL command passed in
-    """
+    # run the SQL command passed in
     self.log.info(f"ZlmaAPI.run_sql_query(): using database: {self.db_name}")
     self.connect_to_cmdb()                 # connect to DB
     try:   
@@ -125,32 +115,31 @@ class ZlmaAPI():
     return json_out  
 
   def close_conn(self):
-    """
-    Close the SQL cursor, then the connection 
-    """
+    # Close the SQL cursor, then the connection 
     self.cursor.close()
     self.conn.close()
 
   def parse_query_string(self) -> tuple[str, str]:
-    """
-    Get the env var QUERY_STRING and return operation and remaining parameters 
-    """
-    proc = subprocess.run("echo $QUERY_STRING", shell=True, capture_output=True, text=True)
+    # Get the env var REQUEST_URI and return operation and remaining parameters 
+    # Ex: REQUEST_URI=/restapi.py/query&foo
+    proc = subprocess.run("echo $REQUEST_URI", shell=True, capture_output=True, text=True)
     rc = proc.returncode
     if rc != 0:
       self.log.error(f"ZlmaAPI.parse_query_string(): subprocess.run('echo $QUERY_STRING' returned {rc}")
       return 1
-    query_str = proc.stdout.strip('\n')    # get value removing newline
-    self.log.debug(f"ZlmaAPI.parse_query_string(): query_str: {query_str}")
-    query_parms = query_str.split('&')
-    operation = query_parms[0]             # get operation
-    query_parms = query_parms[1:]          # chop off operation
+    uri = proc.stdout.strip()    # get value removing newline
+    parts = uri.lstrip("/").split("/")
+    if len(parts) < 2:
+      return None, []
+    op_and_args = parts[1]
+    query_parts = op_and_args.split("&")
+    operation = query_parts[0]         # "query"
+    query_parms = query_parts[1:]      # ["foo"]
+    self.log.debug(f"ZlmaAPI.parse_query_string(): operation={operation}, query_parms={query_parms}")
     return operation, query_parms
 
   def ping_servers(self, where_clause: str) -> str:
-    """
-    ping specified servers and return how many servers ping out of how many found 
-    """
+    # ping specified servers and return how many servers ping out of how many found 
     sql_cmd = f"SELECT host_name FROM servers {where_clause}"
     sql_out = self.run_sql_query(sql_cmd)  # list of server host names
     sql_json = json.loads(sql_out)
@@ -173,16 +162,12 @@ class ZlmaAPI():
     return ('{"up_servers": '+str(up_servers)+', "num_servers": '+str(num_servers)+'}') # return JSON
 
   def uu_decode(self, url):
-    """ 
-    Decode a uu-encoded URL (have absolutely no idea how this works, but it does :))
-    """
+    # Decode a uu-encoded URL (have absolutely no idea how this works, but it does :))
     return re.compile('%([0-9a-fA-F]{2})',re.M).sub(lambda m: chr(int(m.group(1),16)), url)
 
   def mk_where_clause(self, query_parms: list) -> str:
-    """ 
-    Construct an SQL WHERE clause from search parameters passed in 
-    Return: constructed WHERE clause
-    """
+    # Construct an SQL WHERE clause from search parameters passed in 
+    # Return: constructed WHERE clause
     where_clause = "WHERE arch=\"s390x\"" # search only zLinux
     for next_word in query_parms:       # add search criteria to the WHERE clause
       self.log.debug(f"ZlmaAPI.mk_where_clause() next_word: {next_word}")
@@ -198,10 +183,8 @@ class ZlmaAPI():
     return where_clause
 
   def count_servers(self, where_clause: str) -> str:
-    """ 
-    Send SQL command to count servers  
-    Return: JSON output
-    """
+    # Send SQL command to count servers  
+    # Return: JSON output
     sql_cmd = f"SELECT COUNT(host_name) FROM servers {where_clause}"
     self.log.debug(f"ZlmaAPI.count_servers(): sql_cmd: {sql_cmd}")
     sql_out = self.run_sql_query(sql_cmd)
@@ -210,10 +193,8 @@ class ZlmaAPI():
     return sql_out
 
   def get_host_names(self, where_clause: str) -> str:
-    """
-    Send SQL command to return hostnames of specified search
-    Return: list of servers
-    """
+    # Send SQL command to return hostnames of specified search
+    # Return: list of servers
     sql_cmd = f"SELECT host_name FROM servers {where_clause}"
     self.log.debug(f"ZlmaAPI.get_host_names(): hostname sql_cmd: {sql_cmd}")
     sql_out = self.run_sql_query(sql_cmd)
@@ -222,10 +203,8 @@ class ZlmaAPI():
     return sql_out
 
   def get_webdata(self, where_clause: str) -> str:
-    """
-    Send SQL command to return host_name, lpar, userid, ip_addr, cpus, mem_gb of specified servers
-    Return: list of servers
-    """
+    # Send SQL command to return host_name, lpar, userid, ip_addr, cpus, mem_gb of specified servers
+    # Return: list of servers
     sql_cmd = f"SELECT host_name, lpar, userid, ip_addr, cpus, mem_gb FROM servers {where_clause}"
     self.log.debug(f"ZlmaAPI.get_webdata(): sql_cmd: {sql_cmd}")
     sql_out = self.run_sql_query(sql_cmd)
@@ -244,10 +223,8 @@ class ZlmaAPI():
     return json.dumps(sql_json)  # Convert list of dictionaries to JSON string
 
   def get_linux_ips(self, where_clause: str) -> str:
-    """
-    Send SQL command to return host names and IP addresses 
-    Return: list of servers
-    """
+    # Send SQL command to return host names and IP addresses 
+    # Return: list of servers
     sql_cmd = f"SELECT host_name, ip_addr FROM servers {where_clause}"
     self.log.debug(f"ZlmaAPI.get_linux_ips(): hostname sql_cmd: {sql_cmd}")
     sql_out = self.run_sql_query(sql_cmd) 
@@ -256,10 +233,8 @@ class ZlmaAPI():
     return sql_out
 
   def get_records(self, where_clause: str) -> str:
-    """
-    Send SQL command to return hostnames of specified search
-    Return: JSON output
-    """
+    # Send SQL command to return hostnames of specified search
+    # Return: JSON output
     sql_cmd = f"SELECT * FROM servers {where_clause}"
     self.log.debug(f"ZlmaAPI.get_records(): query sql_cmd: {sql_cmd}")
     sql_out = self.run_sql_query(sql_cmd) 
@@ -267,13 +242,11 @@ class ZlmaAPI():
     return sql_out  
 
   def update_record(self, query_str: str):
-    """
-    query_str contains the host name to be updated and three pieces of metadata
-    Send SQL command to update a record's metadata:
-    - App
-    - Group
-    - Owner
-    """
+    # query_str contains the host name to be updated and three pieces of metadata
+    # Send SQL command to update a record's metadata:
+    # - App
+    # - Group
+    # - Owner
     self.log.debug(f"ZlmaAPI.update_record(): query_str: {query_str}") 
     list_len = len(query_str)
     if list_len != 5:                       # error
@@ -292,9 +265,7 @@ class ZlmaAPI():
     self.close_conn()                      # close connection
    
   def process_uri(self):
-    """
-    Perform operation specified in env var QUERY_STRING 
-    """
+    # Perform operation specified in env var QUERY_STRING 
     operation, query_parms = self.parse_query_string()
     self.log.debug(f"ZlmaAPI.process_uri() operation: {operation} query_parms: {query_parms}")
     for i in range(len(query_parms)):      # uu-decode each element
@@ -327,6 +298,6 @@ class ZlmaAPI():
         exit(1)    
 
 # main()
-zlmaAPI = ZlmaAPI()          # create a singleton
-# zlmaAPI.print_env()             # show env vars when debugging
-zlmaAPI.process_uri()             # process the request
+zlmaAPI = ZlmaAPI()                        # create a singleton
+# zlmaAPI.print_env()                      # show env vars when debugging
+zlmaAPI.process_uri()                      # process the request
