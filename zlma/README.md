@@ -75,6 +75,69 @@ The script ``instzlma`` allows for easy installation.  There are prerequisites a
 
 This code has been tested on Debian-based (Ubuntu server 22.04) and RHEL-based (AlmaLinux 9.4) distros, both zLinux (s390x architecture).  When there are differences, separate steps are given for each. 
 
+## Define a virtual machine 
+Following is the user directory entry used to install Linux into.
+
+```
+USER ZLNX1 ******** 2G 16G BCDEFG 64                              
+  MACHINE Z                                                                          
+  CPU 0                                                           
+  CPU 1                                                           
+  CPU 2                                                           
+  IPL ZCMS PARM AUTOCR                                            
+  OPTION LNKNOPAS                                                 
+  IUCV ALLOW                                                      
+  IUCV ANY PRIORITY                                               
+  IUCV *CCW PRIORITY MSGLIMIT 255                                 
+  COMMAND SET VSWITCH VSWITCH2 GRANT &USERID                      
+  COMMAND COUPLE 0340 TO SYSTEM VSWITCH2                          
+  NICDEF  0340 TYPE QDIO LAN SYSTEM VSWITCH2                      
+  CONSOLE   0009 3215                                             
+  SPOOL 00C 2540 READER *                                         
+  SPOOL 00D 2540 PUNCH A                                          
+  SPOOL 00E 1403 A                                                
+  LINK MAINT 190 190 RR                                           
+  LINK MAINT 19E 19E RR                                           
+  MDISK 191 3390 1974 200 WRK001 MR READ WRITE MULTI      
+  MDISK 150 3390 1 30050 VM109A MR READ WRITE MULTI  
+``` 
+
+## Install Linux
+Now install a Linux on the virtual machine
+
+FTP the kernel and RAMdisk to the 191 disk of the virtual machine where Linux will be installed.  The record format must be Fixed 80, so use the ftp subcommands ``bin`` and ``quote site fix 80``.
+
+The parameter file used to install Ubuntu is as follows:
+
+```
+ro locale=en_US auto=true priority=critical                                    
+https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-clou
+dimg-s390x.img                                                                 
+s390-netdevice/qeth/layer2=true s390-netdevice/qeth/port=0                     
+s390-netdevice/qeth/choose=0.0.0340-0.0.0341-0.0.0342                          
+netcfg/get_ipaddress=192.168.1.23 netcfg/get_netmask=255.255.255.0             
+netcfg/get_gateway=192.168.1.1 netcfg/get_nameservers=192.168.1.80             
+netdevice/qeth/layer2=true netcfg/confirm_static=true                          
+netcfg/use_autoconfig=1 netcfg/disable_dhcp=true                               
+hostname=zlnx1 domain=devlab.sinenomine.net                                    
+```:
+
+- The EXEC to install Ubuntu is as follows.
+
+```
+type instubu exec
+
+/* EXEC TO IPL Ubuntu install system */ 
+'CP CLOSE RDR'                          
+'PURGE RDR ALL'                         
+'SPOOL PUNCH * RDR'                     
+'PUNCH UBUNTU KERNEL   A (NOHEADER'     
+'PUNCH UBUNTU PARMFILE A (NOHEADER'     
+'PUNCH UBUNTU INITRD   A (NOHEADER'     
+'CHANGE RDR ALL KEEP NOHOLD'            
+'CP IPL 000C CLEAR'                     
+```
+
 ## Set up SSH access
 Key-based authentication, or *Passwordless* SSH access is needed for one user from the zlma server to all systems that will be managed.  ``zlma`` commands must be run by that user and they must have ``sudo`` access.  
 
@@ -139,6 +202,11 @@ sudo visudo
     %wheel  ALL=(ALL)       NOPASSWD: ALL
     ...
     ```
+
+## Configure Feilong
+If Feilong is not set up on your system, perform the following steps. 
+
+- 
 
 ## Install this repository
 
