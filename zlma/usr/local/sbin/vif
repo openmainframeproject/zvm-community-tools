@@ -16,392 +16,361 @@ import requests
 import json
 import os
 
-
-
 class CommandType(Enum):
-    # Enumeration of main command types
-    HYP = "hyp"
-    IMAGE = "image"
-    VM = "vm"
-    DISK = "disk"
-    QUERY = "query"
-
+  # Enumeration of main command types
+  HYP = "hyp"
+  IMAGE = "image"
+  VM = "vm"
+  DISK = "disk"
+  QUERY = "query"
 
 @dataclass
 class ParsedCommand:
-    # Data class representing a parsed VIF command
-    command_type: CommandType
-    action: str
-    target: Optional[str] = None
-    arguments: List[str] = None
-    options: Dict[str, Any] = None
+  # Data class representing a parsed VIF command
+  command_type: CommandType
+  action: str
+  target: Optional[str] = None
+  arguments: List[str] = None
+  options: Dict[str, Any] = None
 
-    def __post_init__(self):
-        if self.arguments is None:
-            self.arguments = []
-        if self.options is None:
-            self.options = {}
-
+  def __post_init__(self):
+    if self.arguments is None:
+      self.arguments = []
+    if self.options is None:
+      self.options = {}
 
 class CommandParser(ABC):
-    # Abstract base class for command parsers
-    
-    @abstractmethod
-    def can_parse(self, tokens: List[str]) -> bool:
-        # Check if this parser can handle the given tokens
-        pass
-    
-    @abstractmethod
-    def parse(self, tokens: List[str]) -> ParsedCommand:
-        # Parse the tokens into a ParsedCommand
-        pass
+  # Abstract base class for command parsers
+  @abstractmethod
+  def can_parse(self, tokens: List[str]) -> bool:
+    # Check if this parser can handle the given tokens
+    pass
 
+  @abstractmethod
+  def parse(self, tokens: List[str]) -> ParsedCommand:
+    # Parse the tokens into a ParsedCommand
+    pass
 
 class HypParser(CommandParser):
-    # Parser for hypervisor commands
-    
-    VALID_ACTIONS = {
-        'collect': 'Return problem determination',
-        'disk': 'Add paging or Linux disk space',
-        'errors': 'Return hardware errors',
-        'restart': 'SHUTDOWN REIPL',
-        'service': 'z/VM Dvlpmnt needs to enable this to modernize z/VM',
-        'shutdown': 'SHUTDOWN',
-        'verify': 'Perform z/VM consistency checks'
-    }
-    
-    def can_parse(self, tokens: List[str]) -> bool:
-        return len(tokens) >= 2 and tokens[0] == 'hyp'
-    
-    def parse(self, tokens: List[str]) -> ParsedCommand:
-        if not self.can_parse(tokens):
-            raise ValueError("Cannot parse as hyp command")
-        
-        action = tokens[1]
-        if action not in self.VALID_ACTIONS:
-            raise ValueError(f"Invalid hyp action: {action}")
-        
-        cmd = ParsedCommand(
-            command_type=CommandType.HYP,
-            action=action,
-            arguments=tokens[2:] if len(tokens) > 2 else []
-        )
-        
-        # Special handling for disk commands
-        if action == 'disk' and len(tokens) >= 5:
-            cmd.options = {
-                'operation': tokens[2],  # add
-                'type': tokens[3],       # image/paging
-                'identifier': tokens[4]  # 1234/abcd
-            }
-        
-        return cmd
+  # Parser for hypervisor commands
+  VALID_ACTIONS = {
+    'collect': 'Return problem determination',
+    'disk': 'Add paging or Linux disk space',
+    'errors': 'Return hardware errors',
+    'restart': 'SHUTDOWN REIPL',
+    'service': 'z/VM Dvlpmnt needs to enable this to modernize z/VM',
+    'shutdown': 'SHUTDOWN',
+    'verify': 'Perform z/VM consistency checks'
+  }
 
+  def can_parse(self, tokens: List[str]) -> bool:
+    return len(tokens) >= 2 and tokens[0] == 'hyp'
+
+  def parse(self, tokens: List[str]) -> ParsedCommand:
+    if not self.can_parse(tokens):
+      raise ValueError("Cannot parse as hyp command")
+    action = tokens[1]
+    if action not in self.VALID_ACTIONS:
+      raise ValueError(f"Invalid hyp action: {action}")
+    cmd = ParsedCommand(
+      command_type=CommandType.HYP,
+      action=action,
+      arguments=tokens[2:] if len(tokens) > 2 else []
+    )
+    if action == 'disk' and len(tokens) >= 5: # Special handling for disk commands
+      cmd.options = {
+        'operation': tokens[2],  # add
+        'type': tokens[3],     # image/paging
+        'identifier': tokens[4]  # 1234/abcd
+      }
+    return cmd
 
 class ImageParser(CommandParser):
-    # Parser for image commands
-    
-    VALID_ACTIONS = {
-        'create': 'Create a new Linux golden image',
-        'delete': 'Delete a Linux golden image'
-    }
-    
-    def can_parse(self, tokens: List[str]) -> bool:
-        return len(tokens) >= 2 and tokens[0] == 'image'
-    
-    def parse(self, tokens: List[str]) -> ParsedCommand:
-        if not self.can_parse(tokens):
-            raise ValueError("Cannot parse as image command")
-        
-        action = tokens[1]
-        if action not in self.VALID_ACTIONS:
-            raise ValueError(f"Invalid image action: {action}")
-        
-        return ParsedCommand(
-            command_type=CommandType.IMAGE,
-            action=action,
-            arguments=tokens[2:] if len(tokens) > 2 else []
-        )
+  # Parser for image commands
+  VALID_ACTIONS = {
+    'create': 'Create a new Linux golden image',
+    'delete': 'Delete a Linux golden image'
+  }
 
+  def can_parse(self, tokens: List[str]) -> bool:
+    return len(tokens) >= 2 and tokens[0] == 'image'
+
+  def parse(self, tokens: List[str]) -> ParsedCommand:
+    if not self.can_parse(tokens):
+      raise ValueError("Cannot parse as image command")
+    action = tokens[1]
+    if action not in self.VALID_ACTIONS:
+      raise ValueError(f"Invalid image action: {action}")
+    return ParsedCommand(
+      command_type=CommandType.IMAGE,
+      action=action,
+      arguments=tokens[2:] if len(tokens) > 2 else []
+    )
 
 class VmParser(CommandParser):
-    # Parser for VM commands
-    
-    VALID_ACTIONS = {
-        'create': 'Clone a Linux',
-        'delete': 'Delete Linux but no PURGE just yet',
-        'list': 'List all VMs and their status',
-        'network': 'Add OSA triplet - need VSWITCH name as an arg?',
-        'set': 'Set VM properties (storage/cpus)',
-        'start': 'Start VM',
-        'stop': 'Stop VM',
-        'stopall': 'Loop through all images and call image stop on them'
-    }
-    
-    def can_parse(self, tokens: List[str]) -> bool:
-        return len(tokens) >= 2 and tokens[0] == 'vm'
-    
-    def parse(self, tokens: List[str]) -> ParsedCommand:
-        if not self.can_parse(tokens):
-            raise ValueError("Cannot parse as vm command")
-        
-        action = tokens[1]
-        
-        # Handle special cases
-        if action == 'stopall':
-            return ParsedCommand(
-                command_type=CommandType.VM,
-                action=action
-            )
-        
-        if action not in self.VALID_ACTIONS:
-            raise ValueError(f"Invalid vm action: {action}")
-        
-        cmd = ParsedCommand(
-            command_type=CommandType.VM,
-            action=action,
-            arguments=tokens[2:] if len(tokens) > 2 else []
-        )
-        
-        # Special parsing for different VM actions
-        if action in ['create', 'delete', 'start', 'stop'] and len(tokens) >= 3:
-            cmd.target = tokens[2]  # VM name
-            cmd.arguments = tokens[3:]
-        
-        elif action == 'network' and len(tokens) >= 5:
-            cmd.target = tokens[2]  # VM name
-            cmd.options = {
-                'operation': tokens[3],  # add
-                'network_id': tokens[4]  # 360
-            }
-            cmd.arguments = tokens[5:]
-        
-        elif action == 'set' and len(tokens) >= 5:
-            cmd.target = tokens[2]  # VM name
-            cmd.options = {
-                'property': tokens[3],   # storage/cpus
-                'value': tokens[4]       # 8/4
-            }
-            cmd.arguments = tokens[5:]
-        
-        return cmd
+  # Parser for VM commands
+  VALID_ACTIONS = {
+    'create': 'Clone a Linux',
+    'delete': 'Delete Linux but no PURGE just yet',
+    'list': 'List all VMs and their status',
+    'network': 'Add OSA triplet - need VSWITCH name as an arg?',
+    'set': 'Set VM properties (storage/cpus)',
+    'start': 'Start VM',
+    'stop': 'Stop VM',
+    'stopall': 'Loop through all images and call image stop on them'
+  }
 
+  def can_parse(self, tokens: List[str]) -> bool:
+    return len(tokens) >= 2 and tokens[0] == 'vm'
+
+  def parse(self, tokens: List[str]) -> ParsedCommand:
+    if not self.can_parse(tokens):
+      raise ValueError("Cannot parse as vm command")
+    action = tokens[1]
+    if action == 'stopall':                # Handle special cases
+      return ParsedCommand(
+        command_type=CommandType.VM,
+        action=action
+      )
+
+    if action not in self.VALID_ACTIONS:
+      raise ValueError(f"Invalid vm action: {action}")
+    cmd = ParsedCommand(
+      command_type=CommandType.VM,
+      action=action,
+      arguments=tokens[2:] if len(tokens) > 2 else []
+    )
+
+    # Special parsing for different VM actions
+    if action in ['create', 'delete', 'start', 'stop'] and len(tokens) >= 3:
+      cmd.target = tokens[2]  # VM name
+      cmd.arguments = tokens[3:]
+    elif action == 'network' and len(tokens) >= 5:
+      cmd.target = tokens[2]  # VM name
+      cmd.options = {
+        'operation': tokens[3],  # add
+        'network_id': tokens[4]  # 360
+      }
+      cmd.arguments = tokens[5:]
+    elif action == 'set' and len(tokens) >= 5:
+      cmd.target = tokens[2]  # VM name
+      cmd.options = {
+        'property': tokens[3],   # storage/cpus
+        'value': tokens[4]     # 8/4
+      }
+      cmd.arguments = tokens[5:]
+    return cmd
 
 class DiskParser(CommandParser):
-    # Parser for disk commands
-    
-    VALID_ACTIONS = {
-        'copy': 'Copy a disk from one VM to another',
-        'create': 'Create a new disk for a VM',
-        'delete': 'Delete a disk from a VM',
-        'share': 'Share disk between two VMs (low priority)'
-    }
-    
-    def can_parse(self, tokens: List[str]) -> bool:
-        return len(tokens) >= 2 and tokens[0] == 'disk'
-    
-    def parse(self, tokens: List[str]) -> ParsedCommand:
-        if not self.can_parse(tokens):
-            raise ValueError("Cannot parse as disk command")
-        
-        action = tokens[1]
-        if action not in self.VALID_ACTIONS:
-            raise ValueError(f"Invalid disk action: {action}")
-        
-        cmd = ParsedCommand(
-            command_type=CommandType.DISK,
-            action=action,
-            arguments=tokens[2:] if len(tokens) > 2 else []
-        )
-        
-        # Special parsing for different disk actions
-        if action == 'copy' and len(tokens) >= 6:
-            # disk copy linux1 150 [to] linux2 150
-            to_index = None
-            if 'to' in tokens:
-                to_index = tokens.index('to')
-                cmd.options = {
-                    'source_vm': tokens[2],
-                    'source_disk': tokens[3],
-                    'target_vm': tokens[to_index + 1],
-                    'target_disk': tokens[to_index + 2]
-                }
-            elif len(tokens) >= 6:
-                cmd.options = {
-                    'source_vm': tokens[2],
-                    'source_disk': tokens[3],
-                    'target_vm': tokens[4],
-                    'target_disk': tokens[5]
-                }
-        
-        elif action == 'create' and len(tokens) >= 5:
-            # disk create linux1 150 2G
-            cmd.options = {
-                'vm': tokens[2],
-                'disk_id': tokens[3],
-                'size': tokens[4]
-            }
-        
-        elif action == 'delete' and len(tokens) >= 4:
-            # disk delete linux1 150
-            cmd.options = {
-                'vm': tokens[2],
-                'disk_id': tokens[3]
-            }
-        
-        elif action == 'share' and len(tokens) >= 6:
-            # disk share linux1 151 linux2 151
-            cmd.options = {
-                'source_vm': tokens[2],
-                'source_disk': tokens[3],
-                'target_vm': tokens[4],
-                'target_disk': tokens[5]
-            }
-        
-        return cmd
+  # Parser for disk commands
+  VALID_ACTIONS = {
+    'copy': 'Copy a disk from one VM to another',
+    'create': 'Create a new disk for a VM',
+    'delete': 'Delete a disk from a VM',
+    'share': 'Share disk between two VMs (low priority)'
+  }
 
+  def can_parse(self, tokens: List[str]) -> bool:
+    return len(tokens) >= 2 and tokens[0] == 'disk'
+
+  def parse(self, tokens: List[str]) -> ParsedCommand:
+    if not self.can_parse(tokens):
+      raise ValueError("Cannot parse as disk command")
+    action = tokens[1]
+    if action not in self.VALID_ACTIONS:
+      raise ValueError(f"Invalid disk action: {action}")
+    cmd = ParsedCommand(
+      command_type=CommandType.DISK,
+      action=action,
+      arguments=tokens[2:] if len(tokens) > 2 else []
+    )
+    if action == 'copy' and len(tokens) >= 6: # parsing for different disk actions
+      # Ex: disk copy linux1 150 [to] linux2 150
+      to_index = None
+      if 'to' in tokens:
+        to_index = tokens.index('to')
+        cmd.options = {
+          'source_vm': tokens[2],
+          'source_disk': tokens[3],
+          'target_vm': tokens[to_index + 1],
+          'target_disk': tokens[to_index + 2]
+        }
+      elif len(tokens) >= 6:
+        cmd.options = {
+          'source_vm': tokens[2],
+          'source_disk': tokens[3],
+          'target_vm': tokens[4],
+          'target_disk': tokens[5]
+        }
+    elif action == 'create' and len(tokens) >= 5:
+      # ex: disk create linux1 150 2G
+      cmd.options = {
+        'vm': tokens[2],
+        'disk_id': tokens[3],
+        'size': tokens[4]
+      }
+    elif action == 'delete' and len(tokens) >= 4:
+      # ex: disk delete linux1 150
+      cmd.options = {
+        'vm': tokens[2],
+        'disk_id': tokens[3]
+      }
+    elif action == 'share' and len(tokens) >= 6:
+      # ex: disk share linux1 151 linux2 151
+      cmd.options = {
+        'source_vm': tokens[2],
+        'source_disk': tokens[3],
+        'target_vm': tokens[4],
+        'target_disk': tokens[5]
+      }
+    return cmd
 
 class QueryParser(CommandParser):
-    # Parser for query commands
-    
-    VALID_ACTIONS = {
-        'active': 'Report which VMs are running',
-        'all': 'Invoke all other query subcommands',
-        'configuration': 'Display current vif settings',
-        'disks': 'Display VM DASD utilization',
-        'errors': 'Write errors to /var/log/zlma/errors.report.<timestamp>',
-        'version': 'Report the vif version',
-        'network': 'Display network configuration',
-        'paging': 'Show page space and % used',
-        'performance': 'Display current CPU, paging and I/O utilization',
-        'shared': 'Display VMs that share disks',
-        'vm': 'Display configuration of a VM',
-        'volumes': 'Display image and paging DASD volumes'
-    }
-    
-    def can_parse(self, tokens: List[str]) -> bool:
-        return len(tokens) >= 2 and tokens[0] == 'query'
-    
-    def parse(self, tokens: List[str]) -> ParsedCommand:
-        if not self.can_parse(tokens):
-            raise ValueError("Cannot parse as query command")
-        
-        action = tokens[1]
-        if action not in self.VALID_ACTIONS:
-            raise ValueError(f"Invalid query action: {action}")
-        
-        return ParsedCommand(
-            command_type=CommandType.QUERY,
-            action=action,
-            arguments=tokens[2:] if len(tokens) > 2 else []
-        )
+  # Parser for query commands
+  VALID_ACTIONS = {
+    'active': 'Report which VMs are running',
+    'all': 'Invoke all other query subcommands',
+    'configuration': 'Display current vif settings',
+    'disks': 'Display VM DASD utilization',
+    'errors': 'Display hardware errors',
+    'help': 'Give help on "vif query"',
+    'version': 'Report the vif version',
+    'network': 'Display network configuration',
+    'paging': 'Show page space and % used',
+    'performance': 'Display current CPU, paging and I/O utilization',
+    'shared': 'Display VMs that share disks',
+    'vm': 'Display configuration of a VM',
+    'volumes': 'Display image and paging DASD volumes'
+  }
+
+  def can_parse(self, tokens: List[str]) -> bool:
+    return len(tokens) >= 2 and tokens[0] == 'query'
+
+  def parse(self, tokens: List[str]) -> ParsedCommand:
+    if not self.can_parse(tokens):
+      raise ValueError("Cannot parse as query command")
+    action = tokens[1]
+    if action not in self.VALID_ACTIONS:
+      raise ValueError(f"Invalid query action: {action}")
+    return ParsedCommand(
+      command_type=CommandType.QUERY,
+      action=action,
+      arguments=tokens[2:] if len(tokens) > 2 else []
+    )
 
 class VifCommandParser:
-    # Main VIF command parser that coordinates all sub-parsers
-    
-    def __init__(self):
-        self.parsers = [
-            HypParser(),
-            ImageParser(),
-            VmParser(),
-            DiskParser(),
-            QueryParser()
-        ]
-    
-    def tokenize(self, command: str) -> List[str]:
-        # Tokenize a command string into a list of tokens
-        # Simple whitespace tokenization for now
-        return command.strip().split()
-    
-    def parse(self, command: str) -> ParsedCommand:
-        # Parse a complete VIF command string
-        # Handle the 'vif' prefix if present
-        if command.strip().startswith('vif '):
-            command = command[4:].strip()
-        
-        tokens = self.tokenize(command)
-        
-        if not tokens:
-            raise ValueError("Empty command")
-        
-        # Try each parser until one can handle the command
-        for parser in self.parsers:
-            if parser.can_parse(tokens):
-                return parser.parse(tokens)
-        
-        raise ValueError(f"No parser found for command: {' '.join(tokens)}")
-    
-    def validate_command(self, command: str) -> bool:
-        # Validate if a command can be parsed without raising exceptions
-        try:
-            self.parse(command)
-            return True
-        except ValueError:
-            return False
+  # Main VIF command parser that coordinates all sub-parsers
+  def __init__(self):
+    self.parsers = [
+      HypParser(),
+      ImageParser(),
+      VmParser(),
+      DiskParser(),
+      QueryParser()
+    ]
 
+  def tokenize(self, command: str) -> List[str]:
+    # Tokenize a command string into a list simple whitespace tokens
+    return command.strip().split()
+
+  def parse(self, command: str) -> ParsedCommand:
+    # parse a VIF command string - handle the 'vif' prefix if present
+    if command.strip().startswith('vif '):
+      command = command[4:].strip()
+    tokens = self.tokenize(command)
+    if not tokens:
+      raise ValueError("Empty command")
+    for parser in self.parsers:            # try each parser until one can handle the command
+      if parser.can_parse(tokens):
+        return parser.parse(tokens)
+    raise ValueError(f"No parser found for command: {' '.join(tokens)}")
+
+  def validate_command(self, command: str) -> bool:
+    # Validate if a command can be parsed without raising exceptions
+    try:
+      self.parse(command)
+      return True
+    except ValueError:
+      return False
 
 class Vif:
-  # Process all VIF commands using modern object-oriented parser
+  # Process all VIF commands using object-oriented parser
   
   def __init__(self):
     self.conf = Zlma_conf()                # configuration variables
     self.conf.load_config_file()           # read the config file
     logging.basicConfig(filename='/var/log/zlma/vif.log', format='%(asctime)s %(levelname)s %(message)s')
     self.console = logging.StreamHandler() # set up logging to console
-    self.formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s') # format is simpler for console use
+    self.formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s') 
     self.console.setFormatter(self.formatter)
     logging.getLogger('').addHandler(self.console) # add the handler to the root logger
     self.log = logging.getLogger(__name__)
     self.lpar = None                       # LPAR we are running on
     self.user_id = None                    # User ID we are running in
-    
-    # set feilong_url from config file
-    self.feilong_url = self.conf.feilong_url
-
-    # set log level on the console and to log files
+    self.priv_class = None                 # our privilege classes     
+    self.feilong_url = self.conf.feilong_url # TO DO: get this from /etc/zlma.conf 
     self.log.debug(f"__init__() user:{self.conf.user} setting log level to {self.conf.log_level}")
     self.console.setLevel(self.conf.log_level)
     self.log.setLevel(self.conf.log_level)
-
-    # parse args passed in
-    self.parser = argparse.ArgumentParser(description="The vif command line interface")
-    self.parser.add_argument("cmd", type=str, help="The vif command to be executed (vif helpall)", nargs=argparse.REMAINDER) 
+    self.parser = argparse.ArgumentParser(description="vif CLI") # parse args passed in
+    self.parser.add_argument("cmd", type=str, help="vif command to be executed (vif helpall)", nargs=argparse.REMAINDER) 
     self.parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     self.parser.add_argument("-l", "--lpar", help="LPAR image is on", action="append")
     self.args = self.parser.parse_args()
-    
-    # Initialize the new VIF command parser
-    self.vif_parser = VifCommandParser()
+    self.vif_parser = VifCommandParser()   # Initialize the new VIF command parser
 
-  def run_vm_cmd(self, cp_cmd: str):      # run a CP command using vmcp
+  def run_cp_cmd(self, cp_cmd: str, print_cmd: bool = False):       
+    # run a CP command using vmcp - if print_cmd is true, also print the command being run
     cmd = f"sudo /usr/sbin/vmcp {cp_cmd}"
-    self.log.debug(f"run_vm_cmd() running CP cmd: {cmd}")
+    vmcp_out = ""
+    if print_cmd:                          # display CP command being run
+      vmcp_out = f"running: CP {cp_cmd}\n"
     try:
       result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
-      self.log.error(f"run_vm_cmd(): cmd {cmd} returned subprocess exception: {e}")
+      self.log.error(f"run_cp_cmd(): cmd {cmd} returned subprocess exception: {e}")
       sys.exit(1)
-    vmcp_out = result.stdout
-    #print(vmcp_out)
+    vmcp_out += f"{result.stdout}\n"       # add newline to output
     return vmcp_out
+  
+  def run_lnx_cmd(self, lnx_cmd: str, print_cmd: bool = False):
+    # run a Linux command - if print_cmd is true, also print the command being run
+    output = "in run_lnx_cmd()\n"
+    if print_cmd:                          # display command being run
+      output += f"running: {lnx_cmd}\n"
+    try:
+      result = subprocess.run(lnx_cmd, shell=True, capture_output=True, text=True, encoding="latin-1", errors="replace")
+      output += f"{result.stdout}\n"       # add newline to output
+    except subprocess.CalledProcessError as e:
+      self.log.error(f"run_lnx_cmd(): lnx_cmd {lnx_cmd} returned subprocess exception: {e}")
+      output += f"run_lnx_cmd(): lnx_cmd {lnx_cmd} returned subprocess exception: {e}"
+    return output
+
+  def print_equals(self):
+    # print a line of 80 equal signs
+    print("=" * 80)
+
+  def print_dashes(self):
+    # print a line of 80 dashes
+    print("-" * 80)
 
   def check_lpar(self, tgt_lpar: str):
     self.get_lpar_userid()
     if tgt_lpar != self.lpar:              # not running on requested LPAR 
       # TO DO: run vif on the target LPAR rather than faile
-      self.log.error(f"check_lpar(): current LPAR: {self.lpar} requesed LPAR: {tgt_lpar}")
+      self.log.error(f"Vif:check_lpar(): current LPAR: {self.lpar} requesed LPAR: {tgt_lpar}")
       sys.exit(1)
 
-  # TO DO: delete if priv class will be only 'G'
-  #def check_privclas(self, class_to_check: str):
-  #  cmd = f"/usr/local/sbin/qprivclas {class_to_check}"
-  #  try:
-  #    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-  #  except subprocess.CalledProcessError as e:
-  #    self.log.error(f"check_privclas(): cmd {cmd} returned subprocess exception: {e}")
-  #    sys.exit(1)
-  #  self.log.debug(f"rc from {cmd}: {result.returncode}")
-  #  return int(result.returncode)
+  def get_privclas(self):
+    # save the user's privilege class
+    cmd = f"/usr/local/sbin/qprivclas -q"
+    try:
+      result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+      self.log.error(f"Vif.get_privclas(): cmd {cmd} returned subprocess exception: {e}")
+      sys.exit(1)
+    self.priv_class = result.stdout
+    self.log.debug(f"Vif.get_privclas(): priv_class: {self.priv_class}")
 
   def dispatch_command(self, parsed_cmd: ParsedCommand):
     # Dispatch parsed command to appropriate handler based on command type and action
@@ -432,6 +401,8 @@ class Vif:
           self.handle_hyp_disk(' '.join(cmd.arguments))
       case 'errors':
         self.handle_hyp_errors()
+      case 'help':
+        self.handle_help_query()
       case 'restart':
         self.handle_hyp_shutdown("restart")
       case 'service':
@@ -441,7 +412,7 @@ class Vif:
       case 'verify':
         self.handle_hyp_verify()
       case _:
-        self.log.error(f"Unknown hyp action: {cmd.action}")
+        self.log.error(f"Vif:handle_hyp_command(): Unknown hyp action: {cmd.action}")
         sys.exit(1)
 
   def handle_image_command(self, cmd: ParsedCommand):
@@ -453,10 +424,10 @@ class Vif:
         if cmd.arguments:
           self.handle_image_delete(cmd.arguments[0])
         else:
-          self.log.error("Image delete requires an image name")
+          self.log.error("Vif:handle_image_command(): Image delete requires an image name")
           sys.exit(1)
       case _:
-        self.log.error(f"Unknown image action: {cmd.action}")
+        self.log.error(f"Vif:handle_image_command(): Unknown image action: {cmd.action}")
         sys.exit(1)
 
   def handle_vm_command(self, cmd: ParsedCommand):
@@ -479,7 +450,7 @@ class Vif:
       case 'stopall':
         self.handle_vm_stopall()
       case _:
-        self.log.error(f"Unknown vm action: {cmd.action}")
+        self.log.error(f"Vif:handle_vm_command(): Unknown vm action: {cmd.action}")
         sys.exit(1)
 
   def handle_disk_command(self, cmd: ParsedCommand):
@@ -494,7 +465,7 @@ class Vif:
       case 'share':
         self.handle_disk_share_new(cmd.options)
       case _:
-        self.log.error(f"Unknown disk action: {cmd.action}")
+        self.log.error(f"Vif:handle_disk_command(): Unknown disk action: {cmd.action}")
         sys.exit(1)
 
   def handle_query_command(self, cmd: ParsedCommand):
@@ -524,25 +495,25 @@ class Vif:
         if cmd.arguments:
           self.handle_query_vm(cmd.arguments[0])
         else:
-          self.log.error("Query vm requires a VM name")
+          self.log.error("Vif:handle_query_command(): Query vm requires a VM name")
           sys.exit(1)
       case 'volumes':
         self.handle_query_volumes()
       case _:
-        self.log.error(f"Unknown query action: {cmd.action}")
+        self.log.error(f"Vif:handle_query_command(): Unknown query action: {cmd.action}")
         sys.exit(1) 
 
   def get_lpar_userid(self):               # get LPAR and user ID we are running on
-    vmcp_out = self.run_vm_cmd("QUERY USERID")
+    vmcp_out = self.run_cp_cmd("QUERY USERID")
     #print(f"vmcp_out: {vmcp_out}")
     words = vmcp_out.split()               # split string into words
     self.lpar = words[2] 
     self.user_id = words[0] 
-    self.log.debug(f"get_lpar_userid() lpar: {self.lpar} user_id: {self.user_id}")
+    self.log.debug(f"Vif.get_lpar_userid() lpar: {self.lpar} user_id: {self.user_id}")
 
   # 'vif help' command handlers
   def handle_help_all(self):
-    self.log.debug(f"handle_help_all(): user: {self.conf.user}")
+    self.log.debug(f"Vif.handle_help_all(): user: {self.conf.user}")
     self.handle_help()
     print()
     self.handle_help_hypervisor()
@@ -648,30 +619,33 @@ class Vif:
 
   # 'vif hypervisor' command handlers
   def handle_hyp_collect(self):
-    # call script hypcollect to collect z/VM and Linux data
-    self.log.debug(f"handle_hyp_collect(): user: {self.conf.user}  Write problem determination data to <timestamp>")
-    print("calling hypcollect ...")
-    cmd = "/usr/local/sbin/hypcollect"
-    try:
-      result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    except Exception as e:
-      print(f"handle_hyp_collect(): Exception calling zlma: {e}")
-      exit(3)
-    print(f"{result.stdout}")              # show the output
+    # collect all hypervisor information for debugging
+    self.log.debug(f"handle_hyp_collect(): user: {self.conf.user} TODO: gather z/VM problem determination data")
+    output = self.run_cp_cmd("QUERY CPLEVEL", True)
+    output += self.run_cp_cmd("QUERY STOR", True)
+    output += self.run_cp_cmd("QUERY PROC", True)
+    output += self.run_cp_cmd("QUERY ALLOC DRCT", True)
+    output += self.run_cp_cmd("QUERY ALLOC MAP", True)
+    output += self.run_cp_cmd("QUERY ALLOC PAGE", True)
+    output += self.run_cp_cmd("QUERY ALLOC SPOOL", True)
+    output += self.run_cp_cmd("QUERY ALLOC TDSK", True)
+    output += self.run_cp_cmd("QUERY NAMES", True)
+    output += self.run_cp_cmd("INDICATE LOAD", True)
+    output += self.run_lnx_cmd("/usr/local/sbin/vir2real.py", True)
+    output += self.run_lnx_cmd("sudo /usr/bin/smcli Query_All_DM -T maint -k format=no", True)
+    print(f"Vif:handle_hyp_collect(): output\n{output}")
 
   def handle_hyp_disk(self, args: str):
-    cmd = f"VIFCMS hyp {args}"
-    self.log.debug(f"handle_hyp_disk(): user: {self.conf.user} cmd: {cmd}") 
-    print(f"call: '{cmd}'")
+    self.log.debug(f"handle_hyp_disk(): user: {self.conf.user}") 
+    print("Vif:handle_hyp_disk(): add a disk?")
 
   def handle_hyp_errors(self):
-    cmd = f"VIFCMS hyp errors"
     self.log.debug(f"handle_hyp_errors(): user: {self.conf.user} write hardware errors to /var/log/zlma/ereprept.YY-MM-DD-HH:MM:SS")
-    print("call: 'VIFCMS hyp errors' => return hardware errors /var/log/zlma/error.report.<timestamp>")
+    print("handle_hyp_errors() how to get hardware errors??")
 
   def handle_hyp_service(self):
     self.log.debug(f"handle_hyp_service(): user: {self.conf.user} how to service z/VM from Linux?")
-    print("call: 'VIFCMS hyp service' => z/VM Dvlpmnt needs to enable this to modernize z/VM")
+    print("handle_hyp_service(): => z/VM Dvlpmnt must enable service from Linux first")
 
   def handle_hyp_shutdown(self, flavor: str):
     # hypervisor 'restart' and 'shutdown' both invoke CP SHUTDOWN
@@ -689,9 +663,7 @@ class Vif:
   def handle_vm_create(self, vm_name: str, args: List[str]):
     # Enhanced VM creation handler with image deployment support
     self.log.debug(f"handle_vm_create(): user: {self.conf.user} clone Linux vm: {vm_name}")
-    
-    # Parse additional arguments from the web form
-    params = {}
+    params = {}                            # Parse additional arguments from the web form
     i = 0
     while i < len(args):
       if args[i] == '--memory' and i + 1 < len(args):
@@ -708,22 +680,16 @@ class Vif:
         i += 2
       else:
         i += 1
-    
-    # Set defaults if not provided
-    cpus = int(params.get('cpus', '1'))
+    cpus = int(params.get('cpus', '1'))    # Set defaults if not provided
     memory = params.get('memory', '1024')  # in MB
     image = params.get('image', 'sles15sp6-minimal')
     architecture = params.get('architecture', 's390x')
-    
-    # Validate inputs
-    if architecture != 's390x':
+    if architecture != 's390x':            # Validate inputs
       print(f"Error: Only s390x architecture is supported, got: {architecture}")
       return
-      
     if cpus < 1 or cpus > 4:
       print(f"Error: CPU count must be between 1 and 4, got: {cpus}")
       return
-      
     try:
       memory_mb = int(memory)
       if memory_mb < 512 or memory_mb > 4096:
@@ -732,7 +698,6 @@ class Vif:
     except ValueError:
       print(f"Error: Invalid memory value: {memory}")
       return
-    
     print(f"Creating VM '{vm_name}' with {cpus} CPUs, {memory_mb}MB memory...")
     print(f"Base image: {image}")
     
@@ -755,9 +720,7 @@ class Vif:
 
       }
     }
-    
-    try:
-      # Create the VM
+    try:                                   # to create the VM
       print("Step 1: Creating VM definition...")
       response = requests.post(
         f"{self.feilong_url}/guests",
@@ -765,7 +728,6 @@ class Vif:
         headers={'Content-Type': 'application/json'},
         timeout=60
       )
-      
       if response.status_code not in [200, 201]:
         print(f"✗ VM creation failed with status code: {response.status_code}")
         try:
@@ -774,7 +736,6 @@ class Vif:
         except:
           print(f"Error response: {response.text}")
         return
-      
       print(f"✓ VM '{vm_name}' definition created successfully!")
       
       # Step 2: Deploy the image to the VM
@@ -782,7 +743,6 @@ class Vif:
       deploy_config = {
         "image": image,
       }
-      
       deploy_response = requests.post(
         f"{self.feilong_url}/guests/{vm_name.upper()}/action",
         json={
@@ -790,9 +750,8 @@ class Vif:
           **deploy_config
         },
         headers={'Content-Type': 'application/json'},
-        timeout=2400 # doubling the timeout for image deployment
+        timeout=2400                       # large timeout for image deployment
       )
-      
       if deploy_response.status_code == 200:
         print(f"✓ Base image '{image}' deployed successfully to VM '{vm_name}'!")
       else:
@@ -813,7 +772,6 @@ class Vif:
         headers={'Content-Type': 'application/json'},
         timeout=60
       )
-      
       if start_response.status_code == 200:
         print(f"✓ VM '{vm_name}' started successfully!")
         print(f"")
@@ -822,8 +780,7 @@ class Vif:
         print(f"- Memory: {memory_mb}MB")
         print(f"- Base Image: {image}")
         print(f"- Status: Running")
-        # add the VM to zlma
-        rc = subprocess.run(f"zlma add --server {vm_name} --copyscript", shell=True)
+        rc = subprocess.run(f"zlma add --server {vm_name} --copyscript", shell=True) # add VM to zlma
         if rc.returncode == 0:
           print(f"✓ VM '{vm_name}' added to zlma successfully!")
         else:
@@ -1207,36 +1164,27 @@ class Vif:
   def handle_query_vm(self, vm_name: str):
     # Display configuration of a specific VM using Feilong API
     self.log.debug(f"handle_query_vm() user: {self.conf.user} query VM {vm_name}")
-    
     if not vm_name:
       print("Error: VM name is required")
       return
-    
     print(f"=== VM Configuration for: {vm_name.upper()} ===")
     print()
-    
     try:
       # Call Feilong API to get guest definition
       response = requests.get(
         f"{self.feilong_url}/guests/{vm_name.upper()}",
         timeout=10
       )
-      
       if response.status_code == 200:
         data = response.json()
-        
         if data.get('rc') == 0:
           output = data.get('output', {})
           user_direct = output.get('user_direct', [])
-          
           if user_direct:
             print("User Directory Definition:")
-            print("-" * 26)
-            
-            # Just print each line of the user directory as-is
-            for line in user_direct:
+            self.print_dashes 
+            for line in user_direct:       # print user directory as-is
               print(line)
-              
           else:
             print("No user directory information found for this VM.")
         else:
@@ -1246,7 +1194,6 @@ class Vif:
         print(f"Failed to query VM. HTTP Status: {response.status_code}")
         if response.status_code == 404:
           print(f'VM "{vm_name.upper()}" not found. Please check the VM name.')
-        
     except requests.exceptions.ConnectTimeout:
       print("Timeout connecting to Feilong API")
     except requests.exceptions.ConnectionError:
@@ -1260,25 +1207,17 @@ class Vif:
     # print("handle_query_all() TO DO: call all other query commands")
     print("Running all query commands:")
     self.handle_query_active()
-    print()
+    self.print_equals
     self.handle_query_configuration()
-    print()
+    self.print_equals
     self.handle_query_disks()
-    print()
-    # self.handle_query_errors()
-    # print()
+    self.print_equals
     self.handle_query_version()
-    print()
+    self.print_equals
     self.handle_query_network()
-    print()
-    # self.handle_query_paging()
-    # print()
+    self.print_equals
     self.handle_query_performance()
-    print()
-    #self.handle_query_vm()
-    # self.handle_query_shared()
-    # print()
-    # self.handle_query_volumes()
+    self.print_equals
 
   def handle_query_configuration(self):
     # Display current vif settings
@@ -1304,7 +1243,7 @@ class Vif:
       print("Use of system resources: INDICATE LOAD")
       print("-" * 35)
       
-      ind_output = self.run_vm_cmd("IND")
+      ind_output = self.run_cp_cmd("IND")
       if ind_output.strip():
         lines = ind_output.strip().split('\n')
         
@@ -1351,7 +1290,7 @@ class Vif:
       print("-" * 20)
       
       # Run QUERY ALLOC MAP for storage allocation
-      alloc_output = self.run_vm_cmd("QUERY ALLOC MAP")
+      alloc_output = self.run_cp_cmd("QUERY ALLOC MAP")
       if alloc_output.strip():
         lines = alloc_output.strip().split('\n')
         
@@ -1538,6 +1477,7 @@ class Vif:
 
   # vif query command handlers
   def handle_query_active(self):
+    print("vif query active:")             # repeat command called
     # Get a list of all VMs in this LPAR
     # Ping each server (1 packet, 500 ms max) and show which are up and which are down
     self.get_lpar_userid()                 # save LPAR and user ID we are running on
@@ -1569,128 +1509,79 @@ class Vif:
     print(f"VMs down: {down_count}") 
 
   def handle_query_errors(self):
-    self.log.debug(f"handle_query_errors() user: {self.conf.user} report hardware errors => HMC RESTful API?")
-    print("call: 'VIFCMS query errors' => write errors to /var/log/zlma/errors.report.<timestamp>")
+    # ideally this will get hardware errors from the HMC
+    print("vif query errors:")             # repeat command called
+    self.log.debug(f"handle_query_errors() report hardware errors => HMC RESTful API?")
+    print("TO DO: how to get hardware errors? (from HMC?)")
 
   def handle_query_image(self, image):
+    print("vif query image:")             # repeat command called
     self.log.debug(f"handle_query_image() user: {self.conf.user} query image {image}")
-    print("TO DO: write this!")
+    print("TO DO: call Feilong to get user directory entry?")
 
   def handle_query_version(self):
+    print("vif query version:")            # repeat command called
     self.log.debug(f"handle_query_version() user: {self.conf.user} querying system versions")
-    
-    print("=== System Version Information ===")
     print()
-    
-    # 1. Get z/VM CP Level
-    print("z/VM Control Program Level:")
-    print("-" * 30)
+    print("z/VM version (Q CPLEVEL):")
     try:
-      cp_output = self.run_vm_cmd("QUERY CPLEVEL")
-      if cp_output.strip():
-        print(cp_output.strip())
-      else:
-        print("Unable to retrieve z/VM CP level")
+      cp_output = self.run_cp_cmd("QUERY CPLEVEL")
+      print(cp_output.strip())
     except Exception as e:
-      print(f"Error querying z/VM CP level: {e}")
-    
-    print()
-    
-    # 2. Get Feilong API Version
-    print("Feilong API Version:")
-    print("-" * 20)
+      print(f"error in run_cp_cmd(QUERY CPLEVEL): {e}")
     try:
       response = requests.get(f"{self.feilong_url}/", timeout=10)
-      
       if response.status_code == 200:
         data = response.json()
-        
         if data.get('rc') == 0:
           output = data.get('output', {})
           version = output.get('version', 'Unknown')
           api_version = output.get('api_version', 'Unknown')
-          max_version = output.get('max_version', 'Unknown')
-          min_version = output.get('min_version', 'Unknown')
-          
-          print(f"Feilong Version: {version}")
-          print(f"API Version: {api_version}")
-          print(f"Supported API Range: {min_version} - {max_version}")
+          print()
+          print(f"Feilong version: {version}")
+          print(f"Feilong API version: {api_version}")
         else:
           print(f"Error in Feilong response: {data.get('errmsg', 'Unknown error')}")
       else:
         print(f"Failed to connect to Feilong API (HTTP {response.status_code})")
-        
     except requests.exceptions.ConnectTimeout:
       print("Timeout connecting to Feilong API")
     except requests.exceptions.ConnectionError:
       print("Cannot connect to Feilong API")
     except Exception as e:
       print(f"Error querying Feilong API: {e}")
-    
     print()
-    
-    # 3. Get ZLMA Version
-    print("ZLMA Version:")
-    print("-" * 13)
-    try:
-      # Try to read version from version file - check multiple possible locations
+    try: # to read version from version file
       home_dir = os.path.expanduser("~")
-      version_paths = [
-        os.path.join(home_dir, 'version'),
-        os.path.join(home_dir,'zvm-community-tools', 'zlma', 'version')
-      ]
-      
+      version_path = os.path.join(home_dir, 'zvm-community-tools', 'zlma', 'version')
       zlma_version = None
-      for version_path in version_paths:
-        try:
-          with open(version_path, 'r') as f:
-            zlma_version = f.read().strip()
-            print(f"ZLMA Version: {zlma_version}")
-            break
-        except FileNotFoundError:
-          continue
-      
-      if not zlma_version:
+      try:
+        with open(version_path, 'r') as f:
+          zlma_version = f.read().strip()
+          print(f"ZLMA Version: {zlma_version}")
+      except FileNotFoundError:
         print("ZLMA version file not found")
-            
     except Exception as e:
       print(f"Error reading ZLMA version: {e}")
-    
     print()
-    
-    # # 4. Get VIF Script Version (this file)
-    # print("VIF Command Interface:")
-    # print("-" * 22)
-    # print("VIF Version: Part of ZLMA")
-    # print(f"Configuration: {self.conf.feilong_url}")
-    
-    # print()
-    print("=" * 40)
 
   def handle_query_network(self):
+    print("vif query network:")            # repeat command called
     self.log.debug(f"handle_query_network() user: {self.conf.user} running QUERY VSWITCH DETAILS")
-    
     try:
-      vmcp_output = self.run_vm_cmd("QUERY VSWITCH DETAILS")
-      
+      vmcp_output = self.run_cp_cmd("QUERY VSWITCH DETAILS")
       if not vmcp_output.strip():
         print("No VSWITCH information available")
         return
-      
       print("VSWITCH information: QUERY VSWITCH DETAILS")
       print()
-      
-      # Parse and format the VSWITCH output
-      lines = vmcp_output.strip().split('\n')
+      lines = vmcp_output.strip().split('\n') # Parse and format the VSWITCH output
       current_vswitch = None
-      
       for line in lines:
         line = line.strip()
         if not line:
           continue
-          
-        # Check if this is a VSWITCH header line
-        if line.startswith('VSWITCH SYSTEM'):
+        if line.startswith('VSWITCH SYSTEM'): # is this a VSWITCH header line
           if current_vswitch:
             print()  # Add space between VSWITCHes
           current_vswitch = line.split()[2]  # Extract VSWITCH name
@@ -1801,7 +1692,7 @@ class Vif:
     #rc = self.check_privclas("D")          # Q ALLOC requires privilege class D
     #if rc == 1:                            # is privileged
     #  self.log.debug(f"handle_query_paging(): user: {self.conf.user} running QUERY ALLOC PAGE")
-    #  self.run_vm_cmd("QUERY ALLOC PAGE")
+    #  self.run_cp_cmd("QUERY ALLOC PAGE")
     #elif rc == 0:                          # is not privileged
     #  self.log.debug(f"handle_query_paging(): user: {self.conf.user} does not have D privclas")
     #  print("You don't have the privilege to query paging")
@@ -1809,18 +1700,12 @@ class Vif:
   def handle_query_disks(self):
     # Display VM DASD utilization using Feilong API
     self.log.debug(f"handle_query_disks() user: {self.conf.user} display VM DASD utilization")
-    
-    try:
-        # Define the pools to query
+    try:                                   # to define the pools to query
         pool_types = ["ECKD:VMPOOL"]
-        
         print("=== Disk Pool Information ===")
-        
         for pool_name in pool_types:
-            print(f"<h2>Pool: {pool_name}</h2>")
-            
-            # First get summary information (without details)
-            print(f"<h3>Summary Information</h3>")
+            print(f"Pool: {pool_name}")
+            print(f"Summary Information")
             try:
                 summary_response = requests.get(
                     f"{self.feilong_url}/host/diskpool",

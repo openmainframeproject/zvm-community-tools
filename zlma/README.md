@@ -120,7 +120,7 @@ netcfg/get_gateway=192.168.1.1 netcfg/get_nameservers=192.168.1.80
 netdevice/qeth/layer2=true netcfg/confirm_static=true                          
 netcfg/use_autoconfig=1 netcfg/disable_dhcp=true                               
 hostname=zlnx1 domain=devlab.sinenomine.net                                    
-```:
+```
 
 - The EXEC to install Ubuntu is as follows.
 

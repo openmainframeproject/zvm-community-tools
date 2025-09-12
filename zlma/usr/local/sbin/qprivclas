@@ -24,6 +24,7 @@ function usage
   echo ""
   echo "OPTIONS:"
   echo "  -h|--help             Give help"
+  echo "  -q|--quiet            Quite mode"
   echo "  -v|--verbose          Include additional output"
   echo "  -x|--debug            Print commands and arguments as they are executed"
   echo ""                                  # leave some room
@@ -42,6 +43,9 @@ function parseArgs
     case $1 in
       -h|--help)
         usage
+        ;;
+      -q|--quiet)
+        verbose=0
         ;;
       -v|--verbose)
         verbose=2
@@ -88,9 +92,12 @@ function checkPrivClass
     exit 2
   fi
   if [ ${#classToCheck} = 0 ]; then        # no class passed in
-    echo "User $userID current privilege classes: $privClasses"
-  else
-    # echo "$privClasses equals ${privClasses#$classToCheck} ?"
+    if [ "$verbose" = 0 ]; then            # quiet mode
+      echo "$privClasses"
+    else
+      echo "user $userID has privileges: $privClasses"
+    fi
+  else                                     # normal output
     if [ $privClasses != ${privClasses#$classToCheck} ]; then # wrong letters 
       echo "user $userID has $classToCheck privilege class"
       exit 1
