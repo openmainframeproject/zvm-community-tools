@@ -1,0 +1,76 @@
+/* archive console files to tape, one VMARC per day */
+ 
+'CP SPOOL CONSOLE START TO marie'
+ 
+'PIPE',
+  '< tovmarc totape a',
+  '| var action.'
+ 
+IF action.1 = 'tovmarc done' THEN SIGNAL dototape
+ 
+'ERASE * vmarc a1'           /* erase last week's vmarc's */
+'QUERY DISK'
+ 
+today = SUBSTR(DATE(Standard),3)
+ 
+SAY 'Running TOVMARC' today
+ 
+'PIPE (endchar ?)',
+  '  cms listfile * * d',
+  '| a:all /PASSDATA/ ! /PASSALL /', /* select MUSIC bad pswd reports */
+  '|   specs /ERASE/ 1 1-* nw',    /* build ERASE command */
+  '|   cms',                       /* and execute it! */
+  '?',
+  'a:',                           /* all other fnames come here */
+  '| nlocate /'today'/',          /* remove today's files */
+  '| nlocate /IDLE     USERS/',   /* and idle user file */
+  '| > lastweek files a'          /* files to be processed */
+ 
+'PIPE',                           /* pack files before VMARC */
+  '  < lastweek files a',         /* get list of files to process */
+  '| specs',                      /* build a callpipe subcmd*/
+      '/callpipe (stagesep ?) / 1',
+      '/</ nw 1-* nw',            /* that reads each file */
+      '/? pack v 132 ? >/ nw 1-* nw', /* packs and replaces it */
+      '/fixed ? *:/ nw',          /* connect to pipcmd's output */
+  '| pipcmd'                      /* issue callpipe just built */
+ 
+IF RC ^= 0 THEN SIGNAL notpacked
+ 
+'PIPE',
+  '  < lastweek files a',
+  '| specs word 2 1',
+  '| sort unique',                /* order by date */
+  '| specs /VMARC PACK */ 1 word 1 nw /D/ nw word 1 nw /VMARC A/ nw',
+  '| cms',
+  '| console'
+ 
+IF RC ^= 0 THEN SIGNAL noterased
+ 
+'PIPE (endchar ?)',
+  '  < lastweek files a',
+  '| specs /ERASE/ 1 1-* nw',     /* build ERASE command */
+  '| cms',                        /* and execute it! */
+  '?',
+  '  literal tovmarc done',       /* now update status line */
+  '| fileslow tovmarc totape a from 1'
+ 
+'EXEC TELL marie Done with VMARC! Now run TOTAPE'
+'EXEC mail marie lyne (FILE idle users NOLOG NOEDIT NOPROMPT NOSCREEN SUBJECT Time for TOTAPE!'
+'ERASE idle users d'    /* erase this file once a week */
+ 
+'CP SPOOL CONSOLE STOP CLOSE'
+ 
+EXIT
+ 
+dototape:
+   SAY 'Run TOTAPE before TOVMARC!!!'
+EXIT 99
+ 
+noterased:
+   SAY 'Return code' RC 'from PIPE, Files not erased'
+EXIT 98
+ 
+notpacked:
+   SAY 'Return code' RC 'from PIPE, Files not packed'
+EXIT 97

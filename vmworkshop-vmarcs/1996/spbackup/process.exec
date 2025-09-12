@@ -1,0 +1,163 @@
+/* PROCESS EXEC for SPBACKUP:
+ 
+Wait for IUCV's mostly, and occasionally set a timer in case something
+needs to be waited for.
+ 
+This routine saves NOTHING in its ownm Rexx variable pool. All
+information intended to be saved should be stored in GLOBALV.
+ 
+MODIFICATION HISTORY:
+04/04/96 - Roger - Add RESTORE, DATA functions
+02/13/96 - Roger - Original version (stolen from ZPRINTER)
+ 
+Wakeup Return Codes:
+     -2      First time invocation from CMS subset (WAKEUP cannot be
+             invoked from CMS subset)
+      0      Nothing to wait for--all timer file options are done
+      1      VMCF/SMSG received and stacked
+      2      The specified time period has elapsed
+      3      A time from the timer file has been reached
+      4      A reader file of the proper class has arrived
+      5      A message has arrived
+      6      Interrupt from the virtual console
+      7      I/O interrupt
+      8      External interrupt
+    100      Explanation complete (when '?' specified)
+    101      Empty file in card reader, RDR option (RC from FSREAD)
+    103      Unknown error from card reader, RDR option (RC from FSREAD)
+*/
+ADDRESS COMMAND
+ 
+/*************** BEGIN CONFIGURATION SECTION **************************/
+/* Userid of the VMTAPE service virtual */
+vmtapeid = 'VMTAPE'
+/***************** END CONFIGURATION SECTION **************************/
+ 
+/* Read configuration information */
+'PIPE < SPBACKUP CONFIG *',  /* Authorized userids */
+  '| NFIND *' ||,            /* Eliminate comment lines */
+  '| SPECS WORDS 1 1',       /* Just take first token */
+  '| XLATE UPPER',           /* Fold to uppercase */
+  '| JOIN * / /',            /* Make into one big string */
+  '| VAR authusers'
+ 
+  /* WAKEUP when the first of these occurs:
+     o A console interrupt occurs
+     o A spool file arrives containing a restore job
+     o An IUCV or SMSG interrupt occurs, which could be any of:
+       *MSG    - CP MSG or MSGNOH command
+       *WNG    - CP WNG command
+       *EMSG   - SET EMSG IUCV
+       *IMSG   - SET IMSG IUCV
+       *SMSG   - SET SMSG IUCV
+       *CP     - SET CPCONIO IUCV
+       *VM     - SET VMCONIO IUCV
+  */
+'CP SET MSG IUCV'
+'CP SET SMSG IUCV'
+'CP SET CPCONIO IUCV'
+DO FOREVER
+  SAY DATE('USA') TIME() 'At your service.'
+  'WAKEUP (CONS IUCVMSG'
+  wakerc = rc
+  /* OK, who woke us up? What happened? Why? What's going on? */
+  SELECT
+    WHEN ((wakerc = 1) | (wakerc = 5)) THEN DO
+      PARSE PULL msgtype runuser textline
+      SELECT
+        WHEN (msgtype = '*CP') THEN DO
+          SAY textline
+          ADDRESS COMMAND 'EXEC BACKTRAP' textline
+          orc = rc
+        END
+        WHEN ((msgtype = '*MSG') | (msgtype = '*SMSG')) THEN DO
+          IF (runuser = vmtapeid) THEN DO
+            SAY textline
+            ADDRESS COMMAND 'EXEC BACKMOUN' textline
+          END
+          ELSE DO
+            SAY textline
+            /* Somebody is trying to tell us something */
+            PARSE VAR textline action parms
+            UPPER action
+ 
+            /* Check for shortcut commands */
+            IF (WORDPOS(action,'START QUERY DRIVES CANCEL DATA') > 0),
+              THEN DO
+              parms = textline
+              action = 'BACKUP'
+            END
+ 
+            CALL SECURITY runuser action parms
+            IF (result <> 0) THEN DO
+              'EXEC TELL' runuser 'Unauthorized command.'
+            END
+            ELSE DO  /* This guy's OK. Do it. */
+              SELECT
+                WHEN (action = 'BACKUP') THEN DO
+                  'PIPE COMMAND EXEC BACKUP' parms,
+                    '| CONSOLE',
+                    '| SPECS \CP MSGNOH' runuser '\ 1 1-* NEXT',
+                    '| COMMAND',
+                    '| CONSOLE'
+                  finalrc = rc
+                END
+                WHEN (action = 'RESTORE') THEN DO
+                  'PIPE COMMAND EXEC RESTORER' parms,
+                    '| CONSOLE',
+                    '| SPECS \CP MSGNOH' runuser '\ 1 1-* NEXT',
+                    '| COMMAND',
+                    '| CONSOLE'
+                  finalrc = rc
+                END
+                WHEN (action = 'RLDDATA') THEN DO
+                  'CP SET MSG ON'
+                  'CP SET SMSG ON'
+                  'CP SET CPCONIO OFF'
+                  CALL VERYLAST
+                  'PIPE COMMAND ACCESS 3E1 C',
+                     '| LITERAL' userid() 'has executed:',
+                     '| CONSOLE',
+                     '| SPECS /CP MSGNOH' runuser '/ 1 1-* NEXT',
+                     '| CP',
+                     '| CONSOLE'
+                  'CONWAIT'
+                  'DESBUF'
+                  QUEUE 'EXEC PROCESS'
+                  CALL EXIT 0
+                END
+                OTHERWISE DO
+                  'EXEC TELL' runuser 'Unknown command:' action
+                END
+              END
+            END
+          END
+        END
+        OTHERWISE DO
+          SAY 'Unknown activity.'
+        END
+      END
+    END
+    OTHERWISE DO           /* If something funny happened, leave.*/
+      SAY 'Terminating due to console interrupt.',
+         'Enter PROCESS to resume. WAKEUP rc' wakerc
+      /* 'WAKEUP RESET' */       /* turn messages from IUCV to ON    */
+      CALL EXIT 40
+    END
+  END     /* End of SELECT on type of WAKEUP interrupt */
+END
+ 
+EXIT:
+PARSE ARG finalrc .
+'CP SET MSG ON'
+'CP SET SMSG ON'
+'CP SET CPCONIO OFF'
+EXIT finalrc
+ 
+SECURITY: PROCEDURE EXPOSE authusers
+PARSE UPPER ARG runuser action .
+IF (WORDPOS(runuser,authusers) > 0) THEN ok = 0; ELSE ok = 4
+RETURN ok
+ 
+/* To insure this entire program is in core when doing ACCESS */
+VERYLAST: RETURN
