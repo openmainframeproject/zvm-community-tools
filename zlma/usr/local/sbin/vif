@@ -632,9 +632,11 @@ class Vif:
     output += self.run_cp_cmd("QUERY ALLOC SPOOL", True)
     output += self.run_cp_cmd("QUERY ALLOC TDSK", True)
     output += self.run_cp_cmd("QUERY NAMES", True)
-    output += self.run_cp_cmd("QUERY RDR CL D ALL SHORTDATE", True)
+    output += self.run_cp_cmd("QUERY RDR OPERATNS CL D ALL", True)
     output += self.run_cp_cmd("QUERY TIME", True)
     output += self.run_cp_cmd("QUERY CPLOAD", True)
+    # this need privilege class A - how to handle?
+    # output += self.run_cp_cmd("QUERY IPLPARMS", True)
     output += self.run_cp_cmd("QUERY CPUID", True)
     output += self.run_cp_cmd("INDICATE LOAD", True)
     output += self.run_lnx_cmd("/usr/local/sbin/vir2real.py", True)
