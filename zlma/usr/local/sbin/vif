@@ -2,19 +2,19 @@
 #
 # vif - Resuscitation of the z/VM "Virtual Image Facility" originally released in 2000
 #
+from abc import ABC, abstractmethod
 import argparse
+from dataclasses import dataclass
+import datetime
+from enum import Enum
 import json
 import logging
+import os
+import requests
 import subprocess
 import sys
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import List, Optional, Dict, Any, Union
-from enum import Enum
 from zlma_conf import Zlma_conf
-import requests
-import json
-import os
 
 class CommandType(Enum):
   # Enumeration of main command types
@@ -322,9 +322,10 @@ class Vif:
   def run_cp_cmd(self, cp_cmd: str, print_cmd: bool = False):       
     # run a CP command using vmcp - if print_cmd is true, also print the command being run
     cmd = f"sudo /usr/sbin/vmcp {cp_cmd}"
-    vmcp_out = ""
+    vmcp_out = "-" * 80                    # start with dashes to separate command
+    vmcp_out += "\n"             
     if print_cmd:                          # display CP command being run
-      vmcp_out = f"running: CP {cp_cmd}\n"
+      vmcp_out += f"running: CP {cp_cmd}\n"
     try:
       result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
@@ -335,7 +336,8 @@ class Vif:
   
   def run_lnx_cmd(self, lnx_cmd: str, print_cmd: bool = False):
     # run a Linux command - if print_cmd is true, also print the command being run
-    output = "in run_lnx_cmd()\n"
+    output = "-" * 80                      # start with dashes to separate command
+    output += "\n"             
     if print_cmd:                          # display command being run
       output += f"running: {lnx_cmd}\n"
     try:
@@ -630,10 +632,26 @@ class Vif:
     output += self.run_cp_cmd("QUERY ALLOC SPOOL", True)
     output += self.run_cp_cmd("QUERY ALLOC TDSK", True)
     output += self.run_cp_cmd("QUERY NAMES", True)
+    output += self.run_cp_cmd("QUERY RDR CL D ALL SHORTDATE", True)
+    output += self.run_cp_cmd("QUERY TIME", True)
+    output += self.run_cp_cmd("QUERY CPLOAD", True)
+    output += self.run_cp_cmd("QUERY CPUID", True)
     output += self.run_cp_cmd("INDICATE LOAD", True)
     output += self.run_lnx_cmd("/usr/local/sbin/vir2real.py", True)
     output += self.run_lnx_cmd("sudo /usr/bin/smcli Query_All_DM -T maint -k format=no", True)
     print(f"Vif:handle_hyp_collect(): output\n{output}")
+
+    # Create timestamped file in home_dir
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    filename = f"hyp_collect_{timestamp}.log"
+    filepath = os.path.join("/var/log/zlma", filename)
+    try:
+      with open(filepath, "w") as f:
+        f.write(output)
+      self.log.info(f"Hypervisor collect data written to {filepath}")
+    except Exception as e:
+      self.log.error(f"Could not write hyp_collect file: {e}")
+    print(f"Vif:handle_hyp_collect(): output written to {filepath}")
 
   def handle_hyp_disk(self, args: str):
     self.log.debug(f"handle_hyp_disk(): user: {self.conf.user}") 
@@ -657,7 +675,7 @@ class Vif:
 
   def handle_hyp_verify(self):
     self.log.debug(f"handle_hyp_verify(): user: {self.conf.user} do consistency checks, args FULL, BRIef, or NETwork <image>'")
-    print("call: 'VIFCMS hyp verify' => perform z/VM consistency checks")
+    print("call: 'vif hyp verify' => perform z/VM consistency checks")
 
   # New VM command handlers
   def handle_vm_create(self, vm_name: str, args: List[str]):
@@ -846,11 +864,11 @@ class Vif:
       operation = options.get('operation', '')
       network_id = options.get('network_id', '')
       self.log.debug(f"handle_vm_network(): user: {self.conf.user} vm: {vm_name} {operation} network {network_id}")
-      print(f"call: 'VIFCMS vm network {vm_name} {operation} {network_id}' => add OSA triplet - need VSWITCH name as an arg?")
+      print(f"call: 'vif vm network {vm_name} {operation} {network_id}' => add OSA triplet - need VSWITCH name as an arg?")
     else:
       args_str = ' '.join(args)
       self.log.debug(f"handle_vm_network(): user: {self.conf.user} vm: {vm_name} args: {args_str}")
-      print(f"call: 'VIFCMS vm network {vm_name} {args_str}' => add OSA triplet - need VSWITCH name as an arg?")
+      print(f"call: 'vif vm network {vm_name} {args_str}' => add OSA triplet - need VSWITCH name as an arg?")
 
   def handle_vm_set(self, vm_name: str, options: Dict[str, Any], args: List[str]):
     """
@@ -1204,20 +1222,19 @@ class Vif:
 
   def handle_query_all(self):
     self.log.debug(f"handle_query_all() user: {self.conf.user} run all other query commands")
-    # print("handle_query_all() TO DO: call all other query commands")
     print("Running all query commands:")
     self.handle_query_active()
-    self.print_equals
+    self.print_equals()
     self.handle_query_configuration()
-    self.print_equals
+    self.print_equals()
     self.handle_query_disks()
-    self.print_equals
+    self.print_equals()
     self.handle_query_version()
-    self.print_equals
+    self.print_equals()
     self.handle_query_network()
-    self.print_equals
+    self.print_equals()
     self.handle_query_performance()
-    self.print_equals
+    self.print_equals()
 
   def handle_query_configuration(self):
     # Display current vif settings
@@ -1372,7 +1389,7 @@ class Vif:
       src_disk = options.get('source_disk', '')
       tgt_vm = options.get('target_vm', '')
       tgt_disk = options.get('target_disk', '')
-      cmd = f"VIFCMS disk copy {src_vm} {src_disk} {tgt_vm} {tgt_disk}"
+      cmd = f"vif disk copy {src_vm} {src_disk} {tgt_vm} {tgt_disk}"
       self.log.debug(f"handle_disk_copy_new(): user: {self.conf.user} cmd: {cmd}")
       print(f"call: '{cmd}'")
     else:
@@ -1384,7 +1401,7 @@ class Vif:
       vm = options.get('vm', '')
       disk_id = options.get('disk_id', '')
       size = options.get('size', '')
-      cmd = f"VIFCMS disk create {vm} {disk_id} {size}"
+      cmd = f"vif disk create {vm} {disk_id} {size}"
       self.log.debug(f"handle_disk_create_new(): user: {self.conf.user} cmd: {cmd}")
       print(f"call: '{cmd}'")
     else:
@@ -1395,7 +1412,7 @@ class Vif:
     if options:
       vm = options.get('vm', '')
       disk_id = options.get('disk_id', '')
-      cmd = f"VIFCMS disk delete {vm} {disk_id}"
+      cmd = f"vif disk delete {vm} {disk_id}"
       self.log.debug(f"handle_disk_delete_new(): user: {self.conf.user} cmd: {cmd}")
       print(f"call: '{cmd}'")
     else:
@@ -1408,7 +1425,7 @@ class Vif:
       src_disk = options.get('source_disk', '')
       tgt_vm = options.get('target_vm', '')
       tgt_disk = options.get('target_disk', '')
-      cmd = f"VIFCMS disk share {src_vm} {src_disk} {tgt_vm} {tgt_disk}"
+      cmd = f"vif disk share {src_vm} {src_disk} {tgt_vm} {tgt_disk}"
       self.log.debug(f"handle_disk_share_new(): user: {self.conf.user} cmd: {cmd}")
       print(f"call: '{cmd}'")
     else:
@@ -1419,59 +1436,59 @@ class Vif:
   def handle_image_create(self, args):
     args = ' '.join(args)                  # convert dictionary to string
     self.log.debug(f"handle_image_create(): user: {self.conf.user} args {args} clone Linux")
-    print(f"call: 'VIFCMS image create {args}' => clone a Linux")
+    print(f"call: 'vif image create {args}' => clone a Linux")
 
   def handle_image_delete(self, image):
     self.log.debug(f"handle_image_delete(): user: {self.conf.user} ")
-    print(f"call: 'VIFCMS image delete {image}' => delete Linux but no PURGE just yet")
+    print(f"call: 'vif image delete {image}' => delete Linux but no PURGE just yet")
 
   def handle_image_network(self, args):
     args = ' '.join(args)                  # convert dictionary to string
     self.log.debug(f"handle_image_network(): user: {self.conf.user} add/delete network adapters - args: {args}'")
-    print(f"call: 'VIFCMS image network {args}' => add OSA triplet - need VSWITCH name as an arg?")
+    print(f"call: 'vif image network {args}' => add OSA triplet - need VSWITCH name as an arg?")
 
   def handle_image_set(self, args):
     args = ' '.join(args)                  # convert dictionary to string
     self.log.debug(f"handle_image_set(): user: {self.conf.user} update user directory - args: {args}")
-    print(f"call: 'VIFCMS image set {args}'")
+    print(f"call: 'vif image set {args}'")
 
   def handle_image_start(self, args):
-    cmd = f"VIFCMS image start {' '.join(args)}"
+    cmd = f"vif image start {' '.join(args)}"
     self.log.debug(f"handle_image_start(): user: {self.conf.user} cmd: {cmd}")
     print(f"call: '{cmd}'")
 
   def handle_image_stop(self, args):
-    cmd = f"VIFCMS image stop {' '.join(args)}"
+    cmd = f"vif image stop {' '.join(args)}"
     self.log.debug(f"handle_image_stop(): user: {self.conf.user} cmd: {cmd}")
     print(f"call: '{cmd}'")
 
   def handle_image_stopall(self):
-    cmd = f"VIFCMS image stopall"
+    cmd = f"vif image stopall"
     self.log.debug(f"handle_image_stopall(): user: {self.conf.user} SIGNAL SHUTDOWN to all user IDs running Linux'")
     print(f"call: '{cmd}' => better: loop through all images and call 'image stop' on them")
 
   # 'vif disk' command handlers (legacy)
   def handle_disk_copy(self, args):
     args = ' '.join(args)                  # convert dictionary to string
-    cmd = f"VIFCMS disk copy {args}"
+    cmd = f"vif disk copy {args}"
     self.log.debug(f"handle_disk_copy(): user: {self.conf.user} cmd: {cmd}")
     print(f"call: '{cmd}'")
 
   def handle_disk_create(self, args):
     args = ' '.join(args)                  # convert dictionary to string
-    cmd = f"VIFCMS disk create {args}"
+    cmd = f"vif disk create {args}"
     self.log.debug(f"handle_disk_create(): user: {self.conf.user} cmd: {cmd}")
     print(f"call: '{cmd}'")
 
   def handle_disk_delete(self, args):
     args = ' '.join(args)                  # convert dictionary to string
-    cmd = f"VIFCMS disk delete {args}"
+    cmd = f"vif disk delete {args}"
     self.log.debug(f"handle_disk_delete(): user: {self.conf.user} cmd: {cmd}")
     print(f"call: '{cmd}'")
 
   def handle_disk_share(self, args):
     args = ' '.join(args)                  # convert dictionary to string
-    cmd = f"VIFCMS disk share {args}"
+    cmd = f"vif disk share {args}"
     self.log.debug(f"handle_disk_share(): user: {self.conf.user} cmd: {cmd}")
     print(f"call: '{cmd}'")
 
@@ -1688,7 +1705,7 @@ class Vif:
 
   def handle_query_paging(self):
     self.log.debug(f"handle_query_paging() user: {self.conf.user} running 'QUERY ALLOC PAGE'")
-    print("call: 'VIFCMS query paging'")
+    print("call: 'vif query paging'")
     #rc = self.check_privclas("D")          # Q ALLOC requires privilege class D
     #if rc == 1:                            # is privileged
     #  self.log.debug(f"handle_query_paging(): user: {self.conf.user} running QUERY ALLOC PAGE")
