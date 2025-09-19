@@ -638,6 +638,8 @@ class Vif:
     # this need privilege class A - how to handle?
     # output += self.run_cp_cmd("QUERY IPLPARMS", True)
     output += self.run_cp_cmd("QUERY CPUID", True)
+    output += self.run_cp_cmd("QUERY SYSOPER", True)
+    output += self.run_cp_cmd("QUERY RECORDING", True)
     output += self.run_cp_cmd("INDICATE LOAD", True)
     output += self.run_lnx_cmd("/usr/local/sbin/vir2real.py", True)
     output += self.run_lnx_cmd("sudo /usr/bin/smcli Query_All_DM -T maint -k format=no", True)
