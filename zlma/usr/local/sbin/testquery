@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+# testquery - test zlma finder query 
+#
+curl -q "http://zlnx1.devlab.sinenomine.net/restapi.py?query" 
+

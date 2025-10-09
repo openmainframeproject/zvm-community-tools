@@ -46,34 +46,38 @@ function getLocalWebserverURL() {
 }
 
 async function onEdit(fields) {            // update SQL row after field edits in a browser
-  console.log("typeof(fields):", typeof(fields));
-  // var uuFields = encodeURIComponent(fields); // uuencode new values 
-  var url = getLocalWebserverURL(); 
-  console.log("url before: ", url);
-  // url = url+"/zlma/restapi.py?update"+encodeURIComponent(fields);
-  url = url+"/zlma/restapi.py?update"+fields;
-  console.log("url after: ", url);
-  const requestBody = {                    // set request body
-    data: "fubar"
-  };
-  try {                                    // Send the POST request to replace the row
+  var url = getLocalWebserverURL();
+  url = url + "/zlma/restapi.py?update" + fields;
+  console.log("url with fields: ", url);
+  const requestBody = { data: "fubar" };
+  try {
     const response = await fetch(url, {
-      body: JSON.stringify(requestBody),   // Convert data to JSON
+      body: JSON.stringify(requestBody),
       headers: {
-        "Authorization": "Bearer your-api-token", // Include auth token if needed
-        "Content-Type": "application/json" // Specify the content type
+        "Authorization": "Bearer your-api-token",
+        "Content-Type": "application/json"
       },
       method: "POST"
     });
-    if (!response.ok) {                    // Check if response is OK (status code 200-299)
+    if (!response.ok) {
       throw new Error(`ERROR: ${response.status} - ${response.statusText}`);
     }
-    const result = await response.json();  // Parse and return response as JSON
+
+    // Try to parse JSON, but show raw text if it fails
+    const text = await response.text();
+    console.log("Server raw response text:", text);
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      console.error("Invalid JSON returned from server:", e);
+      console.error("Response was:", text);
+      throw e;
+    }
     return result;
-  }
-  catch (error) {
-    console.error("ERROR: failed to replace row: ", error);
-    throw error;                           // rethrow error to handle it in calling function
+  } catch (error) {
+    console.error("ERROR: failed to replace row:", error);
+    throw error;
   }
 }
 
@@ -110,8 +114,8 @@ function SetButtonsNormal(but) {           // set button state to normal
   $(but).parent().find('#bAcep').hide();
   $(but).parent().find('#bCanc').hide();
   $(but).parent().find('#bEdit').show();
-  var $row = $(but).parents('tr');  //accede a la fila
-  $row.attr('id', '');  //quita marca
+  var $row = $(but).parents('tr');  
+  $row.attr('id', '');  
 }
 
 function SetButtonsEdit(but) {             // set button state to editing

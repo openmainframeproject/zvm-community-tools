@@ -10,13 +10,13 @@ grep -n "$@" $srcFiles 2>/dev/null | sed "s:^:$srcDir/:g"
 
 srcDir="/srv/www/zlma"
 cd $srcDir 
-srcFiles="finder.py home.py restapi.py zlma_buttons.py"
+srcFiles="home.py restapi.py zlma_buttons.py"
 echo "Searching $srcDir..."
 grep -n "$@" $srcFiles 2>/dev/null | sed "s:^:$srcDir/:g"
 
 srcDir="/srv/www/zlmarw"
 cd $srcDir 
-srcFiles="consolez.py onelpar.py vifcmd.py vifdoset.py vifimgpower.py vifvmpower.py \
+srcFiles="consolez.py finder.py onelpar.py vifcmd.py vifdoset.py vifimgpower.py vifvmpower.py \
 consuifuncs.py restapirw.py vifdiskcmd.py vifhypdisk.py vifimgset.py vifvmset.py cpcmds.py \
 searchcons.py vifdisk.py vifimgcreate.py vif.py onecons.py searchforcons.py vifdiskset.py  \
 vifimgdelete.py vifvmcreate.py"

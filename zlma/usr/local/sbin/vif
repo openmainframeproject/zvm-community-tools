@@ -612,12 +612,12 @@ class Vif:
   def handle_help(self):
     self.log.debug(f"handle_help(): user: {self.conf.user}")
     print(" vif commands:")
-    print("         disk: manage disks")
-    print("         help: give help")
-    print("   hypervisor: manage z/VM (alias: hyp)")
-    print("        image: manage Linux golden images")
-    print("        query: display many types of z/VM information")
-    print("           vm: manage Linux VM instances")
+    print("   disk:  manage disks")
+    print("   help:  give help")
+    print("   hyp:   manage z/VM (alias: hyp)")
+    print("   image: manage Linux golden images")
+    print("   query: display many types of z/VM information")
+    print("   vm:    manage Linux VM instances")
 
   # 'vif hypervisor' command handlers
   def handle_hyp_collect(self):

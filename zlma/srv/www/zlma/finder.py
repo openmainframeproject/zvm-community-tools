@@ -7,9 +7,7 @@ from zlma_buttons import Zlma_buttons
 
 class Finder:
   def __init__(self):
-    """
-    Initialize globals, create page header, set background
-    """
+    # Initialize globals, create page header, set background
     self.pattern = ""                      # search pattern
     self.rows = []                         # resulting rows
     self.headers = ['Host name', 'LPAR', 'User ID', 'IP address', 'CPUs', 'GB Mem', 'Arch', 'Common arch', 'OS', 'OS ver', 'Kernel ver', 'Kernel rel', 'RootFS % full', 'Last ping', 'Created', 'App', 'Env', 'Group', 'Owner']
@@ -30,24 +28,8 @@ class Finder:
     print('</head><body>') 
     zlma_buttons = Zlma_buttons("using-finder")  # add navigation buttons
 
-  def print_env(self):
-    """
-    Show all environment variables with the 'env' command
-    """
-    proc = subprocess.run("env", shell=True, capture_output=True, text=True)
-    rc = proc.returncode
-    env_vars = []
-    env_vars = proc.stdout
-    print('<pre>')
-    for line in env_vars.split("\n"):
-      print(str(line))
-    print('</pre>')
-    print()
-
   def search_cmdb(self):
-    """
-    Search zlma for pattern if included, else get all records
-    """
+    # Search zlma for pattern if included, else get all records
     cmd = "/usr/local/sbin/zlma query"
     if len(self.pattern) > 1:              # search pattern specified
       cmd = f"{cmd} -p {self.pattern}"     # add -p <pattern> flag
@@ -65,9 +47,7 @@ class Finder:
       self.rows.append(list_row)           # add list to list of rows
 
   def create_table(self, headers, data):
-    """
-    Given a list of table headers, and table data, produce an HTML table
-    """
+    # Given a list of table headers, and table data, produce an HTML table
     html = "<table id='zlma-table'>\n" 
     html += "<tr>\n"
     for aHeader in headers:
@@ -82,9 +62,7 @@ class Finder:
     return html
 
   def update_all(self):
-    """
-    Update all zlma records 
-    """
+    # Update all zlma records 
     cmd = "/usr/local/sbin/zlma update"
     try:
       proc = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -93,11 +71,9 @@ class Finder:
       exit(3)
 
   def process_query(self):
-    """
-    Perform operation specified in env var QUERY_STRING.  There are two formats:
-    - pattern=<pattern>
-    - action=update
-    """
+    # Perform operation specified in env var QUERY_STRING.  There are two formats:
+    # - pattern=<pattern>
+    # - action=update
     print(f'<h2>{self.title}</h2>')
     proc = subprocess.run("echo $QUERY_STRING", shell=True, capture_output=True, text=True)
     rc = proc.returncode
@@ -132,11 +108,10 @@ class Finder:
 
     # make the table editable
     print('<script>')
-    print('$("#zlma-table").SetEditable({columnsEd: "15,16,17,18", onEdit:function(){}})')
+    print('$("#zlma-table").SetEditable({columnsEd: "4,5,15,16,17,18", onEdit:function(){}})')
     print('</script>')
     print('</body></html>')                # end page
 
 # main()
 finder = Finder()                          # create a singleton
-# finder.print_env() 
 finder.process_query()                     # process the request

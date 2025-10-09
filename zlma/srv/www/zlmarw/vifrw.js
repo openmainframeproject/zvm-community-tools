@@ -45,35 +45,52 @@ function getLocalWebserverURL() {
   return url;
 }
 
-async function onEdit(fields) {            // update SQL row after field edits in a browser
+async function onEdit(fields) {
   const username = 'root';
   const password = 'pi';
   const credentials = btoa(`${username}:${password}`);
-  console.log("typeof(fields):", typeof(fields));
-  var url = getLocalWebserverURL(); 
-  url = url+"/zlmarw/restapirw.py?updateimg"+fields;
-  console.log("url after: ", url);
-  const requestBody = {                    // set request body
-    data: "fubar"
+
+  // Split fields: fields = &hostname&cpus&memory&created&app&env&group
+  const parts = fields.split('&').map(decodeURIComponent);
+  if (parts.length < 3) {
+    console.error("Not enough fields to update CPUs and Memory");
+    return;
+  }
+
+  const hostName = parts[1];    // part[0] is empty string due to initial &
+  const cpus     = parts[2];
+  const memory   = parts[3];
+
+  // Construct URL - update endpoint for this host
+  const baseURL = getLocalWebserverURL();
+  const url = `${baseURL}/zlmarw/api/v1/machine/${hostName}`;
+
+  const requestBody = {
+    cpus: cpus,
+    memory: memory
   };
-  try {                                    // Send the POST request to replace the row
+
+  try {
     const response = await fetch(url, {
-      body: JSON.stringify(requestBody),   // Convert data to JSON
+      method: "PUT",                      // use PUT for updating existing resource
       headers: {
         "Authorization": `Basic ${credentials}`,
-        "Content-Type": "application/json" 
+        "Content-Type": "application/json"
       },
-      method: "POST"
+      body: JSON.stringify(requestBody)
     });
-    if (!response.ok) {                    // Check if response is OK (status code 200-299)
-      throw new Error(`ERROR: ${response.status} - ${response.statusText}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to update ${hostName}: ${response.status} ${response.statusText}`);
     }
-    const result = await response.json();  // Parse and return response as JSON
+
+    const result = await response.json();
+    console.log("Update result:", result);
     return result;
   }
   catch (error) {
-    console.error("ERROR: failed to replace row: ", error);
-    throw error;                           // rethrow error to handle it in calling function
+    console.error("ERROR: Failed to update host:", error);
+    throw error;
   }
 }
 

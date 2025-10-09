@@ -20,7 +20,7 @@ class Zlma_buttons:
     self.html += f"<button class=button {self.green}>Consoles</button>&nbsp; "
     self.html += "</form></td>\n" 
 
-    self.html += "<td><form action='/zlma/finder.py' accept-charset=utf-8>"
+    self.html += "<td><form action='/zlmarw/finder.py' accept-charset=utf-8>"
     self.html += f"<button class=button {self.green}>Finder</button>&nbsp; "
     self.html += "</form></td>\n" 
 

@@ -32,11 +32,15 @@ import mariadb
 import os
 import re
 import subprocess
+import sys
 from urllib.parse import urlparse, parse_qs
 
 class ZlmaAPI():
   def __init__(self):
-    logging.basicConfig(filename='/var/log/zlma/restapi.log', format='%(asctime)s %(levelname)s %(message)s')
+    logging.basicConfig(filename='/var/log/zlma/restapi.log', 
+                        format='%(asctime)s %(levelname)s %(message)s',
+                        force=True,
+                       ) 
     self.log = logging.getLogger(__name__)
     self.conn = None 
     self.cursor = None 
@@ -45,28 +49,9 @@ class ZlmaAPI():
     self.db_host = "none"
     self.db_name = "none"
     self.log_level = "DEBUG" 
-    logging.basicConfig(filename='/var/log/zlma/restapi.log',
-                        format='%(asctime)s %(levelname)s %(message)s',
-                        level=self.log_level)
-    self.log = logging.getLogger(__name__)
     self.load_config_file()                # read the config file
-    self.log.setLevel(self.log_level) # set log level from config file
-
-    # start the web page
-    print("Content-Type: text/html")       # print MIME type
-    print()                                # required empty line
-
-  def print_env(self):
-    # Show all environment variables with the 'env' command
-    proc = subprocess.run("env", shell=True, capture_output=True, text=True)
-    rc = proc.returncode
-    env_vars = []
-    env_vars = proc.stdout
-    print("<pre>")
-    for line in env_vars.split("\n"):
-      print(str(line))
-    print("</pre>")
-    print("")
+    self.log.setLevel(self.log_level)      # set log level from config file
+    print("Content-Type: application/json") # start the web page
 
   def load_config_file(self):
     # read the JSON config file /etc/zlma.conf
@@ -93,48 +78,66 @@ class ZlmaAPI():
 
   def run_sql_query(self, cmd: str) -> str:
     # run the SQL command passed in
+    # Any errors are returned as JSON {"status": "error", "message": "..."}.
     self.log.info(f"ZlmaAPI.run_sql_query(): using database: {self.db_name}")
-    self.connect_to_cmdb()                 # connect to DB
-    try:   
-      self.cursor.execute(f"use {self.db_name}")
-    except mariadb.Error as e:
-      print(f"ERROR changing database to {self.db_name}: {e}")
-      print("</body></html>")
-      self.conn.close()                    # cannot contiue
-      exit(1)
-    rows = "" 
-    json_out = ""
-    self.log.info(f"ZlmaAPI.run_sql_query(): running cmd: {cmd}") 
-    try:   
-      self.cursor.execute(cmd)             # query the cmdb
-      rows = self.cursor.fetchall()
-    except mariadb.Error as e:
-      self.log.error(f"ZlmaAPI.run_sql_query(): ERROR! e: {e}")  
-    # print(f"rows: {rows}")
-    json_out = json.dumps(rows, indent=2)
-    return json_out  
+    try:
+      self.connect_to_cmdb()  # connect to DB
+      try:
+        self.cursor.execute(f"USE {self.db_name}")
+      except mariadb.Error as e:
+        self.log.error(f"Error selecting database {self.db_name}: {e}")
+        return json.dumps({"status": "error", "message": f"DB selection failed: {str(e)}"})
+      self.log.info(f"ZlmaAPI.run_sql_query(): running cmd: {cmd}")
+      try:
+        self.cursor.execute(cmd)
+        rows = self.cursor.fetchall()
+        json_out = json.dumps(rows, indent=2)
+      except mariadb.Error as e:
+        self.log.error(f"SQL execution error: {e}")
+        json_out = json.dumps({"status": "error", "message": str(e)})
+    except Exception as e:
+      self.log.error(f"Unexpected error in run_sql_query: {e}")
+      json_out = json.dumps({"status": "error", "message": str(e)})
+    finally:
+      if self.cursor:
+        self.cursor.close()
+      if self.conn:
+        self.conn.close()
+    return json_out
 
   def close_conn(self):
-    # Close the SQL cursor, then the connection 
-    self.cursor.close()
-    self.conn.close()
+    # Safely close the SQL cursor and connection
+    try:
+      if hasattr(self, "cursor") and self.cursor:
+        try:
+          self.cursor.close()
+        except Exception as e:
+          self.log.warning(f"close_conn(): cursor already closed or invalid: {e}")
+      if hasattr(self, "conn") and self.conn:
+        try:
+          self.conn.close()
+        except Exception as e:
+          self.log.warning(f"close_conn(): connection already closed or invalid: {e}")
+    except Exception as e:
+      self.log.error(f"close_conn(): unexpected exception: {e}")
 
-  def parse_query_string(self) -> tuple[str, str]:
-    # Get the env var REQUEST_URI and return operation and remaining parameters 
-    # Ex: REQUEST_URI=/restapi.py/query&foo
-    proc = subprocess.run("echo $REQUEST_URI", shell=True, capture_output=True, text=True)
-    rc = proc.returncode
-    if rc != 0:
-      self.log.error(f"ZlmaAPI.parse_query_string(): subprocess.run('echo $QUERY_STRING' returned {rc}")
-      return 1
-    uri = proc.stdout.strip()    # get value removing newline
-    parts = uri.lstrip("/").split("/")
-    if len(parts) < 2:
+  def parse_query_string(self) -> tuple[str, list[str]]:
+    # Get the env var QUERY_STRING and return operation and remaining parameters 
+    query = os.environ.get("QUERY_STRING", "")
+    uri = os.environ.get("REQUEST_URI", "")
+    self.log.debug(f"ZlmaAPI.parse_query_string(): query: {query} uri: {uri}")
+    if query:
+      qs = query
+    elif "?" in uri:
+      qs = uri.split("?", 1)[1]
+    else:
+      qs = ""
+    if not qs:
+      self.log.error(f"ZlmaAPI.parse_query_string(): empty QUERY_STRING")
       return None, []
-    op_and_args = parts[1]
-    query_parts = op_and_args.split("&")
-    operation = query_parts[0]         # "query"
-    query_parms = query_parts[1:]      # ["foo"]
+    parts = qs.split("&")
+    operation = parts[0] if parts else None
+    query_parms = parts[1:] if len(parts) > 1 else []
     self.log.debug(f"ZlmaAPI.parse_query_string(): operation={operation}, query_parms={query_parms}")
     return operation, query_parms
 
@@ -144,7 +147,6 @@ class ZlmaAPI():
     sql_out = self.run_sql_query(sql_cmd)  # list of server host names
     sql_json = json.loads(sql_out)
     self.log.debug(f"ping_servers() sql_json: {sql_json}")
-    self.close_conn()
     self.log.info(f"ZlmaAPI.ping_servers(): sql_out:  {sql_out} type(sql_out) = {type(sql_out)}")
     up_servers = 0
     num_servers = 0
@@ -174,7 +176,6 @@ class ZlmaAPI():
       next_list = next_word.split("=")
       if len(next_list) == 2:            # '=' found
         attr = next_list[0]
-        # if column is a string, escape with double quotes
         if attr != "cpus" and attr != "mem_gb": 
           value = next_list[1]
           next_word = f"{attr} LIKE \"%{value}%\""
@@ -189,16 +190,14 @@ class ZlmaAPI():
     self.log.debug(f"ZlmaAPI.count_servers(): sql_cmd: {sql_cmd}")
     sql_out = self.run_sql_query(sql_cmd)
     self.log.debug(f"count_servers() sql_out: {sql_out}")
-    self.close_conn()
     return sql_out
 
   def get_host_names(self, where_clause: str) -> str:
-    # Send SQL command to return hostnames of specified search
+    # Send SQL command to return host names of specified search
     # Return: list of servers
     sql_cmd = f"SELECT host_name FROM servers {where_clause}"
-    self.log.debug(f"ZlmaAPI.get_host_names(): hostname sql_cmd: {sql_cmd}")
+    self.log.debug(f"ZlmaAPI.get_host_names(): sql_cmd: {sql_cmd}")
     sql_out = self.run_sql_query(sql_cmd)
-    self.close_conn()
     self.log.debug(f"ZlmaAPI.get_host_names(): sql_out: {sql_out}")
     return sql_out
 
@@ -208,61 +207,69 @@ class ZlmaAPI():
     sql_cmd = f"SELECT host_name, lpar, userid, ip_addr, cpus, mem_gb FROM servers {where_clause}"
     self.log.debug(f"ZlmaAPI.get_webdata(): sql_cmd: {sql_cmd}")
     sql_out = self.run_sql_query(sql_cmd)
-    self.close_conn()
     self.log.debug(f"ZlmaAPI.get_webdata(): sql_out: {sql_out}")
-    
-    # Convert tuples to a list of dictionaries
-    keys = ["host_name", "lpar", "userid", "ip_addr", "cpus", "mem_gb"]
-    sql_json = [dict(zip(keys, row)) for row in sql_out]  # Build list of dictionaries
-    #try:
-    #  sql_json = json.loads(sql_out)          # convert to list of dictionaries
-    #except json.JSONDecodeError as e:
-    #  self.log.error("Failed to decode JSON: ", e)
-    #  sql_json = []
-    #return sql_json 
-    return json.dumps(sql_json)  # Convert list of dictionaries to JSON string
+    keys = ["host_name", "lpar", "userid", "ip_addr", "cpus", "mem_gb"] # convert tuples to a list of dictionaries
+    sql_json = [dict(zip(keys, row)) for row in sql_out]  # build list of dictionaries
+    return json.dumps(sql_json)            # convert list of dictionaries to JSON string
 
   def get_linux_ips(self, where_clause: str) -> str:
     # Send SQL command to return host names and IP addresses 
     # Return: list of servers
     sql_cmd = f"SELECT host_name, ip_addr FROM servers {where_clause}"
-    self.log.debug(f"ZlmaAPI.get_linux_ips(): hostname sql_cmd: {sql_cmd}")
+    self.log.debug(f"ZlmaAPI.get_linux_ips(): sql_cmd: {sql_cmd}")
     sql_out = self.run_sql_query(sql_cmd) 
-    self.close_conn()
     self.log.debug(f"ZlmaAPI.get_linux_ips(): sql_out: {sql_out}")
     return sql_out
 
   def get_records(self, where_clause: str) -> str:
-    # Send SQL command to return hostnames of specified search
+    # Send SQL command to return host names of specified search
     # Return: JSON output
     sql_cmd = f"SELECT * FROM servers {where_clause}"
     self.log.debug(f"ZlmaAPI.get_records(): query sql_cmd: {sql_cmd}")
     sql_out = self.run_sql_query(sql_cmd) 
-    self.close_conn()
     return sql_out  
 
-  def update_record(self, query_str: str):
-    # query_str contains the host name to be updated and three pieces of metadata
-    # Send SQL command to update a record's metadata:
-    # - App
-    # - Group
-    # - Owner
-    self.log.debug(f"ZlmaAPI.update_record(): query_str: {query_str}") 
-    list_len = len(query_str)
-    if list_len != 5:                       # error
-      self.log.error(f"ZlmaAPI.update_record(): len(query_str): {list_len}, expected 5") 
+  def update_record(self, query_parms):
+    # query_str contains the host name to be updated, CPUs, memory and 4 pieces of metadata
+    # First the CPUs and memory are queried to see if the values have changed.
+    # If they have, call the APIs to update them.  Send SQL command to update a record's metadata. 
+    num_parms = len(query_parms)         
+    if num_parms != 7:         
+      msg = f"Wrong number of parameter: {num_parms}"
+      print(json.dumps({"status": "error", "message": msg}))
       return
-    cmd = f"""UPDATE servers SET app = '{query_str[1]}', env = '{query_str[2]}', 
-      grp = '{query_str[3]}', owner = '{query_str[4]}' 
-      WHERE host_name = '{query_str[0]}'
-    """
-    self.connect_to_cmdb()                 # connect to DB
-    try:   
-      self.cursor.execute(cmd)             # run SQL command 
+    host_name, cpus, mem_gb, app, env, grp, owner = query_parms
+    self.log.debug(f"ZlmaAPI.update_record(): query_parms: {query_parms}") 
+    self.connect_to_cmdb()                 # connect to DB 
+    try:                                   # compare old vs new CPUs and memory value
+      self.cursor.execute("SELECT cpus, mem_gb FROM servers WHERE host_name=?", (host_name,))
+      row = self.cursor.fetchone()
+      old_cpus, old_mem_gb = row if row else (None, None)
     except mariadb.Error as e:
-      self.log.error(f"ZlmaAPI.update_record(): e: {e}")  
-    self.conn.commit()                     # commit changes
+      msg = f"SELECT error: {e}"
+      self.log.error(f"update_record(): {msg}")
+      print(json.dumps({"status": "error", "message": msg}))
+      self.close_conn()
+      return
+    if old_cpus != cpus:                   # number of CPUs changed
+      self.log.debug(f"ZlmaAPI.update_record(): Call vif to set CPUs from {old_cpus} to {cpus}") 
+    if old_mem_gb != mem_gb:               # amount of memory changed
+      self.log.debug(f"ZlmaAPI.update_record(): Call vif to set memory from {old_mem_gb} to {mem_gb}") 
+    try:                                   # update the record  
+      self.cursor.execute(""" UPDATE servers   
+                              SET cpus=?, mem_gb=?, app=?, env=?, grp=?, owner=?
+                              WHERE host_name=? """, 
+                              (cpus, mem_gb, app, env, grp, owner, host_name)
+                         )
+      self.conn.commit()                   # commit changes
+    except mariadb.Error as e:
+      msg = f"SELECT error: {e}"
+      self.log.error(f"update_record(): {msg}")
+      print(json.dumps({"status": "error", "message": msg}))
+      return
+    self.cursor.close() 
     self.close_conn()                      # close connection
+    print(json.dumps({"status": "ok"}))
    
   def process_uri(self):
     # Perform operation specified in env var QUERY_STRING 
@@ -282,7 +289,7 @@ class ZlmaAPI():
       case "hostname":                     # all host names in table
         json_out = self.get_host_names(where_clause)
         print(json_out)
-      case "linuxips":                     # all host names in table
+      case "linuxips":                     # all IP addrs in table
         json_out = self.get_linux_ips(where_clause)
         print(json_out)
       case "ping":
@@ -292,12 +299,25 @@ class ZlmaAPI():
         json_out = self.get_records(where_clause)
         print(json_out)
       case "update":
-        self.update_record(query_parms)    # parms are hostname&newEnv&newApp&newGroup&newOwner
+        try:
+          self.update_record(query_parms)
+        except Exception as e:
+          err = str(e).replace('"', "'")   # replace " with '
+          print(json.dumps({"status": "error", "message": err}))
       case _:  
-        print(f"unexpected: operation = {operation}")
+        print(json.dumps({"status": "error", "message": f"unexpected operation: {operation}"}))
         exit(1)    
 
 # main()
-zlmaAPI = ZlmaAPI()                        # create a singleton
-# zlmaAPI.print_env()                      # show env vars when debugging
-zlmaAPI.process_uri()                      # process the request
+if __name__ == "__main__":
+  zlmaAPI = ZlmaAPI()
+  try:                                     # REST calls output JSON, so print the header first
+    print("Content-Type: application/json\n")
+    zlmaAPI.process_uri()
+  except Exception as e:
+    import traceback
+    err = str(e).replace('"', "'")
+    traceback.print_exc()                  # goes to Apache error.log
+    print(json.dumps({"status": "error", "message": err}))
+    sys.exit(1)
+
