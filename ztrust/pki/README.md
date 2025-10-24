@@ -24,4 +24,18 @@ The PEM-encoded certificate will be found at the end of such a file.
 Detached PGP signatures have a file type extension of `.asc`
 indicating that they are ASCII-armored. The full extension is `.crt.asc`.
 
+## Rationale
+
+The following observation is from Dan Rathbun, CIO/CISO for
+several enterprises:
+
+*"One of the inherent problems of standard HTTPS is that trust put in
+a website is defined by certificate authorities: a hierarchical and
+closed set of companies and governmental institutions approved by your
+web browser vendor. This model of trust has long been criticized
+and proven ... to be vulnerable to attacks ..."*
+
+This trust anchor is intended to remedy that problem
+in the context of the mainframe community.
+
 
