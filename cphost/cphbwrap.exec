@@ -1,0 +1,21 @@
+/*
+ *        Name: CPHBWRAP EXEC (need a better name)
+ *              "wrap" CMS commands issued from the shell
+ *        Date: 2024-08-21 (Wed)
+ *      Author: TrothR
+ */
+
+'PIPE COMMAND QUERY FILEDEF | SPEC /FILEDEF/ NW 1-* NW | CONSOLE'
+Address "COMMAND" 'FILEDEF  SYSIN    CLEAR'
+Address "COMMAND" 'FILEDEF  SYSOUT   CLEAR'
+
+Parse Arg argstring
+Address "CMS" argstring
+xrc = rc
+
+Address "COMMAND" 'FILEDEF  SYSIN    TERMINAL'
+Address "COMMAND" 'FILEDEF  SYSOUT   TERMINAL'
+
+Exit xrc
+
+

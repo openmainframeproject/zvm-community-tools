@@ -1,0 +1,86 @@
+/*
+ *
+ *        Name: CPHOST EXEC
+ *        Date: 2024-08-13 (Tue) and prior
+ *      Author: Rick Troth
+ *
+ *              This EXEC loads and enables the CPHOST command,
+ *              if it is not already available to users, and then
+ *              invokes the command by way of Rexx DiagRC function.
+ *              The idea is that you can enter 'cphost something'
+ *              and it will just work.
+ *
+ */
+ 
+/* first check if the CPHOST command is defined and available         */
+'PIPE CP COMMANDS | SPLIT | STRIP | LOCATE 1.6 /CPHOST/ | STEM CPC.'
+If rc ^= 0 Then Exit rc
+ 
+/* at this point either load or unload the CPHOST command             */
+Parse Upper Arg args .
+If Left(args,8) = "--UNLOAD" Then Call _unload
+If cpc.0 = 0 Then Call _load
+ 
+/* the usual operation: Rexx wraps a CP command                       */
+Parse Upper Arg args
+Parse Value DiagRC(08,"CPHOST" args) With 1 rc 10 cc . 17 rs
+If Right(rs,1) = '15'x Then rs = Left(rs,Length(rs)-1)
+If Right(rs,1) = '15'x Then rs = Left(rs,Length(rs)-1)
+If Strip(rs) ^= "" Then 'PIPE VAR RS | SPLIT AT x15 | CONSOLE'
+Exit rc
+ 
+/* ---------------------------------------------------------------------
+ * if the CPHOST command is not found then try to load and define it
+ *    the entry point is CPHOSTEP
+ */
+_load: Procedure
+ 
+    'XMITMSG 8274'
+ 
+/*  'CP CPXLOAD CPHOST TXTLCL * NOCONTROL TEMP'                       */
+    'CP CPXLOAD CPHOST TEXT * NOCONTROL TEMP'
+    If rc ^= 0 Then Exit rc
+ 
+    'CP DEFINE COMMAND CPHOST AFTER_LOGON' ,
+          'PRIVCLASSES A IBMCLASS A EPNAME CPHOSTEP'
+    If rc = 6839 Then ,
+        'CP MODIFY COMMAND CPHOST IBMCLASS A EPNAME CPHOSTEP'
+    If rc ^= 0 Then Exit rc
+ 
+    'CP ENABLE COMMAND CPHOST'
+    If rc ^= 0 Then Exit rc
+ 
+Return
+ 
+/* ---------------------------------------------------------------------
+ *
+ */
+_unload: Procedure
+ 
+Say '+ CP DISABLE COMMAND CPHOST'
+      'CP DISABLE COMMAND CPHOST'
+      If rc ^= 0 Then Exit rc
+ 
+    'PIPE CP QUERY CPXLOAD | STEM CPQ.'
+    If rc ^= 0 Then Exit rc
+ 
+    /* find the identifier number of CPHOST */
+    id = 0 ; pm = "."
+    Do i = 1 to cpq.0
+        pm = fm
+        Parse Upper Var cpq.i v fn ft fm .
+        If fn = "CPHOST" Then id = pm
+    End /* Do For */
+    If id = 0 Then Exit 0
+ 
+Say '+ CP CPXUNLOAD ID' id
+      'CP CPXUNLOAD ID' id 'SYNCHRONOUS'
+      If rc ^= 0 Then Exit rc
+ 
+    'XMITMSG 8888'
+ 
+    Exit 0
+ 
+Return
+ 
+ 

@@ -1,0 +1,178 @@
+.* Some lines had to be added or changed for z/VM 5.2.0.  For each              
+.* line changed, the pre-5.2.0 line immediately follows as a comment,           
+.* with a marker such as "// Before 5.2.0" or "// < 5.2.0" appended.            
+.* For larger sections, look for "*** Begin/End" comments.                      
+         MACRO                                                          DRB00010
+&LABEL   TDGMDLAT &EPNAME                                               DRB00020
+         MDLATHDR &EPNAME                                               DRB00030
+         MDLATENT CP1STL,MODATTR=(RES,MP,DYN)                           DRB00090
+.*       MDLATENT CP1STL,MODATTR=(PAG,MP,DYN)  //Before 5.2.0                   
+.*                                                                      DRB00140
+         MDLATTLR                                                       DRB00200
+         MEXIT                                                          DRB00210
+         MEND                                                           DRB00220
+**********************************************************************  DRB00230
+         HCPCMPID COMPID=TDG                                            CP100010
+         COPY HCPOPTNS                                                  CP100020
+CP1STL   HCPPROLG ATTR=(RESIDENT,REENTERABLE),BASE=(R12)                CP100030
+* CP1STL   HCPPROLG ATTR=(PAGEABLE,REENTERABLE),BASE=(R12)  // < 5.2.0  CP100030
+* (c) Copyright International Business Machines Corporation, 2000, 2005 CP100040
+*                      All rights reserved                              CP100050
+*                                                                       CP100060
+* CP Exit to allow issuing 1st-level CP command from a live             CP100070
+* 2nd-level system.                                                     CP100080
+*                                                                       CP100090
+* To use, once you have assembled this file into CP1STL TEXT            CP100100
+* put these files on                                                    CP100110
+* some Class A user's A (191) disk and invoke the following commands    CP100120
+* (Subsequent lines assume you chose filemode B on the first line):     CP100130
+*                                                                       CP100140
+*   CPACCESS userid 191 filemode RR                                     CP100150
+*   CPXLOAD CP1STL TEXT B NOCONTROL TEMP                                CP100160
+*   DEF COM CP1STLVL ANYTIME EPNAME CP1STLIN PRIVCLASSANY               CP100170
+*   ENABLE CMD CP1STLVL                                                 CP100180
+*                                                                               
+* Then you invoke the desired 1st-level command by prepending CP1STLVL.         
+* For example,                                                                  
+*                                                                               
+*   CP1STLVL Q USERID                                                           
+*                                                                       CP100190
+* In order to undo some of your handiwork, you may want to be aware     CP100200
+* of a few other commands:                                              CP100210
+*   DISABLE CMD CP1STLVL -- to disable the CP1STLVL command             CP100220
+*   QUERY CPXLOAD        -- find the identifier number of CP1STLVL TEXT CP100230
+*   CPXUNLOAD ID nn      -- unload CP1STLVL TEXT (nn is the identifier) CP100240
+*                                                                       CP100250
+* Notes:                                                                CP100260
+*   The macro defined at the beginning allows for compiling, since      CP100270
+*   the program will not be listed in the regular HCPMDLAT.             CP100280
+*                                                                       CP100330
+* For more information, see _VM/ESA CP Exit Customization_.  The first  CP100340
+* edition of this is for VM Version 2, Release 1.0, October 1995,       CP100350
+* IBM publication number SC24-5672-00.                                  CP100360
+*                                                                       CP100370
+* Register usage:                                                               
+*  R0  - Input, Prefix page addressing                                          
+*  R1  - Addresses of text input, temp storage                                  
+*  R2  - Length of text input data                                              
+*  R3  - Addressing for text output to console                                  
+*  R4  - not used                                                               
+*  R5  - not used                                                               
+*  R6  - Rx for Diagnose                                                        
+*  R7  - Rx+1 for Diagnose, stand in for R1 in HCPCONSL                         
+*  R8  - Ry for Diagnose                                                        
+*  R9  - Ry+1 for Diagnose                                                      
+*  R10 - not used                                                               
+*  R11 - Addressing VMDBK                                                       
+*  R12 - Addressing of this CSECT                                               
+*  R13 - Addressing SAVBK                                                       
+*  R14 - not used                                                               
+*  R15 - Return code                                                            
+*                                                                       CP100380
+*                                                                       CP100400
+         COPY HCPEQUAT - Equates for common items                       CP100410
+         COPY HCPPFXPG - Prefix Page for all host CPUs                  CP100420
+         COPY HCPSAVBK - Call with savearea Block                       CP100430
+*        COPY HCPSYSCM - System Common Area                             CP100440
+         COPY HCPCSLPL - CONSOLE MACRO PARM LIST                        CP100450
+         COPY HCPGSDBK - GENERAL SYSTEM DATA BLOCK                      CP100460
+         COPY HCPVMDBK - VIRTUAL MACHINE DEFINITION BLOCK               CP100470
+*                                                                       CP100480
+CP1STLVL CSECT                                                          CP100490
+         HCPUSING PFXPG,R0                                              CP100500
+         HCPUSING SAVBK,R13                                             CP100510
+*                                                                       CP100520
+CP1STLIN HCPENTER CALL,SAVE=DYNAMIC                                     CP100530
+*                                                                       CP100540
+*****************************************************************       CP100550
+         ST    R0,KEEPR0            Don't scrog R0                      CP100560
+         HCPUSING VMDBK,R11  ADDRESSING THE VMDBK                       CP100570
+         L     R3,VMDCFBUF   GET THE ADDRESS OF THE CONSOLE             CP100580
+*                            INPUT BUFFER; REFERENCE THE                CP100590
+*                            BUFFER WITH A GSDBK                        CP100600
+         HCPDROP R11         NO LONGER ADDRESSING THE VMDBK             CP100610
+         HCPUSING GSDBK,R3   ADDRESSING THE GSDBK                       CP100620
+         LH    R1,GSDSCAN    GET BYTE DISPLACEMENT TO START             CP100630
+         LA    R1,1(,R1)     Increment by one to account for space      CP100640
+         LH    R2,GSDDCNT    GET LENGTH OF DATA                         CP100650
+         SR    R2,R1         Subtract length of command from total len  CP100660
+         BC    B'1100',GOTNONE    User error -- no input data           CP100670
+         LA    R1,GSDDATA(R1)     GET ADDRESS OF BYTE TO START          CP100680
+         HCPDROP R3          NO LONGER ADDRESSING THE GSDBK             CP100690
+         LR    R6,R1               Put addr of token in Rx for Diag 08  CP100700
+*** Begin changes for 5.2.0                                                     
+         LR    R1,R2         Put length of input into R1                        
+         SRL   R1,3          Divide by 8 to convert bytes to Dwords             
+         LA    R1,1(,R1)     Increment by one to round up               CP100640
+         HCPGETST LEN=(R1),BACKING=BELOW2G   Get storage for input line         
+         ST    R1,INBUFA     Save address for HCPRELST later                    
+         BCTR  R2,0          Decrement length since MVC uses 1 less             
+         EX    R2,INMVC      MVC of text at R6 to R1                            
+         LA    R2,1(,R2)     Increment to undo the BCTR above           CP100640
+         LRA   R6,0(,R1)     Replace R6 with real address of location           
+*                            where input data was copied to                     
+         LA    R1,200        Length of output buffer                            
+         HCPGETST LEN=(R1),BACKING=BELOW2G  Get storage for output line         
+         ST    R1,OUTBUFA    Save address for HCPRELST later                    
+         LRA   R7,0(,R1)     Put real address of output buffer in R7            
+*        LA    R7,CPTALKS          Buffer for CP command response       CP100750
+*** End changes for 5.2.0                                                       
+         LA    R8,X'40'            Tell Diag 08 to put output in buffer CP100710
+         SLL   R8,24               Shift flag bits into high byte       CP100720
+         OR    R8,R2               Put length of token in Ry=R8         CP100730
+         L     R0,KEEPR0           Recover R0                           CP100740
+         LA    R9,CPTALKSL         Length of buffer for cmd response    CP100760
+         DC    X'83',X'68',XL2'0008'   Diag 08 to invoke the command    CP100770
+         C     R8,ONE              Is response HCP001E?                 CP100780
+         BZ    UNKNCMD             Yes, go say so                       CP100790
+*** Begin changes for 5.2.0                                                     
+         LR    R7,R1               HCPCONSL won't accept R1                     
+         HCPCONSL WRITE,                                               XCP100800
+               DATA=((R7),(R9)),                                       XCP100810
+               DESTINATION=TERMINAL                                     CP100820
+*        HCPCONSL WRITE,                                                CP100800
+*              DATA=(CPTALKS,(R9)),                                     CP100810
+*              DESTINATION=TERMINAL                                     CP100820
+*** End changes for 5.2.0                                                       
+         B     PREEXIT                                                  CP100880
+*        B     EXIT                                         // < 5.2.0  CP100880
+UNKNCMD  DS    0H                                                       CP100840
+         HCPCONSL WRITE,                                               XCP100850
+               DATA='??? Unknown CP command.',                         XCP100860
+               DESTINATION=TERMINAL                                     CP100870
+         B     PREEXIT                                                  CP100880
+*        B     EXIT                                         // < 5.2.0  CP100880
+GOTNONE  DS    0H                  No token found; report error         CP100890
+         HCPCONSL WRITE,                                               XCP100900
+               DATA='??? No CP command found to pass to 1st level.',   XCP100910
+               DESTINATION=TERMINAL                                     CP100920
+         SPACE 1                                                        CP100930
+*** Begin changes for 5.2.0                                                     
+         B     EXIT                GOTNONE doesn't HCPRELST             CP100880
+PREEXIT  DS 0H                     Release storage before exiting               
+         L     R1,INBUFA     Retrieve address of text input temp area           
+         HCPRELST BLOCK=(R1)   RELEASE BUFFER                                   
+         L     R1,OUTBUFA    Retrieve address of text output temp area          
+         HCPRELST BLOCK=(R1)   RELEASE BUFFER                                   
+*** End changes for 5.2.0                                                       
+EXIT     DS 0H                                                          CP100940
+         XR    R6,R6               Return code of 0 no matter what!     CP100950
+         MVC SAVER15,(R6)                Store the RC                   CP100960
+         HCPEXIT EP=(CP1STLIN),SETCC=0  Return                          CP100970
+                                                                        CP100980
+         HCPDROP R0                                                     CP100990
+         HCPDROP R13                                                    CP101000
+         SPACE 1                                                        CP101010
+*                                                                       CP101020
+* Data areas                                                            CP101030
+*                                                                       CP101040
+*****************************************************************       CP101050
+ONE      DC    F'1'                                                     CP101060
+KEEPR0   DS    F                                                        CP101070
+INBUFA   DS    F                   Input buffer location                CP101070
+OUTBUFA  DS    F                   Output buffer location               CP101070
+INMVC    MVC   0(0,R1),0(R6)       Used by EX to copy input text                
+* CPTALKS  DS    200D              Room for 1600 characters // < 5.2.0  CP101080
+* CPTALKSL EQU   *-CPTALKS                                  //< 5.2.0   CP101090
+CPTALKSL EQU   1600                Length in bytes of text output area          
+         HCPEPILG                                                       CP101100

@@ -1,0 +1,24 @@
+*
+*
+*         Name: CPHOST FILELIST (a CMS "filelist" file)
+*         Date: 2024-09- 3 (Tue)
+*       Author: Rick Troth (of this file, not the code)
+*
+*
+* files in this project:
+      CPHOST   FILELIST *  -- inventory (this file)
+      CPHOST   EXEC     *  -- CMS command (loads the driver on demand)
+      CPHOST   TEXT     *  -- or TXTLCL or other (the driver)
+      CPHOST   S        *  -- updated assembler source code
+      CPHBUILD EXEC     *  -- a normalized build EXEC
+      CPHBWRAP EXEC     *  -- "wraps" HLASM and friends for OpenVM
+*
+* files not for CMS:
+*-rwxr-xr-x   1 trothr   system       479 Sep  5  2024 2cms
+*-rw-r--r--   1 trothr   system      1093 Oct 24  2025 README.md
+*-rw-r--r--   1 trothr   system       993 Oct 24  2025 makefile
+*
+* files in the IBM project:
+      CPHOST   ASSEMBLE *  -- original(-ish) source code (Kris Buelens)
+*
+*

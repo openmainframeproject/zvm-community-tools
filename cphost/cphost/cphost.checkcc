@@ -1,0 +1,37 @@
+./ R 00071640          $ 71670 30                     08/10/10 16:43:40         
+*            4. ADD SPECIAL RETCODES 30K+4, 8, 12                    @2 00071640
+./ I 00071800          $ 71810 10                     08/10/10 16:43:40         
+*            7. CHECK CC AFTER DIAG08. IF CC¼=0:                     @2 00071820
+*               SCAN BACK FROM END OF BUFFER FOR LAST X'15'          @2 00071840
+*               CALCULATE LENGTH OF EXISTING DATA TO DISPLAY         @2 00071840
+*               ADD 31K TO REAL CP RETCODE: Buffer overflow          @2 00071840
+*            8. DO NOT STORE INTO PROGRAM, USE SAVEWRK0-1 FOR PTRS   @2 00071820
+./ R 00108000          $ 108290 290                   08/10/10 16:43:40         
+*        ST    R1,INBUFA     Save address for HCPRELST later         @2 00108000
+         ST    R1,SAVEWRK0   Save address for HCPRELST later         @2 00108000
+./ R 00116000          $ 116290 290                   08/10/10 16:43:40         
+*        ST    R1,OUTBUFA    Save address for HCPRELST later         @2 00116000
+         ST    R1,SAVEWRK1   Save address for HCPRELST later         @2 00116000
+./ I 00125000          $ 125090 90                    08/10/10 16:43:40         
+         BZ    NOOVF               No Overflo Response fits in buffer@2 00125300
+         L     R1,SAVEWRK1         Address of output buffer          @2         
+         LA    R1,3999(,R1)        Last possible buffer address      @2         
+FINDEOL  DS    0H                                                    @2         
+         CLI   0(R1),X'15'         Is that the last EOL?             @2         
+         BE    DISPLEN             Go set up display length and RC   @2         
+         BCT   R1,FINDEOL          Back up 1 byte                    @2         
+DISPLEN  DS    0H                                                    @2         
+         S     R1,SAVEWRK1         Distance from start to last EOL   @2 00125600
+         LA    R9,1(,R1)           L'Data includes last byte (X'15') @2 00125600
+         A     R8,THIRTY1K         +31K to Retcode: Buffer Overflow  @2 00125600
+NOOVF    DS    0H                                                    @2 00125900
+./ R 00129000          $ 129490 490                   08/10/10 16:43:40         
+         L     R7,SAVEWRK1         HCPCONSL won't accept R1          @2 00129000
+./ R 00153000          $ 153490 490                   08/10/10 16:43:40         
+         L     R1,SAVEWRK0   Retrieve address of text input temp area@2 00153000
+./ R 00155000          $ 155490 490                   08/10/10 16:43:40         
+         L     R1,SAVEWRK1   Retrieve address of text output temp are@2 00155000
+./ R 00172000 00173000 $ 172490 490                   08/10/10 16:43:40         
+THIRTY1K DC    F'31000'            31,000 CONSTANT FOR SPECIAL RCODES@2 00171180
+* INBUFA   DS    F                   Input buffer location           @2 00172000
+* OUTBUFA  DS    F                   Output buffer location          @2 00173000

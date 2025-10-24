@@ -1,0 +1,3 @@
+LVL620   ALL LC620  * Dummy update to get TXT620                                
+CHECKCC  ALL LC540  * Check CC of Diag08 for buffer overflow                    
+TRAPRESP ALL LC530  * Allow trapping response in buffer                         

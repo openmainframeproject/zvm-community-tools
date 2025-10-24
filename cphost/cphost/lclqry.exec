@@ -1,0 +1,106 @@
+/*--------------------------------------------------------------------*/
+/*       Enable ALTUSER and AUTOUSER queries                          */
+/*--------------------------------------------------------------------*/
+/*  These commands are defined here by AUTOLOG1 and not in SYSTEM     */
+/*  CONFIG as here we can use a release dependant TXTLIB.             */
+/*--------------------------------------------------------------------*/
+address command
+ parse value diag(0) with 25 bitmap 33 41 Host
+/*
+ 7FFF800000000000 - VM/ESA V2.4
+ 7FFFF00000000000 - z/VM V4R2
+ 7FFFFC0000000000 - z/VM V4R4
+ 7FFFFF0000000000 - z/VM 5.2
+ 7FFFFF8000000000 - z/VM 5.3
+*/
+ esa240= (bitmap='7FFF800000000000'x)
+ zVM420= (bitmap='7FFFF00000000000'x)
+ zVM440= (bitmap='7FFFFC0000000000'x)
+ zVM520= (bitmap='7FFFFF0000000000'x)
+ zVM530= (bitmap='7FFFFF8000000000'x)
+ zVM540= (bitmap='7FFFFFC000000000'x)
+ zVM610= (bitmap='7FFFFFE000000000'x)
+ Select
+  when zVm610 then lvl=610
+  when zVm540 then lvl=540
+  when zVm530 then lvl=530
+  when zVm520 then lvl=520
+  when zVm440 then lvl=440
+  when zVm420 then lvl=420
+  when esa240 then lvl=240
+  Otherwise
+    parse upper source . . myname mytype . syn .
+   say       'Cannot define CP Q AUTOLOG & Q ALTUSER'
+   'CP MSG OP Cannot define CP Q AUTOLOG & Q ALTUSER'
+   say       'commands: CP level unknown in' myname mytype
+   'CP MSG OP commands: CP level unknown in' myname mytype
+   exit 6
+ end
+ 
+Call Define_Qry /* Define QUERY commands */
+If Host<>'' then Call Define_CP1 /* Define CP1 commands */
+ 
+exit
+/*-----------------------------------------------------------------*/
+Define_Qry: /* Define QUERY commands                               */
+/*-----------------------------------------------------------------*/
+TxtLname='LCLQR'lvl
+         Say      'Activating Local Query Support' /*                 */
+ 
+call cp  CPxLoad   txtLname TXTLIB Member LCLQRYM, /*                 */
+                   NoLock,                         /* don't LOCK pages*/
+                   MP,                             /* MP capable      */
+                   NoControl,                      /*Don't call it now*/
+                   Temporary                       /* Allow CPxUnload */
+ 
+call cp  Associate Message,                        /*      Local      */
+                   Component LCL,                  /*                 */
+                   EpName LCLQRYM                  /*                 */
+ 
+call cp  CPxLoad   txtLname TXTLIB Member LCLQRY,  /*                 */
+                   NoLock,                         /*     Userid      */
+                   MP,                             /*                 */
+                   NoControl,                      /*                 */
+                   Temporary                       /*                 */
+ 
+call cp  Define    Command QUERY Subcmd ALTUSER,   /*     Queries     */
+                   Abbrevlength 3,                 /*                 */
+                   Enable,                         /*                 */
+                   EPName LCLQRYAL,                /*                 */
+                   PrivClassAny                    /*                 */
+ 
+call cp  Define    Command QUERY Subcmd AUTOUSER,  /*     Support     */
+                   Abbrevlength 4,                 /*                 */
+                   Enable,                         /*                 */
+                   EPName LCLQRYAU,                /*                 */
+                   PrivClassAny                    /*                 */
+ 
+call cp  Define    Command QUERY Subcmd ALTUSER,   /*                 */
+                   Abbrevlength 3,                 /*                 */
+                   Enable,                         /*                 */
+                   EPName LCLQRYAL,                /*                 */
+                   PrivClasses EQ  IBMClass E      /*                 */
+ 
+call cp  Define    Command QUERY Subcmd AUTOUSER,  /*                 */
+                   Abbrevlength 4,                 /*                 */
+                   Enable,                         /*                 */
+                   EPName LCLQRYAU,                /*                 */
+                   PrivClasses BQ  IBMClass B      /*                 */
+return
+/*-----------------------------------------------------------------*/
+Define_CP1: /* Define CP1 commands                                 */
+/*-----------------------------------------------------------------*/
+ /* Load exit to allow sending commands to CP in host VM */
+ call CP 'CPXLOAD CPHOST TXT'lvl 'A NOCONTROL TEMP'
+ call CP 'DEFINE COMMAND CP1',
+           'AFTER_LOGON',
+           'PRIVCLASSES A IBMCLASS A' ,
+           'EPNAME CP1STLIN'
+ call CP 'ENABLE CMD CP1'
+return
+CP:
+ Say ''
+ Say 'Executing: CP' arg(1)
+ address '' 'CP' arg(1)
+ Say 'CP rc=' rc
+return

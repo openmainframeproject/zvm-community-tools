@@ -1,0 +1,156 @@
+The CPHOST package is an improved version of CP1STLVL,
+the author of the original program and documentation by Tim Greer is at
+  http://www.vm.ibm.com/devpages/GREER/
+ 
+Shimon Lebowitz applied some changes to the first version of Tim's
+package.  I, Kris Buelens, reworked them to fit them in the Tim's version
+for z/VM 5.2.
+As Tim lacks time to incorporate them in his version, he agreed that
+we make the improved version available on the download lib.
+ 
+Shimon made improvements once more in August 2010:
+- avoid problems when CP response is larger than 4K
+  (this problem caused a HTT001 hard abend of the secondlevel VM system)
+- it is also made more reentrant
+ 
+Overview (by Kris Buelens)
+============================
+Two main changes can attract you
+ 1. The response of the first level CP can be placed in a buffer at the
+    second-level.  That is, you can grab the response using PIPE,
+    EXECIO or Rexx's DIAG(8) function.
+ 2. The return code of the first level CP becomes the returncode of the
+    second-level command.  There are 2 return code ranges:
+    (to inform you about special cases, see also below)
+    - 30000+x for "logic errors" in the call to CPHOST:
+            x=4: No cmd supplied;
+            x=8: Not running second level;
+            x=12: Command string longer than 240 characters
+    - 31000+x for "Response too long" for response buffer (4000 bytes)
+            x= The RC of the CP command.
+ 
+Example:    (I use "CP1" as command name for CPHOST/CP1STLVL)
+ ... A service machine needs to access a minidisk of some other VM ...
+ ... For second level guests we may first need to attach the disk  ...
+ ... to the secondlevel guest before one can use DEFINE MDISK      ...
+ Lvl2vm=(length(diag(0))>40)
+ if lvl2VM then do
+    parse value diagrc(8,'Q' DefMdkCuu),
+          with rc . 17 emsg '15'x
+    if rc=40 then do /* HCPQDV040E Device 50A3 does not exist */
+       say 'CP1 VARY ON' DefMdkCuu
+       parse value diagrc(8,'CP1 VARY ON' DefMdkCuu),
+             with rc . 17 emsg '15'x
+       if emsg<>'' then say emsg
+       if rc<>0 then say '    ended with rc=' rc
+       att='CP1 ATT' DefMdkCuu '*' DefMdkCuu 'R/O'
+       say att
+       parse value diagrc(8,att) with rc . 17 emsg '15'x
+       if emsg<>'' then say emsg
+       if rc<>0 then do
+          say '    ended with rc=' rc
+          if emsg='' then return 'Rc' rc 'from' att
+          return 99 emsg
+       end
+    end
+ end
+ ... disk is ready, ATTACH TO SYSTEM & DEFINE MDISK can work ...
+ 
+Details
+========
+Activation
+-----------
+ It is strongly recommended to recompile CP exits each time a new VM
+ release is installed.  As we do keep the same MAINT CF1 when we switch
+ to a new CP nucleus we store at least two versions of the exit code
+ on MAINT CF1, the filename or filetype contains a release level.
+   e.g. CPHOST   TXT520    and   LCLQR520 TXTLIB
+ 
+ CP exits can be loaded during IPL (by definitions in the SYSTEM CONFIG
+ file), but also by CP commands.  As it is impossible to check the
+ CP level in the SYSTEM CONFIG file we now have AUTOLOG1 load the exits:
+   A REXX EXEC checks the CP level and loads the exists from the
+   appropriate text deck.  Our EXEC is called LCLQRY EXEC and is
+   included in the package.
+ 
+Testing CPHOST
+---------------
+ It is not unlikely that you are using CP1STLVL when you want to install
+ CPHOST.  So before loading CPHOST, the old one must be unloaded.
+ The package includes a CPHTEST EXEC that makes tesing CPHOST easier,
+ read the comments in the CPHTEST EXEC.
+ 
+What do you get as material
+----------------------------
+ You do not only get a compiled version (eg CPHOST TXT520, for z/VM 5.2),
+ but also the source modifications (CPHOST TRAPRESP and CPHOST CHECKCC).
+ To enable you to apply even more changes, or to import them in yet
+ another version of Tim (if that would ever be made), I also ship Tim's
+ source (for z/VM 5.2) only the sequence numbers have been added.
+ 
+ Content details
+ 1. Documentation & runtime stuff
+    CPHOST  PACKAGE  : List of files, use FILELIST CPHOST PACKAGE (FILEL
+    CPHOST  README   : This file
+    CPHOST  TXTlvl   : Assembled TEXT file, store on MAINT CF1
+    LCLQRY  EXEC     : An exec we use to activate both LCLQRY and CPHOST
+    CPHTEST EXEC     : Use this to load & test CPHOST
+ 2. Source related material
+    CPHOST  ASSEMBLE : Resequenced version of CP1STLVL source
+                       Cols 1-72 Should be identical to CP1STLVL
+    CPHOST  TRAPRESP : The source modifications
+    CPHOST  CHECKCC  : The 2010 source modifications
+    CPHOST  AUXLCL   : CMS Auxfile to update CPHOST
+    ASMCPH  EXEC     : Makes assembling CPHOST easier
+    XCPH    EXEC     : Makes XEDITing CPHOST easier
+ 
+ 
+Shimon's modifications (text from Shimon)
+------------------------------------------
+  1. DON'T BOTHER SAVING R0.
+  2. USE PFX1 INSTEAD OF INTERNAL CONSTANT F'1'
+  3. USE HCPGETST TO ALLOCATE 4000 BYTES, INSTEAD OF
+     AN INTERNAL BUFFER OF 1600 BYTES.
+  4. ADD SPECIAL RETCODES
+  5. RETURN CODES MUST USE SAVER2, NOT SAVER15.
+  6. CHECK FOR 2ND LEVEL
+  7. CHECK CC AFTER DIAG08. IF CC<>0:
+     SCAN BACK FROM END OF BUFFER FOR LAST X'15'
+     CALCULATE LENGTH OF EXISTING DATA TO DISPLAY
+     ADD 31K TO REAL CP RETCODE: Buffer overflow
+  8. DO NOT STORE INTO PROGRAM, USE SAVEWRK0-1 FOR PTRS
+ 
+ CP1STL as I downloaded it ALWAYS returns a zero return code.
+ As part of my desire to use pipes or execs, I wanted it
+ to give me the RC it got from the first level system.
+ However, there are a few cases where the retcode is
+ generated by the second level system. These codes are
+ displayed by CP1STLVL as errors beginning with "???".
+ 
+ I made a few changes to these, based on a similar
+ package called CPFIRST. They are not described in my
+ source file, but seem to be:
+ 30004 - no command found to pass to 1st level
+ 30008 - not running in a second level VM
+ 30012 - supplied CP command was longer than 240 characters
+ 
+ As can be seen here, all of the 'special' retcodes are in the
+ 30,000 range to make them easy to identify.
+ 
+ I also wanted to differentiate between a
+ RC=1 on the first level system (CP command passed
+ does not exist), and on the second level system
+ (no such command as CP1STL). So I changed the
+ first level '1' to another 'special retcode':
+ 30001 - no such first level CP command (that's 30K + 1st lvl retcode)
+ 
+ Another thing I never wrote down in my comments, was the change
+ which allowed PIPE to catch the CP output. That was really simple|
+ I deleted the "DESTINATION=TERMINAL" operand of the HCPCONSL
+ macro which displays the 1st level output. The "???" messages
+ still use that operand and are displayed on the terminal
+ directly (but you can still catch them by the 30K+ retcode).
+ 
+ The rest of the stuff I did is just cleanup and an increase
+ in the size of the diagnose buffer.
+ 

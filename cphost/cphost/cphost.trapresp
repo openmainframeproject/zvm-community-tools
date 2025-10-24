@@ -1,0 +1,61 @@
+./ I 00071000          $ 71080 80                     10/06/06 17:33:19         
+* >>> ORIGINALLY BY TIM GREER, AVAILABLE AT:                         @1 00071080
+* HTTP://WWW.VM.IBM.COM/DOWNLOAD/PACKAGES/DESCRIPT.CGI?CP1STLVL      @1 00071160
+* ----- CHANGES BY SHIMON (integrated in zVM5.2 by Kris Buelens)     @1 00071240
+* 21/11/03 - 1. DON'T BOTHER SAVING R0.                              @1 00071320
+*            2. USE PFX1 INSTEAD OF INTERNAL CONSTANT F'1'           @1 00071400
+*            3. USE HCPGETST TO ALLOCATE 4000 BYTES, INSTEAD OF      @1 00071480
+*               AN INTERNAL BUFFER OF 1600 BYTES.                    @1 00071560
+*            4. ADD SPECIAL RETCODES                                 @1 00071640
+*            5. RETURN CODES MUST USE SAVER2, NOT SAVER15.           @1 00071720
+*            6. CHECK FOR 2ND LEVEL                                  @1 00071800
+* -------------                                                      @1 00071880
+./ R 00088000          $ 88290 290                    10/06/06 17:33:19         
+         TM    PFXCPUID,CPUIDVM    RUNNING IN A VIRTUAL MACHINE?     @1 00088290
+         BNO   NOTLVL2             NO, BETTER NOT USE DIAGNOSE       @1 00088580
+./ I 00104000          $ 104300 300                   10/06/06 17:33:19         
+         C     R1,MAXLCMD    Is command too long?                    @1 00104300
+         BH    TOOLONG       Yes                                     @1 00104600
+./ R 00114000          $ 114190 190                   10/06/06 17:33:19         
+         LA    R1,4000       Length of output buffer                 @1 00114190
+         LR    R9,R1         ALSO L'RESPBUF TO RY+1 FOR DIAG 8       @1 00114380
+         SRL   R1,3          CONVERT TO DOUBLEWORDS                  @1 00114570
+./ R 00123000 00124000 $ 123590 590                   10/06/06 17:33:19         
+*        L     R0,KEEPR0           Recover R0                        @1 00123590
+*        LA    R9,CPTALKSL         Length of buffer for cmd response @1 00124180
+./ R 00126000          $ 126290 290                   10/06/06 17:33:19         
+         LR    R4,R8               COPY 1ST LEVEL RC                 @1 00126290
+         C     R8,PFX1             IS RESPONSE HCP001E?              @1 00126580
+./ R 00131000 00132000 $ 131590 590                   10/06/06 17:33:19         
+               DATA=((R7),(R9))                                      @1 00131590
+*              DESTINATION=TERMINAL   Remove DEST, so PIPE can trap  @1 00132180
+./ I 00142000          $ 142500 500                   10/06/06 17:33:19         
+         A     R4,THIRTYK          DISTINGUISH FROM NO LOCAL CMD     @1 00142500
+./ I 00144000          $ 144060 60                    10/06/06 17:33:19         
+NOTLVL2  DS    0H                                                    @1 00144060
+         HCPCONSL WRITE,                                             @1*00144120
+               DATA='??? NOT RUNNING IN A SECOND LEVEL VM.',         @1*00144180
+               DESTINATION=TERMINAL                                  @1 00144240
+         L     R4,THIRTYK          SPECIAL RC                        @1 00144300
+         LA    R4,8(0,R4)          NOT 2ND LEVEL VM: RC=8            @1 00144360
+         B     EXIT                                                  @1 00144420
+TOOLONG  DS    0H                  COMMAND WAS > 240, TOO LONG.      @1 00144480
+         HCPCONSL WRITE,                                             @1*00144540
+               DATA='??? DIAGNOSE 8 LIMITED TO 240 CHARACTERS',      @1*00144600
+               DESTINATION=TERMINAL                                  @1 00144660
+         L     R4,THIRTYK          SPECIAL RC                        @1 00144720
+         LA    R4,12(0,R4)         TOO LONG: RC=12                   @1 00144780
+         B     EXIT                TOOLONG doesn't HCPRELST          @1 00144840
+*                                                                    @1 00144900
+./ I 00149000          $ 149300 300                   10/06/06 17:33:19         
+         L     R4,THIRTYK          SPECIAL RC                        @1 00149300
+         LA    R4,4(0,R4)          NO CMD: RC=4                      @1 00149600
+./ R 00159000 00160000 $ 159490 490                   10/06/06 17:33:19         
+*        XR    R6,R6               Return code of 0 no matter what!  @1 00159490
+*        MVC SAVER15,(R4)                Store the RC                @1 00159980
+         ST    R4,SAVER2                 Store the RC                @1 00160470
+./ R 00170000 00171000 $ 170590 590                   10/06/06 17:33:19         
+MAXLCMD  DC    F'240'                                                @1 00170590
+THIRTYK  DC    F'30000'            30,000 CONSTANT FOR SPECIAL RCODES@1 00171180
+./ R 00177000          $ 177490 490                   10/06/06 17:33:19         
+* CPTALKSL EQU   1600             Length in bytes of text output area@1 00177490

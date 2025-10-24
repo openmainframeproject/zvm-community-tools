@@ -1,0 +1,28 @@
+***********************************************************************
+* :nick.CPHOST          :sec.Unclassified
+* :title.CP exit allowing 2nd-level user to invoke 1st-level commands
+* :version.1.5          :date.2019-10-04
+* :oname.Buelens Kris                    :onode.BEVM     :ouser.BUELENSC
+* :support.NA
+* :sw.z/VM 5.2, through z/VM 7.1
+************************************************************************
+    CPHOST  PACKAGE  * List of files, use FILELIST CPHOST PACKAGE (FILEL
+    CPHOST  README   * You know what this file is for
+    CPHOST  TXT520   * Assembled TEXT file, store on MAINT CF1
+    CPHOST  TXT530   * Assembled TEXT file, store on MAINT CF1, z/VM 5.3
+    CPHOST  TXT540   * Assembled TEXT file, store on MAINT CF1, z/VM 5.4
+    CPHOST  TXT610   * Assembled TEXT file, store on MAINT CF1, z/VM 6.1
+    CPHOST  TXT620   * Assembled TEXT file, store on MAINT CF1, z/VM 6.2
+    CPHOST  TXT630   * Assembled TEXT file, store on MAINT CF1, z/VM 6.3
+    CPHOST  TXT640   * Assembled TEXT file, store on MAINT CF1, z/VM 6.4
+    CPHOST  TXT710   * Assembled TEXT file, store on MAINT CF1, z/VM 7.1
+    LCLQRY  EXEC     * An exec we use to activate both LCLQRY and CPHOST
+    CPHTEST EXEC     * Use this to load & test CPHOST
+    CPHOSTL EXEC     * Can be used to have AUTOLOG1/2 load CPHOST
+    CPHOST  ASSEMBLE * Resequenced version of CP1STLVL source
+    CPHOST  CHECKCC  * The source modifications
+    CPHOST  TRAPRESP * The source modifications
+    CPHOST  LVL620   * A dummy modif to have VMFHLASM create TXT620
+    CPHOST  AUXLCL   * CMS Auxfile to update CPHOST
+    ASMCPH  EXEC     * Makes assembling CPHOST easier
+    XCPH    EXEC     * Makes XEDITing CPHOST easier

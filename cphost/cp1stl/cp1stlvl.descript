@@ -1,0 +1,102 @@
+<P>                                                                             
+The essential files in this package are                                         
+<UL>                                                                            
+<LI>CP1STL ASSEMBLE -- Source code for CP exit.                                 
+<LI>CP1STLVL DESCRIPT -- This file, a description and explanation.              
+<LI>CP1STL TXTBB0 -- Assembled CP1STL ASSEMBLE (for z/VM 7.3.0)                 
+<LI>CP1STL TXTBX0 -- Assembled CP1STL ASSEMBLE (for z/VM 6.3.0)                 
+<LI>CP1STL TXTBW0 -- Assembled CP1STL ASSEMBLE (for z/VM 6.2.0)                 
+<LI>CP1STL TXTBU0 -- Assembled CP1STL ASSEMBLE (for z/VM 5.3.0-6.1.0)           
+<LI>CP1STL TXTBT0 -- Assembled CP1STL ASSEMBLE (for z/VM 5.2.0)                 
+<LI>CP1STL TXTBQ0 -- Assembled CP1STL ASSEMBLE (for z/VM 4.3.0)                 
+<LI>CP1STL TXTBG0 -- Assembled CP1STL ASSEMBLE (for VM/ESA 2.4.0)               
+</UL>                                                                           
+There are also other files that might be useful to a few people:                
+<UL>                                                                            
+<LI>CP1STL ASSPRE52 -- Source code for CP exit, pre-5.2.0 version.              
+<LI>CP1STL ASSBT0 -- Source code for 5.2.0 version, CP1STL TXTBT0               
+<LI>CP1STL EXEC -- Crude EXEC to do all the CPXLOAD stuff.                      
+<LI>CP1STLVL IAGREE -- Agreement File for VM Download Library                   
+<LI>CP1STLVL ABSTRACT -- One line description for VM Download Library           
+</UL>                                                                           
+The author of the program and documentation is                                  
+<A HREF="http://www.vm.ibm.com/devpages/GREER/"> Tim Greer</A>.                 
+<P>                                                                             
+The CP1STLVL package helps users of VM second-level systems (guests)            
+execute a CP command on the first level system, and receive the                 
+response, without interrupting the second-level system.  This is done by        
+loading and enabling the CP exit CP1STL.  To the second-level user, the         
+appearance is that a new CP command exists.                                     
+<P>                                                                             
+I created this tool as a convenience in testing.                                
+Often I am using a VM guest                                                     
+operating system running on a first-level VM system, and have a need to         
+invoke a first-level command.  For example, I may wish to define a              
+temporary disk, define and couple a virtual CTC, or invoke a trace.             
+In the past, I would do this by pressing PA1 to get thrown into                 
+first-level CP READ, do the command, and then PA1 back to second level.         
+That method has some disadvantages.  In particular, you freeze the              
+second-level system while you are doing your first-level stuff, leaving         
+any dialed-in users looking at the x-clock, and potentially causing             
+timeout errors for links to other systems (e.g. via ISFC).  Also, you           
+must be on the first-level logon session.  If you are dialed in to the          
+second-level system, you can't even invoke a first-level command.               
+Finally, in order to automate my testing,                                       
+I sometimes need to be able to include this first-level                         
+activity in a REXX EXEC I am running second-level.                              
+The CP1STL CP exit is a means of getting around these problems.                 
+<P>                                                                             
+The files included in this package allow a class A user to add the CP           
+command CP1STLVL to the second-level system.  (Of course, you can choose        
+to name the command something else.)  For those interested in seeing            
+how it works or adding to it, I include the source code.  You may also          
+need the source code so that you can compile for the appropriate CP             
+level.  (Use QUERY CPLEVEL to verify what level you are running.)               
+I have provided CP1STL TXTs for several VM release levels.                      
+If your second-level system is at some other CP level,                          
+recompile of CP1STL ASSEMBLE is recommended.  That said, I would expect         
+CP1STL TXTBQ0 to work ok for z/VM 3.1.0 through 5.1.0,                          
+CP1STL TXTBU0 to work ok for z/VM 5.3.0 and 5.4.0,                              
+CP1STL TXTBW0 works for z/VM 6.1.0,                                             
+CP1STL TXTBX0 to work ok for z/VM 6.2.0 through 7.2.0,                          
+and CP1STL TXTBB0                                                               
+may well work beyond z/VM 7.3.0.                                                
+Here are the instructions, copied out of CP1STL ASSEMBLE:                       
+<PRE>                                                                           
+  To use, once you have assembled CP1STL TXTBG0, put these files on             
+  some Class A user's A (191) disk and invoke the following commands            
+  (Subsequent lines assume you chose filemode B on the first line):             
+                                                                                
+    CPACCESS userid 191 filemode RR                                             
+    CPXLOAD CP1STL TXTBG0 B NOCONTROL TEMP                                      
+    DEF COM CP1STLVL ANYTIME EPNAME CP1STLIN PRIVCLASSANY                       
+    ENABLE CMD CP1STLVL                                                         
+                                                                                
+  In order to undo some of your handiwork, you may want to be aware             
+  of a few other commands:                                                      
+    DISABLE CMD CP1STLVL -- to disable the CP1STLVL command                     
+    QUERY CPXLOAD        -- find the identifier number of CP1STLVL TXTBG0       
+    CPXUNLOAD ID nn      -- unload CP1STLVL TXTBG0 (nn is the identifier)       
+</PRE>                                                                          
+<P>                                                                             
+(In the above, replace TXTBG0 with TXTBQ0, TXTBT0, etc. as appropriate.)        
+You can invoke the above commands one at a time from the command line,          
+from within a REXX EXEC, or put them in SYSTEM CONFIG so that the               
+function is available as soon as the system comes up.                           
+You may want to modify some of the above instructions.  In particular,          
+notice that I have defined the CP1STLVL command to be usable ANYTIME            
+(including before logon) and by everyone (PRIVCLASSANY).                        
+Obviously you should do something different if security is a concern.           
+For more information, see <CITE> VM/ESA CP Exit Customization. </CITE>          
+The first edition of this is for VM Version 2, Release 1.0,                     
+October 1995, IBM publication number SC24-5672-00.  This book also              
+contains more examples of CP exits.                                             
+<P>                                                                             
+This tool is for VM guests running on a VM first-level system.  It is           
+possible to do a similar thing on other guest operating systems, and            
+source code for an                                                              
+<A HREF="/devpages/jelliott/images/mvscpcmd.assemble">OS/390 version</A>        
+is available on VM's web pages as well.  Also available is                      
+<A HREF="http://www.vm.ibm.com/download/packages/descript.cgi?CPHOST">          
+CPHOST</A>, a version of CP1STLVL to which Shimon Lebowitz and                  
+Kris Buelens added some functionality.                                          

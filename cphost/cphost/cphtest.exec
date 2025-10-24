@@ -1,0 +1,139 @@
+/* This exec will load CPHOST to test it
+   Store CPHOST TXT520/lll on your own 191-disk and run CPHTEST
+    - it will unload an existing CP version of CP1STLVL or CPHOST
+    - load the new version of CPHOST from your 191-disk
+    - if a command is given: execute it, hereby testing CPHOST
+    +-----------------------------------------------------------+
+    | format:  | CPHTEST <some CP cmd to test at first level>   |
+    +-----------------------------------------------------------+
+  Written by: Kris Buelens IBM Belgium;  29 Sep 2006*/
+parse upper source . . myname mytype . syn .
+address command
+ 
+/*----------------------------------------------------------------*/
+/* Things you can tailor                                          */
+/*----------------------------------------------------------------*/
+ CmdName='CPH'   /* CP command name for CPHOST */
+ CPmode ='K'     /* Free CP filemode we can use */
+ DefaultCmd='Q USERID'   /* a CP command to test directly */
+ DefaultCmd=''           /* No CP command to test directly */
+ 
+/*-----------------------------------------------------------------*/
+/* Check prereqs                                                   */
+/*-----------------------------------------------------------------*/
+ parse value diag(0) with 25 bitmap 33 41 Host
+ if host='' then do
+    Say myname mytype 'makes sense only in secondlevel VMs'; exit 98; end
+/*
+ 7FFFFF0000000000 - z/VM 5.2
+ 7FFFFF8000000000 - z/VM 5.3
+*/
+ zVM520= (bitmap='7FFFFF0000000000'x)
+ zVM530= (bitmap='7FFFFF8000000000'x)
+ zVM540= (bitmap='7FFFFFC000000000'x)
+ zVM610= (bitmap='7FFFFFE000000000'x)
+ zVM620= (bitmap='7FFFFFF000000000'x)
+ zVM630= (bitmap='7FFFFFF800000000'x)
+ zVM640= (bitmap='7FFFFFFC00000000'x)
+ zVM710= (bitmap='7FFFFFFE00000000'x)
+ 
+ Select
+  when zVm710 then lvl=710
+  when zVm640 then lvl=640
+  when zVm630 then lvl=630
+  when zVm620 then lvl=620
+  when zVm610 then lvl=610
+  when zVm540 then lvl=540
+  when zVm530 then lvl=530
+  when zVm520 then lvl=520
+  Otherwise
+    Say myname mytype 'can only run in zVM 5.2.0 through 6.3'
+    Say 'You should recompile CPHOST with the MACLIBs of your system',
+        '(cfr ASMCPH EXEC)'
+    Say 'and then modify' myname mytype 'to use the new CPHOST TXTlvl'
+    exit 99
+ end
+ 
+ 'CMDCALL STATE CPHOST TXT'lvl '*'
+ if rc<>0 then exit rc
+ 
+ 'PIPE COMMAND LISTFILE CPHOST TXT'lvl '*|SPEC W3 1.1|Var Fm'
+ 'PIPE COMMAND QUERY DISK' fm'|DROP|SPEC SUBSTR W1 OF 7-* 1|Var Vdev'
+ if left(vdev,3)='DIR' then
+    call ErrExit 88,'CP can only load an EXIT from a CMS MDISK',
+       'not from SFS',,
+       'move CPHOST TXT'lvl fm 'to an MDISK, and restart'
+ 'PIPE CP QUERY MDISK' vdev'|DROP|SPEC W3.2 1|VAR OwnerDisk'
+ 
+ say 'CP CPACCESS' ownerDisk CpMode 'RR SYNC'
+ 'CP CPACCESS' ownerDisk CpMode 'RR SYNC'
+ if rc<>0 then exit rc
+ 
+ /*----------------------------------------------------------------*/
+ /* 1. Disable CP1 if it exists                                    */
+ /*----------------------------------------------------------------*/
+ 'PIPE CP QUERY CPCMDS' CmdName
+ CmdExists=(rc=0)
+ If CmdExists then call CP 'DISABLE CMD' CmdName
+ 
+ /*----------------------------------------------------------------*/
+ /* 2. Unload any old CP1 command that uses the same entrypoint    */
+ /*----------------------------------------------------------------*/
+ parse value diag(8,'Q CPXLOAD EPNAME CP1STLIN'),
+       with . a b id . '15'x
+ if a b='as identifier' then do
+    call CP 'CPXUNLOAD ID' id 'SYNC'
+    if rc<>0 then exit rc
+ end
+ 
+ /*----------------------------------------------------------------*/
+ /* 3. Load the CPHOST text for the CP1 command                    */
+ /*----------------------------------------------------------------*/
+ call CP 'CPXLOAD CPHOST TXT'lvl CpMode 'NOCONTROL TEMP'
+ if rc<>0 then exit rc
+ 
+ 
+ /*----------------------------------------------------------------*/
+ /* 4. Define/Modify the CP1 command                               */
+ /*----------------------------------------------------------------*/
+ If CmdExists then call CP 'MODIFY COMMAND' CmdName,
+                           'EPNAME CP1STLIN'
+              else call CP 'DEFINE COMMAND' CmdName,
+                           'AFTER_LOGON',
+                           'PRIVCLASSES A IBMCLASS A' ,
+                           'EPNAME CP1STLIN'
+ if rc<>0 then exit rc
+ call CP 'ENABLE CMD' CmdName
+ if rc<>0 then exit rc
+ 
+ /*-----------------------------------------------------------------*/
+ /* 5. test a command if one is given                               */
+ /*-----------------------------------------------------------------*/
+ parse upper arg cmd
+ if cmd='' & DefaultCmd<>'' then cmd=DefaultCmd
+ if cmd='' then exit
+ 
+ Say 'About to test CPHOST by running: CP' CmdName cmd
+ 'CONWAIT'; 'CP SLEEP 2 SEC'
+ 'CP' CmdName cmd
+ if rc=0 then do
+    say ''
+    say 'All ended fine.  You can now use CP' cmdName 'xxxx '
+    say 'to execute commands in your host VM system'
+    say 'Either include the loading of the EXIT in your SYSTEM CONFIG'
+    say 'either use AUTOLOG1''s PROFILE EXEC to loed the exit.'
+ end
+exit rc
+ 
+CP:call trace 'O'
+ Say ''
+ Say 'Executing: CP' arg(1)
+ address '' 'CP' arg(1)
+ Say 'CP rc=' rc
+return
+ERREXIT: /* general errorexit routine */
+ parse upper source . . myname mytype . syn .
+ do i=2 to arg()   /* give errormessages (if any) */
+    say myname':' arg(i)
+ end
+ exit arg(1)

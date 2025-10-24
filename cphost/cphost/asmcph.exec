@@ -1,0 +1,22 @@
+/* This exec to assemble CP1STLVL
+    +-----------------------------------------------------------+
+    | format:  | ASMCP1                                         |
+    +-----------------------------------------------------------+
+  Written by: Kris Buelens 12 Jun 1997*/
+parse upper source . . myname mytype mymode syn .
+address command
+maxrc=0
+Call asm 'CPHOST'
+exit maxrc
+ASM:
+ parse arg fn .
+ 'STATE ZVM PPF *'
+ if rc=0 then
+   'EXEC VMFHLASM' fn 'ZVM CP (LOGMOD OUTMODE' mymode
+ else do
+   say 'ZVM PPF not found, We will assemble outside VMSES'
+   'EXEC VMFHLASM' fn 'HCPVM (OUTMODE' mymode
+ end
+if rc<>0 then Say '1DE8'x 'VMFHLASM of' fn 'failed with rc' rc '1DD0'x
+ maxrc=max(rc,maxrc)
+return

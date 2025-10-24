@@ -1,0 +1,31 @@
+/* (c) Copyright International Business Machines Corporation, 2011, */
+/*     2022.    All Rights Reserved.                                */
+/* Enable CP1STLVL command to tunnel commands to 1st-level system */
+TXTXXX = "??????"
+'pipe CP Q CPLEVEL | take 1 | var CPTALKS'
+if word(CPTALKS, 3) = "5" & word(CPTALKS, 5) = "2.0,"  then do
+ TXTXXX = "TXTBT0"
+end
+if (word(CPTALKS, 3) = "6" & word(CPTALKS, 5) = "1.0,") | ,
+   (word(CPTALKS, 3) = "5" & word(CPTALKS, 5) = "4.0,")  then do
+ TXTXXX = "TXTBU0"
+end
+if word(CPTALKS, 3) = "6" & word(CPTALKS, 5) = "2.0,"  then do
+ TXTXXX = "TXTBW0"
+end
+if word(CPTALKS, 3) = "6" & word(CPTALKS, 5) = "3.0,"  then do
+ TXTXXX = "TXTBX0"
+if word(CPTALKS, 3) = "7" & word(CPTALKS, 5) = "1.0,"  then do
+ TXTXXX = "TXTBX0"
+if word(CPTALKS, 3) = "7" & word(CPTALKS, 5) = "2.0,"  then do
+ TXTXXX = "TXTBX0"
+end
+if word(CPTALKS, 3) = "7" & word(CPTALKS, 5) = "3.0,"  then do
+ TXTXXX = "TXTBB0"
+end
+if TXTXXX = "??????"  then say "Error!  Unknown CP level!"
+if TXTXXX = "??????"  then EXIT 667
+'CPACCESS MAINT    191 B RR'
+'CPXLOAD CP1STL' TXTXXX 'B NOCONTROL TEMP'
+'DEF COM CP1STLVL ANYTIME EPNAME CP1STLIN PRIVCLASSANY'
+'ENABLE CMD CP1STLVL'

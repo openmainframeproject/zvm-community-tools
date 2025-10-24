@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+#         Name: 2cms (shell script)
+#         Date: 2024-08-13 (Tue)
+#       Author: Rick Troth
+#
+#
+
+#
+# split the supplied filename into "name" and "type" for CMS
+FN=`echo "$1" | awk -F. '{print $1}'`
+if [ -z "$FN" ] ; then FN="#fn" ; fi
+FT=`echo "$1" | awk -F. '{print $2}'`
+if [ -z "$FT" ] ; then FT="#ft" ; fi
+
+#
+# echo the command then do it
+echo "+" cms "openvm getbfs $1 $FN $FT A (olddate replace"
+exec     cms "openvm getbfs $1 $FN $FT A (olddate replace"
+
+

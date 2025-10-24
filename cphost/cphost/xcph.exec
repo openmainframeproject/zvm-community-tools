@@ -1,0 +1,8 @@
+/* This exec XEDITs CPHOST in update mode
+    +-----------------------------------------------------------+
+    | format:  | XCPH                                           |
+    +-----------------------------------------------------------+
+  Written by: Kris Buelens  29 Sep 2006*/
+address command
+'XEDIT CPHOST ASSEMBLE(CTL HCPVM'
+exit rc
