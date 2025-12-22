@@ -1,0 +1,196 @@
+/*-------------------------------------------------------------------*/
+/* WHOG EXEC - sort and show active user IDs by Group                */
+/* Arg 1: filter (optional) show only user IDs matching this prefix  */
+/*-------------------------------------------------------------------*/
+parse upper arg filter
+if filter = "?" | filter = "-H" then do
+  say "Name:  WHO EXEC - sort output of QUERY NAMES"
+  say "Usage: WHO {FILTER}"
+  say "Where: FILTER is an optional search pattern"
+  exit 1
+end
+userIDs.0 = 0                        /* init stem variable */
+userNum = 1                          /* init counter */
+"PIPE CP QUERY NAMES | stem lines."  /* get Q NAMES output */
+if (rc <> 0) then do
+  say "ERROR: CP QUERY NAMES returned" rc
+  exit 1
+end
+do i = 1 To lines.0                 /* loop through all lines */
+  call processLine lines.i          /* process one line of output */
+end
+call sortOutput                     /* sort users */
+call printOutput                    /* show users */
+exit
+ 
+/*-------------------------------------------------------------------*/
+/* process one line of QUERY NAMES output                            */
+/*-------------------------------------------------------------------*/
+processLine: procedure expose userIDs. userNum filter
+  parse arg line                     /* get 4 triplets per line */
+  line = TRANSLATE(line, " ", ",")   /* remove commas */
+  line = TRANSLATE(line, " ", "-")   /* remove dashes */
+  userIDs.userNum = SUBWORD(line, 1, 2) /* first slot always there */
+  userNum = userNum + 1
+  nextUser = SUBWORD(line, 3, 2)
+  if LENGTH(nextUser) <> 0 then do   /* no more on this line */
+    userIDs.userNum = nextUser
+    userNum = userNum + 1
+  end
+  else return
+  nextUser = SUBWORD(line, 5, 2)
+  if LENGTH(nextUser) <> 0 then do
+    userIDs.userNum = nextUser
+    userNum = userNum + 1
+  end
+  else return
+  nextUser = SUBWORD(line, 7, 2)
+  if LENGTH(nextUser) <> 0 then do
+    userIDs.userNum = nextUser
+    userNum = userNum + 1
+  end
+  return                             /* processLine() */
+ 
+/*-------------------------------------------------------------------*/
+sortOutput:
+/* sort userIDs stem variable alphabetically                         */
+/*-------------------------------------------------------------------*/
+  do i = 1 to userNum - 2            /* bubble sort */
+    do j = 1 to userNum - 2 - i
+      k = j + 1
+      if userIDs.j > userIDs.k then do
+        temp = userIDs.j
+        userIDs.j = userIDs.k
+        userIDs.k = temp
+      end
+    end
+  end
+return                               /* sortOutput() */
+ 
+/*-------------------------------------------------------------------*/
+printGroup: procedure
+/* Print a group of user IDs, 7 per line, with aligned label */
+/*-------------------------------------------------------------------*/
+  parse arg label, ids
+  if words(strip(ids)) = 0 then do   /* no user IDs in group */
+    say label||":"                   /* print just label */
+    return
+  end
+  lblWidth = 10
+  firstLbl = left(label || ':', lblWidth)
+  contLbl  = copies(' ', lblWidth)
+  w = words(ids)
+  idx = 1
+  do while idx <= w                  /* up to 7 IDs per line */
+    line = ''
+    do j = idx to w
+      line = line word(ids, j)
+      if j - idx + 1 = 7 then leave
+    end
+    line = strip(line)
+    if idx = 1 then                  /* Print label only on first line */
+      say firstLbl line
+    else
+      say contLbl line
+    idx = idx + 7
+  end
+return                               /* printGroup() */
+ 
+/*-------------------------------------------------------------------*/
+printOutput:
+/* print user IDs sorted by groups                                   */
+/*-------------------------------------------------------------------*/
+  adminUsrs = "CWILLS MIKEMAC NEALE"
+  dirmUsrs = "DIRMAINT DIRMSAT DATAMOVE DATAMOV2 DIRMSAT2"
+  SFSusrs = "VMSERVP VMSERVR VMSERVS VMSERVU VMSYSVPS"
+  SMAPIusrs1 = "DTCSMAPI PERSMAPI VSMEVSRV VSMGUARD VSMREQIN VSMREQIU"
+  SMAPIusrs2 = "VSMREQI6 VSMWORK1 VSMWORK2 VSMWORK3"
+  SMAPIusrs = SMAPIusrs1 SMAPIusrs2
+  TCPIPusrs1 = "DTCVSW1 DTCVSW2DTCVSW3 DTCVSW4 TCPIP FTPSERVE PORTMAP"
+  TCPIPusrs2 = "SSLDCSSM SSL00001 SSL00002 SSL00003 SSL00004 SSL00005"
+  TCPIPusrs = TCPIPusrs1 TCPIPusrs2
+  velocUsrs1 = "ZADMIN ZALERT ZMAP ZMON ZSERVE ZTCP ZVWS ZVPS"
+  velocUsrs2 = "ZWEBLOG ZWEB01 ZWEB02 ZWEB03 ZWEB04 ZWEB05 ZWRITE"
+  velocUsrs = velocUsrs1 velocUsrs2
+  VMSECusrs1 = "VMACCT VMSCHED VMBATCH VMBACKUP VMTAPE VMSECURE"
+  VMSECusrs2 = "VMARCH VMSPOOL VMSPOOL2"
+  VMSECusrs = VMSECusrs1 VMSECusrs2
+  zVMusrs1 = "MAINT MAINT710 MAINT720 MAINT730 MONWRITE GSKADMIN"
+  zVMusrs2 = "DISKACNT EREP OPERATOR OPERSYMP RACFVM VMUTIL GCS"
+  zVMusrs3 = "PERFSVM SFPURGER SNMPD SNMPQE SMTP RSCS RSCSNFS VMNFS"
+  zVMusrs = zVMusrs1 zVMusrs2 zVMusrs3
+  adminIDs = ""                      /* local sysadmins */
+  dirmIDs = ""                       /* DirMaint IDs */
+  linuxIDs = ""                      /* how to test for Linux running */
+  otherIDs = ""                      /* IDs in no group */
+  SFSids = ""                        /* IDs running SFSs */
+  SMAPIids = ""                      /* SMAPI user IDs */
+  SSIids = ""                        /* IDs on other SSI members */
+  TCPIPids = ""                      /* TCPIP user IDs */
+  velocIDs = ""                      /* Velocity user IDs */
+  VMSECids = ""                      /* VM Secure user IDs */
+  zVMids = ""                        /* IBM z/VM IDs */
+  numUsrs = 0
+  scpidCmd = -1                      /* -1: unknown 0: no 1: yes */
+ 
+  /* Loop through all user IDs */
+  do i = 1 to userNum - 1
+    userID = WORD(userIDs.i, 1)
+    if LENGTH(filter) <> 0 then do   /* filter was provided */
+      if POS(filter, userID) = 0 then iterate
+    end
+    status = WORD(userIDs.i, 2)
+    select                           /* Group into categories */
+      when status = "SSI" then SSIids = SSIids userID
+      when POS(userID, adminUsrs) <> 0 then adminIDs = adminIDs userID
+      when POS(userID, dirmUsrs) <> 0 then dirmIDs = dirmIDs userID
+      when POS(userID, SFSusrs) <> 0 then SFSids = SFSids userID
+      when POS(userID, SMAPIusrs) <> 0 then SMAPIids = SMAPIids userID
+      when POS(userID, TCPIPusrs) <> 0 then TCPIPids = TCPIPids userID
+      when POS(userID, velocUsrs) <> 0 then velocIDs = velocIDs userID
+      when POS(userID, VMSECusrs) <> 0 then VMSECids = VMSECids userID
+      when POS(userID, zVMusrs) <> 0 then zVMids = zVMids userID
+      when userID = "VSM" then nop
+      otherwise do                   /* Test QUERY SCPID availability */
+        if scpidCmd = -1 then do
+          'PIPE CP QUERY SCPID USER' userID '| stem scpidOut.'
+          rc_scpid = rc
+          if rc_scpid = 0 & scpidOut.0 > 0 then /* cmd exists */
+            scpidCmd = 1
+          else do                    /* cmd not found */
+            scpidCmd = 0
+            linuxIDs = "WARNING: SCPID command not found"
+          end
+        end
+        if scpidCmd = 1 then do /* check for Linux */
+          'PIPE CP QUERY SCPID USER' userID '| stem scpidOut.'
+          if rc = 0 & scpidOut.0 > 0 then do
+            if WORD(scpidOut.1, 2) = "Linux" then
+              linuxIDs = linuxIDs userID
+            else
+              otherIDs = otherIDs userID
+          end
+          else                       /* not running Linux */
+            otherIDs = otherIDs userID
+        end
+        else                         /* QUERY SCPID not available */
+          otherIDs = otherIDs userID
+      end
+    end
+    numUsrs = numUsrs + 1
+  end
+ 
+  call printGroup 'Admins', adminIDs
+  call printGroup 'DirMaint', dirmIDs
+  call printGroup 'Linux', linuxIDs
+  call printGroup 'SFS', SFSids
+  call printGroup 'SMAPI', SMAPIids
+  call printGroup 'TCP/IP', TCPIPids
+  call printGroup 'Velocity', velocIDs
+  call printGroup 'VM Secure', VMSECids
+  call printGroup 'z/VM', zVMids
+  call printGroup 'SSI', SSIids
+  call printGroup 'Others', otherIDs
+  say "Total:"  numUsrs
+return                               /* printOutput() */
+ 
