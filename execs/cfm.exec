@@ -32,3 +32,4 @@ say "       'fm2' is the target file mode"
 say "       'options' add to COPY command such as 'REP' or 'OLDD'"
 exit 2
  
+

@@ -48,3 +48,4 @@ say "Usage: rm fn [ft [fm]]"
 say "Where: fn, ft or fm can be '*' for all files"
 exit                                 /* help() */
  
+

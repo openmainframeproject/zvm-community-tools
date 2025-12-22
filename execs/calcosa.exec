@@ -20,13 +20,9 @@ exit                                 /* CALCOSA EXEC */
 parseArgs: procedure expose debug verbose
 /* Parse arguments                                                   */
 /*-------------------------------------------------------------------*/
-  parse upper arg arg1 '(' flags ')'
+  parse arg arg1 '(' flags ')'
   if arg1 = "?" | arg1 = "-H" then
     call help
-  if arg1 = "-V" then
-    verbose = 2
-  if arg1 = "-D" then
-    debug = 1
   if flags = "" then
     return                             /* all done */
   do i = 1 to LENGTH(flags)
@@ -259,7 +255,7 @@ help:
 /*-------------------------------------------------------------------*/
   say "Name:  CALCOSA EXEC - compute OSA statistics"
   say "Usage: CALCOSA {-h|?} {(vd)}"
-  say "Where: -h or '?' = give help"
+  say "Where: -h or '|' = give help"
   say "       v = verbose"
   say "       d = debug"
 exit 2                               /* help() */

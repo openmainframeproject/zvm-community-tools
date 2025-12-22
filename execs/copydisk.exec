@@ -39,3 +39,4 @@ say "Name:  COPYDISK EXEC - copy minidisk with FLASHCOPY or DDR"
 say "Usage: COPYDISK source_vdev target_vdev"
 exit 2
  
+

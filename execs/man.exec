@@ -44,3 +44,4 @@ say "Where: command can be CMS, CP, XEDIT, TCPIP or REXX"
 say "       subcmd  can be CMS, CP or XEDIT Query or SET subcommands"
 exit 2
  
+

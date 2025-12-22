@@ -4,6 +4,8 @@
 /* Licensed under the Apache License, Version 2.0                     */
 /* https://github.com/openmainframeproject/zvm-community-tools/execs  */
 /*--------------------------------------------------------------------*/
+/* parse for quoted pattern, if not found => single word pattern */
+/* trace i */
 parse arg args                       /* get all args */
 numArgs = WORDS(args)                /* get number of args */
 call parseArgs args                  /* parse them */
@@ -312,7 +314,7 @@ say ""
 say "Special characters:"
 say "   .  - Matches one character"
 say "   .* - Matches one or more characters"
-say "   µ  - Matches start of line"
+say "   5  - Matches start of line"
 say "   $  - Matches end of line"
 exit 2
  
