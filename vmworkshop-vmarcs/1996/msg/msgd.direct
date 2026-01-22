@@ -1,0 +1,10 @@
+USER     MSGD     password 4M       12M      GB       64                MSG00010
+* Note: MSGD will probably run fine in 2M or even less                  MSG00020
+ INCLUDE  CMS                                                           MSG00030
+ ACIGROUP gggggggg                                                      MSG00040
+*:name.TCP/IP Message Send server :list.TCPMAINT                        MSG00050
+ ACCOUNT  aaaaaaaa dddd                                                 MSG00060
+* Note: the PROFILE EXEC on TCPMAINT 591 calls MSGD for this SVM.       MSG00070
+ LINK     TCPMAINT  591      191     RR                                 MSG00080
+ LINK     TCPMAINT  592      192     RR                                 MSG00090
+*                                                                       MSG00100

@@ -1,0 +1,1028 @@
+1
+-                           INFORMATION TECHNOLOGY
+                              INTERNAL MEMORANDUM
+ 
+-      TO:       Tech Support/SAM
+ 
+       FROM:     Paul Lewis
+                 Tech Support Team
+ 
+       DATE:     August 8, 1994
+ 
+       SUBJECT:  ISARC
+ 
+-          ISARC (Individual Student Account Request Component)
+ 
+                LAST UPDATE:  June 12th, 1995 (12:31 p.m.)
+ 
+-      This  document  will  detail the parts making up ISARC, fea-
+       tures that enable technical and support personnel to control
+       the availability of ISARC, provide a data flow  diagram  be-
+       tween  ISARC  modules,  and explain the indications behind a
+       critical error message.
+ 
+-      CONTENTS
++      CONTENTS
++      CONTENTS
++      CONTENTS
++      ________
+ 
+0          ISARC Modules
+           ISARC Support Files
+           Modifying ISARC
+           Controlling the Availability of ISARC
+           ISARC Critical Error Message Indications
+           Conditions Required for Auto-Disable of Menu Items
+           ISARC Data Flow/Call Paths
+ 
+           Appendix A. Critical Error Message Code Descriptions
+ 
+-      ISARC MODULES
++      ISARC MODULES
++      ISARC MODULES
++      ISARC MODULES
++      _____________
+ 
+0      ISARC consists of several modules, all of which form the re-
+       quest component.  Each module, for the most part, has a sep-
+       arate  and  distinct  function.    The  modules  and   their
+       functions are detailed below.
+ 
+1      Page 2
+ 
+0      Module    Function
++      Module    Function
++      Module    Function
++      Module    Function
++      ______    ________
+ 
+       ISARC     Main  Module.   Controls the calling of and inter-
++      ISARC
++      ISARC
++      ISARC
+                 action between all of the ISARC modules except for
+                 the ISARCHLP module.  ISARCHLP execution is called
+                 separately  by any other module which needs use of
+                 the online help display.
+ 
+       ISARCHLP  The online help display module.  This module  for-
++      ISARCHLP
++      ISARCHLP
++      ISARCHLP
+                 mats  the screen in a way suitable for viewing on-
+                 line help, but does  not  allow  the  customer  to
+                 "branch out" of the request component by executing
+                 CMS commands.
+ 
+       ISARCINF  This  module  formats the screen in a manner suit-
++      ISARCINF
++      ISARCINF
++      ISARCINF
+                 able for viewing the online information  on  indi-
+                 vidual student accounts.
+ 
+       ISARCINS  This module serves as a step between the main menu
++      ISARCINS
++      ISARCINS
++      ISARCINS
+                 and  the  actual  account  request  screen.    In-
+                 structions for requesting an account are formatted
+                 and presented in a manner suitable to a restricted
+                 environment.
+ 
+       ISARCMNU  The main menu.  This module presents the  customer
++      ISARCMNU
++      ISARCMNU
++      ISARCMNU
+                 with  a  menu  environment  and displays the three
+                 possible menu items available.  Much of the  error
+                 recovery  and  shutdown/maintenance  code  is con-
+                 tained within this module.
+ 
+       ISARCQRY  This module is step one of two of the query status
++      ISARCQRY
++      ISARCQRY
++      ISARCQRY
+                 process.  The customer is presented with an  input
+                 screen  requesting  their  Social Security Number,
+                 and upon the valid input of the SSN, the result is
+                 returned for processing.
+ 
+       ISARCQST  This module is the final step of the query  status
++      ISARCQST
++      ISARCQST
++      ISARCQST
+                 process.   The returned SSN is matched against the
+                 results file (MESSAGE MASTER), and  results  found
+                 (if any) are displayed.
+ 
+       ISARCREQ  This  module is step one of two of the account re-
++      ISARCREQ
++      ISARCREQ
++      ISARCREQ
+                 quest process.  The customer is presented with  an
+                 input  screen  requesting  the full name, SSN, and
+                 Touch-Tone Registration PIN belonging to the  cus-
+                 tomer.   The results are then returned for further
+                 processing.
+ 
+       ISARCRST  This module is the final step of the  account  re-
++      ISARCRST
++      ISARCRST
++      ISARCRST
+                 quest  process.  The returned results are inserted
+                 into a data packet (record) and transmitted to the
+ 
+1      Page 3
+ 
+0                VMSERV01 service machine.  The results of the  re-
+                 quest are displayed for the customer.
+ 
+-      ISARC SUPPORT FILES
++      ISARC SUPPORT FILES
++      ISARC SUPPORT FILES
++      ISARC SUPPORT FILES
++      ___________________
+ 
+0      ISARC  also employs the use of several specialized and plain
+       text files.  The uses of these files range from help display
+       contents to disabling or shutting down part or  all  of  the
+       request component.  The name of each file and its purpose is
+       detailed below.
+ 
+0      File                Function
++      File                Function
++      File                Function
++      File                Function
++      ____                ________
+ 
+       INFORM ISARCTXT     A plain text file containing information
++      INFORM ISARCTXT
++      INFORM ISARCTXT
++      INFORM ISARCTXT
+                           about the individual student accounts.
+ 
+       INSTRUCT ISARCTXT   A  plain text file containing the inter-
++      INSTRUCT ISARCTXT
++      INSTRUCT ISARCTXT
++      INSTRUCT ISARCTXT
+                           mediary instructions for  requesting  an
+                           individual student account.
+ 
+       ISARCINF ISARCHLP   A  plain text file intended only for on-
++      ISARCINF ISARCHLP
++      ISARCINF ISARCHLP
++      ISARCINF ISARCHLP
+                           line help.  Used to assist the  customer
+                           with   the   about  information  display
+                           panel.
+ 
+       ISARCMNU ISARCHLP   A plain text file (intended  for  online
++      ISARCMNU ISARCHLP
++      ISARCMNU ISARCHLP
++      ISARCMNU ISARCHLP
+                           help)  which  is used to assist the cus-
+                           tomer with the main menu input panel.
+ 
+       ISARCQRY ISARCHLP   A plain text file  used  to  assist  the
++      ISARCQRY ISARCHLP
++      ISARCQRY ISARCHLP
++      ISARCQRY ISARCHLP
+                           customer  with  the  query  status input
+                           screen.  This file is only intended  for
+                           online help.
+ 
+       ISARCREQ ISARCHLP   A  plain text file intended only for on-
++      ISARCREQ ISARCHLP
++      ISARCREQ ISARCHLP
++      ISARCREQ ISARCHLP
+                           line help.  Used to assist the  customer
+                           with the account request input screen.
+ 
+       MAKISARC EXEC       A  REXX  exec  used to "make" the public
++      MAKISARC EXEC
++      MAKISARC EXEC
++      MAKISARC EXEC
+                           access version of ISARC.
+ 
+       $ABOUT $DISABLE     The file used  to  disable  the  "about"
++      $ABOUT $DISABLE
++      $ABOUT $DISABLE
++      $ABOUT $DISABLE
+                           menu item on the main menu.
+ 
+       $MAINT $DISABLE     The file used to disable all of ISARC.
++      $MAINT $DISABLE
++      $MAINT $DISABLE
++      $MAINT $DISABLE
+ 
+       $QUERY $DISABLE     The file used to disable the "query sta-
++      $QUERY $DISABLE
++      $QUERY $DISABLE
++      $QUERY $DISABLE
+                           tus" menu item on the main menu.
+ 
+1      Page 4
+ 
+0      $REQUEST $DISABLE   The  file  used  to disable the "request
++      $REQUEST $DISABLE
++      $REQUEST $DISABLE
++      $REQUEST $DISABLE
+                           account" menu item on the main menu.
+ 
+       $$TEMP$$ $$FILE$$   The  file  used  to  gain  access to the
++      $$TEMP$$ $$FILE$$
++      $$TEMP$$ $$FILE$$
++      $$TEMP$$ $$FILE$$
+                           XEDIT environment and its  commands  and
+                           methods  of  interactive full-screen in-
+                           put.
+ 
+-      MODIFYING ISARC
++      MODIFYING ISARC
++      MODIFYING ISARC
++      MODIFYING ISARC
++      _______________
+ 
+0      After modifying one or more of the components of  ISARC  (or
+       even  some of the support/text files associated with ISARC),
+       it will be necessary to "re-make" ISARC for  public  access.
+       To  do so, make sure the account being used for this purpose
+       has about 5M of virtual storage available (the REXX compiler
+       will need this).  Then make sure that the SFS directory con-
+       taining the ISARC code and  files  is  accessed.    At  that
+       point,  execute  the  exec named "MAKISARC".   The exec will
+       proceed to compile each of the ISARC modules  into  compiled
+       REXX.    If return codes of 0 and/or 4 are returned from all
+       of the module compilations (where a return code of  4  indi-
+       cates  that the REXX TRACE command is not supported for com-
+       pilation), then the make exec  will  continuing  processing.
+       If  at least one of the module compilations did not give the
+       proper return code, then  all  further  make  processing  is
+       halted.
+ 
+       Given  that  the  module  compilations  returned  the proper
+       codes, the make exec continues by first discarding the LIST-
+       ING files (resulting from the compilations).    After  that,
+       all  old  code  and files are removed from the public access
+       directory (VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS), and all  new
+       code and files are moved to the public access directory.  As
+       a  final  step,  PUBLIC access read authority is granted for
+       each file in the public access directory.    It  is  assumed
+       that  the public access directory has already had the proper
+       authorizations applied to it (i.e., the READ and NEWREAD au-
+       thorities have been granted for PUBLIC).  If not, this  must
+       be done before public customers will have access to ISARC.
+ 
+       If testing is to be done on the new code or files, please be
+       aware of the following restrictions/requirements:
+ 
+       1.  The  account  must  be  able  to  transmit  data  to the
+           VMSERV01 service  machine  via  the  CP  SMSG  facility.
+           Without  this  ability, the account request service will
+           fail and the query status service will be somewhat  lim-
+           ited  (those  messages  needing userids will be replaced
+ 
+1      Page 5
+ 
+0          with messages without userids, as userids  are  obtained
+           from the VMSERV01 service machine).
+ 
+       2.  The  account  must  at least have read access to the 491
+           minidisk owned by VMSERV02.   This access is  needed  to
+           obtain  the  results  of  account  creation  processing.
+           Without access to the VMSERV02 491 minidisk,  the  query
+           status  and  account  request  services will be made not
+           available.
+ 
+       3.  In order to test menu item disables  and/or  maintenance
+           shutdown features, the account used for testing (or some
+           other  account)  must  have read/write access to the SFS
+           directory VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS  (owned  by
+           VMSERV01).  This access is needed to write/copy the nec-
+           essary            disabler            files           to
+           VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS.
+ 
+-      CONTROLLING THE AVAILABILITY OF ISARC
++      CONTROLLING THE AVAILABILITY OF ISARC
++      CONTROLLING THE AVAILABILITY OF ISARC
++      CONTROLLING THE AVAILABILITY OF ISARC
++      _____________________________________
+ 
+0      If the need arises to disable some part or parts or  all  of
+       ISARC,  then  the  capability  does  exist.   Depending upon
+       whether you want to disable  a  certain  part  or  parts  of
+       ISARC,  or  whether  you  want to shutdown all of ISARC, you
+       must determine which files must be placed in the SFS  direc-
+       tory VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS.  To determine which
+       file      or      files      must      be      placed     in
+       VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS, see below.
+ 
+0      File                Disables...
++      File                Disables...
++      File                Disables...
++      File                Disables...
++      ____                ___________
+ 
+       $ABOUT $DISABLE     the about menu item on the main menu.
++      $ABOUT $DISABLE
++      $ABOUT $DISABLE
++      $ABOUT $DISABLE
+ 
+       $QUERY $DISABLE     the query status menu item on  the  main
++      $QUERY $DISABLE
++      $QUERY $DISABLE
++      $QUERY $DISABLE
+                           menu.
+ 
+       $REQUEST $DISABLE   the  account  request  menu  item on the
++      $REQUEST $DISABLE
++      $REQUEST $DISABLE
++      $REQUEST $DISABLE
+                           main menu.
+ 
+       $MAINT $DISABLE     all of ISARC.   A message is  issued  to
++      $MAINT $DISABLE
++      $MAINT $DISABLE
++      $MAINT $DISABLE
+                           the customer that a maintenance mode has
+                           been  declared,  and that all ISARC ser-
+                           vices are unavailable.
+ 
+       In addition, note that the contents of the file is  not  im-
+       portant,  only  that  the  file  exists  with  the specified
+       filename and filetype on the required minidisk.    The  menu
+       item  disabler  files  may  be mixed together, i.e., you may
+ 
+1      Page 6
+ 
+0      disable more than one of the menu items.  However, disabling
+       all three of the menu items (with the existence of the three
+       menu item disabler files) will be considered  by  ISARC  the
+       same  as declaring a maintenance mode.  Therefore, a mainte-
+       nance mode can be declared by creating all three of the menu
+       item disabler files or by creating only the $MAINT  $DISABLE
+       file.   However, the intended method for declaring a mainte-
+       nance mode was to create the $MAINT $DISABLE file.
+ 
+       When a menu item is disabled via presence  of  a  menu  item
+       disabler  file,  the customer will see the words "NOT AVAIL-
+       ABLE" highlighted and beside the menu item.    The  customer
+       will  not  be able to select the menu item.  However, please
+       note that there are some limitations as  to  when  the  menu
+       item  is disabled or when ISARC is declared as under mainte-
+       nance within each account that is executing the ISARC  code.
+       Menu  item  disables and/or the maintenance mode declaration
+       is only recognized when the main menu  module  has  control.
+       If  a  customer  is  viewing about information, querying the
+       status of an account, or requesting  an  account,  then  the
+       customer  will  be able to complete (depending upon the cir-
+       cumstances) the action they are performing.   Once the  cus-
+       tomer  returns to the main menu, the disables or maintenance
+       mode will take effect.
+ 
+       However, if the customer is on the main menu and attempts to
+       select a menu item which has been disabled (but does not yet
+       show it on the screen), the customer will still not be  able
+       to  select  the  menu  item.   The main menu module performs
+       availability checks prior to display or  re-display  of  the
+       menu screen.
+ 
+-      ISARC CRITICAL ERROR MESSAGE INDICATIONS
++      ISARC CRITICAL ERROR MESSAGE INDICATIONS
++      ISARC CRITICAL ERROR MESSAGE INDICATIONS
++      ISARC CRITICAL ERROR MESSAGE INDICATIONS
++      ________________________________________
+ 
+0      The following section details some paths to follow in trying
+       to determine what could be wrong when certain critical error
+       messages  are generated.  Note, however, that these are only
+       suggestions, and that every scenario may not have been  cov-
+       ered.
+ 
+0      Message   Indication(s)
++      Message   Indication(s)
++      Message   Indication(s)
++      Message   Indication(s)
++      _______   _____________
+ 
+       INF001    Either  the  text  file ISARCINF ISARCHLP does not
++      INF001
++      INF001
++      INF001
+                 exist, or the module ISARCHLP XEDIT does  not  ex-
+                 ist.    Make  sure  that ISARC has access to these
+                 files and that they exist in the public access di-
+                 rectory (if applicable).
+ 
+1      Page 7
+ 
+0      ISA001    The file $$TEMP$$ $$FILE$$ does not exist.    Make
++      ISA001
++      ISA001
++      ISA001
+                 sure  that  ISARC has access to this file and that
+                 it exists in the public access directory  (if  ap-
+                 plicable).
+ 
+       ISA002    The  module  ISARCMNU  XEDIT does not exist.  Make
++      ISA002
++      ISA002
++      ISA002
+                 sure that ISARC has access to this file  and  that
+                 it  exists  in the public access directory (if ap-
+                 plicable).
+ 
+       ISA003    None of the menu item modules (and possibly  their
++      ISA003
++      ISA003
++      ISA003
+                 submodules  and  auxiliary  files) could be found.
+                 At least one menu item module and  the  files  and
+                 modules  it  needs  must be locatable before ISARC
+                 will display the main menu.  Go through  the  list
+                 of  files  and modules making up ISARC, and deter-
+                 mine which ones are missing.
+ 
+       ISA004    A maintenance mode has been declared for ISARC.  A
++      ISA004
++      ISA004
++      ISA004
+                 maintenance mode may only be declared  in  one  of
+                 two  ways:  (1) the file $MAINT $DISABLE exists in
+                 the                 SFS                  directory
+                 VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS,   or  (2)  the
+                 files $ABOUT $DISABLE, $QUERY $DISABLE,  and  $RE-
+                 QUEST   $DISABLE   exist   in  the  SFS  directory
+                 VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS.
+ 
+       ISA005    ISARC could not determine the  location  of  ISARC
++      ISA005
++      ISA005
++      ISA005
+                 executable code or support files.  The most likely
+                 explanation  for this message is that a code error
+                 exists.
+ 
+       MNU001    ISARC could not locate either  ISARCHLP  XEDIT  or
++      MNU001
++      MNU001
++      MNU001
+                 ISARCMNU  ISARCHLP.   Both are required to display
+                 online assistance for customers.   Make sure  that
+                 both  files exist and are accessible in the public
+                 access directory (if applicable).
+ 
+       MNU002    An unknown internal failure occurred.  All PF keys
++      MNU002
++      MNU002
++      MNU002
+                 (except the ones defined to QQUIT from XEDIT)  are
+                 defined  to  display  this  message.   The message
+                 should normally never appear,  as  keypresses  are
+                 trapped  and  interpreted via control of ISARCMNU,
+                 not XEDIT.  When the message appears, ISARCMNU  no
+                 longer  has control.  Therefore something happened
+                 (either internal to ISARCMNU or external) to cause
+                 the ISARCMNU code to fail.
+ 
+       MNU003    This message only appears when  a  menu  item  has
++      MNU003
++      MNU003
++      MNU003
+                 been auto-disabled (disabled by ISARC, not by sup-
+                 port  personnel).   Support personnel may suppress
+                 this message by telling ISARC to disable the  menu
+ 
+1      Page 8
+ 
+0                item  via  a  menu item disabler file.  A disabler
+                 file will override this error  condition  so  that
+                 consulting  personnel  will  not  continue  to get
+                 calls on this particular message.  To find out why
+                 a  menu  item was disabled, support personnel must
+                 go through the  list  of  conditions  which  could
+                 auto-disable  a menu item, and eliminate each con-
+                 dition as the source of the problem.
+ 
+       QRY001    ISARC could not locate either  ISARCHLP  XEDIT  or
++      QRY001
++      QRY001
++      QRY001
+                 ISARCQRY  ISARCHLP.   Both are required to display
+                 online assistance for customers.   Make sure  that
+                 both  files exist and are accessible in the public
+                 access directory (if applicable).
+ 
+       QRY002    An unknown internal failure occurred.  All PF keys
++      QRY002
++      QRY002
++      QRY002
+                 (except the ones defined to QQUIT from XEDIT)  are
+                 defined  to  display  this  message.   The message
+                 should normally never appear,  as  keypresses  are
+                 trapped  and  interpreted via control of ISARCQRY,
+                 not XEDIT.  When the message appears, ISARCQRY  no
+                 longer  has control.  Therefore something happened
+                 (either internal to ISARCQRY or external) to cause
+                 the ISARCQRY code to fail.
+ 
+       QST001    A message to be displayed on the query status  re-
++      QST001
++      QST001
++      QST001
+                 sults  display  screen is too long in terms of the
+                 number of lines to display.  Currently, up to  and
+                 including 14 lines may be displayed on the results
+                 display screen.  Any more lines than 14 defined to
+                 display  will  trigger  this message.   Look for a
+                 message defined internally in the ISARCQST code or
+                 for a message defined in MESSAGE TABLE which  vio-
+                 lates this restriction.
+ 
+       QST002    A  message to be displayed on the query status re-
++      QST002
++      QST002
++      QST002
+                 sults display screen is too long in terms of  line
+                 width  to display.  Currently, up to 78 characters
+                 may be displayed on each line of the results  dis-
+                 play  screen.  Any more characters than 78 defined
+                 to display will trigger this message.  Look for  a
+                 message defined internally in the ISARCQST code or
+                 for  a message defined in MESSAGE TABLE which vio-
+                 lates this restriction.
+ 
+       REQ001    ISARC could not locate either  ISARCHLP  XEDIT  or
++      REQ001
++      REQ001
++      REQ001
+                 ISARCREQ  ISARCHLP.   Both are required to display
+                 online assistance for customers.   Make sure  that
+                 both  files exist and are accessible in the public
+                 access directory (if applicable).
+ 
+1      Page 9
+ 
+0      REQ002    An unknown internal failure occurred.  All PF keys
++      REQ002
++      REQ002
++      REQ002
+                 (except the ones defined to QQUIT from XEDIT)  are
+                 defined  to  display  this  message.   The message
+                 should normally never appear,  as  keypresses  are
+                 trapped  and  interpreted via control of ISARCREQ,
+                 not XEDIT.  When the message appears, ISARCREQ  no
+                 longer  has control.  Therefore something happened
+                 (either internal to ISARCREQ or external) to cause
+                 the ISARCREQ code to fail.
+ 
+       RST001    ISARC detected that VMSERV01 was  not  logged  on.
++      RST001
++      RST001
++      RST001
+                 Without  the  presence  of VMSERV01 on the system,
+                 the  account  request  menu  item  will  be  auto-
+                 disabled,  and  the  query  status  menu item will
+                 still be functional.   However, the  query  status
+                 menu item will switch over to messages that do not
+                 display  userids,  as  userids  are not obtainable
+                 without the VMSERV01 service machine.  Consult the
+                 necessary support personnel as to why VMSERV01  is
+                 not logged onto the system.  If there is no reason
+                 for VMSERV01 to be logged off, restarting VMSERV01
+                 will  re-enable the account request menu item, and
+                 the query status function will return to normal.
+ 
+       RST002    ISARC was not able to transmit a  message  to  the
++      RST002
++      RST002
++      RST002
+                 VMSERV01  service  machine.   For reasons unknown,
+                 the CP SMSG facility denied the transmission.  Ac-
+                 count requests services  will  be  available,  but
+                 will fail when the actual account request is to be
+                 sent to VMSERV01.  Query status services will also
+                 be  affected; however, messages containing userids
+                 will be replaced with  messages  without  userids.
+                 Consult  the necessary support personnel as to why
+                 VMSERV01 is not accepting CP SMSGs.
+ 
+       RST003    VMSERV01 never responded to repeated  data  trans-
++      RST003
++      RST003
++      RST003
+                 missions.   For each request made of VMSERV01 (ac-
+                 count requests or userids), three retries are made
+                 20 seconds apart.   If all  three  attempts  fail,
+                 this  message  is displayed.  The problem could be
+                 transitory (system load, VMSERV01 extremely  busy,
+                 etc.);  however,  it may be worth the while to en-
+                 sure  that  VMSERV01  is  up  and  running,   that
+                 VMSERV01  has not hung for some reason or another,
+                 and the like.  If the problem continues,  customer
+                 service will become seriously degraded.
+ 
+       RST004    The VMSERV01 service machine responded in an unex-
++      RST004
++      RST004
++      RST004
+                 pected manner to an account request.  All informa-
+                 tion  from  consulting  personnel and the customer
+                 experiencing the problem should be obtained.   In-
+                 cluded  in  the  information  should  be  how  the
+ 
+1      Page 10
+ 
+0                VMSERV01 service machine responded.  The  response
+                 of the service machine will be included in the er-
+                 ror  message  displayed to the customer.  As for a
+                 solution,  either the ISARCRST module did not take
+                 the response into account (or some other  bug  ex-
+                 ists), or the VMSERV01 is experiencing problems.
+ 
+       RST005    A  message  to be displayed on the account request
++      RST005
++      RST005
++      RST005
+                 results display screen is too long in terms of the
+                 number of lines to display.  Currently, up to  and
+                 including 14 lines may be displayed on the account
+                 request  results  display screen.   Any more lines
+                 than 14 defined to display will trigger this  mes-
+                 sage.    Look  for a message defined internally in
+                 the ISARCRST code or for a message defined in MES-
+                 SAGE TABLE which violates this restriction.
+ 
+       RST006    A message to be displayed on the  account  request
++      RST006
++      RST006
++      RST006
+                 results  display  screen  is  too long in terms of
+                 line width to display.  Currently, up to 78  char-
+                 acters  may  be  displayed on each line of the ac-
+                 count request results display screen.    Any  more
+                 characters than 78 defined to display will trigger
+                 this  message.   Look for a message defined inter-
+                 nally in the ISARCQST code or for  a  message  de-
+                 fined   in   MESSAGE  TABLE  which  violates  this
+                 restriction.
+ 
+-      CONDITIONS REQUIRED FOR AUTO-DISABLE OF MENU ITEMS
++      CONDITIONS REQUIRED FOR AUTO-DISABLE OF MENU ITEMS
++      CONDITIONS REQUIRED FOR AUTO-DISABLE OF MENU ITEMS
++      CONDITIONS REQUIRED FOR AUTO-DISABLE OF MENU ITEMS
++      __________________________________________________
+ 
+0      When one or more menu items have been  auto-disabled  (i.e.,
+       support  personnel  did  not knowingly perform this action),
+       one or more conditions has triggered the auto-disable.    In
+       order  to  help  determine why a menu item or items has been
+       disabled, the following list of conditions is given for each
+       menu item which would cause an  auto-disable  of  each  menu
+       item.
+ 
+0      Menu Item           Conditions Causing Auto-Disable
++      Menu Item           Conditions Causing Auto-Disable
++      Menu Item           Conditions Causing Auto-Disable
++      Menu Item           Conditions Causing Auto-Disable
++      _________           _______________________________
+ 
+       About Information
++      About Information
++      About Information
++      About Information
+ 
+                               ISARCINF XEDIT could not be located
+ 
+                               INFORM ISARCTXT could not be located
+ 
+       Account Request
++      Account Request
++      Account Request
++      Account Request
+ 
+1      Page 11
+ 
+0                              No free filemode exists
+ 
+                               VMSERV02 491 is not accessible
+ 
+                               MESSAGE TABLE could not be located
+ 
+                               ISARCREQ XEDIT could not be located
+ 
+                               INSTRUCT  ISARCTXT  could not be lo-
+                               cated
+ 
+                               ISARCINS XEDIT could not be located
+ 
+                               ISARCRST XEDIT could not be located
+ 
+                               VMSERV01 is not logged on
+ 
+       Query Status
++      Query Status
++      Query Status
++      Query Status
+ 
+                               No free filemode exists
+ 
+                               VMSERV02 491 is not accessible
+ 
+                               MESSAGE TABLE could not be located
+ 
+                               MESSAGE MASTER could not be located
+ 
+                               ISARCQRY XEDIT could not be located
+ 
+                               ISARCQST XEDIT could not be located
+ 
+-      ISARC DATA FLOW/CALL PATHS
++      ISARC DATA FLOW/CALL PATHS
++      ISARC DATA FLOW/CALL PATHS
++      ISARC DATA FLOW/CALL PATHS
++      __________________________
+ 
+1      Page 12
+ 
+0      +---------------------------------------------------------------+
+       |                                                               |
+       | Main Menu Item Selection Processing                           |
+       |                                                               |
+       |         Component_State                                       |
+       |         & Present_Cursor_Position                             |
+       |        +---------------+                                      |
+       |        |               |                                      |
+       |       \|/              |                                      |
+       |                                                               |
+       |      ISARC          ISARCMNU   <------>   ISARCHLP            |
+       |                                                               |
+       |        |              /|\                                     |
+       |        |               |                                      |
+       |        +---------------+                                      |
+       |         Last_Cursor_Position                                  |
+       |                                                               |
+       +---------------------------------------------------------------+
+ 
+0      +---------------------------------------------------------------+
+       |                                                               |
+       | About Information Retrieval                                   |
+       |                                                               |
+       |      ISARC   <------>   ISARCINF                              |
+       |                                                               |
+       +---------------------------------------------------------------+
+ 
+0      +---------------------------------------------------------------+
+       |                                                               |
+       | Account Request Processing                                    |
+       |                                                               |
+       |                Execution_State                                |
+       |                <& Request_Info>                               |
+       |               +-------------------+                           |
+       |               |                   |                           |
+       |              \|/                  |                           |
+       |                                                               |
+       |      +-->   ISARC   ------->   ISARCREQ   <------>   ISARCHLP |
+       |      |                                                        |
+       |      |        |                                               |
+       |      |        | if EXECUTE then Data_Packet                   |
+       |      |        +---------------+                               |
+       |      |                        |                               |
+       |      |                       \|/                              |
+       |      |                                                        |
+       |      +------------------   ISARCRST                           |
+       |                                                               |
+       +---------------------------------------------------------------+
+ 
+1      Page 13
+ 
+0      +---------------------------------------------------------------+
+       |                                                               |
+       | Query Account Status Processing                               |
+       |                                                               |
+       |                Execution_State                                |
+       |                <& Query_Info>                                 |
+       |               +-------------------+                           |
+       |               |                   |                           |
+       |              \|/                  |                           |
+       |                                                               |
+       |      +-->   ISARC   ------->   ISARCQRY   <------>   ISARCHLP |
+       |      |                                                        |
+       |      |        |                                               |
+       |      |        | if EXECUTE then SSN                           |
+       |      |        +---------------+                               |
+       |      |                        |                               |
+       |      |                       \|/                              |
+       |      |                                                        |
+       |      +------------------   ISARCQST                           |
+       |                                                               |
+       +---------------------------------------------------------------+
+ 
+-      APPENDIX A. CRITICAL ERROR MESSAGE CODE DESCRIPTIONS
++      APPENDIX A. CRITICAL ERROR MESSAGE CODE DESCRIPTIONS
++      APPENDIX A. CRITICAL ERROR MESSAGE CODE DESCRIPTIONS
++      APPENDIX A. CRITICAL ERROR MESSAGE CODE DESCRIPTIONS
++      ____________________________________________________
+ 
+0      Note: The  text  below is the exact same text distributed to
++      Note:
++      Note:
++      Note:
+       consulting personnel.  None of the wording has been changed;
+       therefore, the wording may not be entirely  appropriate  for
+       support personnel.
+ 
+0      (Sorted alphabetically by code)
+ 
+0      Below  are the currently defined critical messages and codes
+       for the Individual Student Account Request (ISAR) component.
+       The best plan of action for any of these messages and  codes
+       is  to  obtain as much information as possible from the cus-
+       tomer when any of these conditions are  reported.    Try  to
+       find  out what they were doing (requesting, querying status,
+       etc.), what they entered or did to cause the condition,  and
+       any  other  information  which  the customer can offer which
+       might assist support personnel in determining and  resolving
+       the problem.  Also please be aware that some of the messages
+       may  give  "debugging"  information,  such  as  message code
+       RST004.  Obtaining this information can be very important.
+ 
+       There are currently 4 condition  states:    PLANNED,  ERROR,
+       POSSIBLY  SEVERE,  and  SEVERE  (in  order of severity, from
+       least to greatest).  PLANNED conditions do not  need  to  be
+ 
+1      Page 14
+ 
+0      reported on unless they are suspect in some way.  ERROR con-
+       ditions  do  not really require immediate contact of support
+       personnel, but the condition should be resolved as  soon  as
+       possible.   POSSIBLY SEVERE conditions are termed "possibly"
+       because they may be severe, but the experienced problem  may
+       also  be a transitory effect (e.g., system load and response
+       time).   For POSSIBLY SEVERE  conditions,  the  problem  may
+       clear  up  on its own, but if the problem does not alleviate
+       itself in a relatively short time frame, report  the  condi-
+       tion  immediately to support personnel.  Finally, the SEVERE
+       condition is the worst case, and must be reported to support
+       personnel immediately.  SEVERE conditions most  often  indi-
+       cate  that  most or all of the ISAR component (or some other
+       process) is down.
+ 
+-      +--------+--------+------------------------------------+--------+
+       |  CODE  | STATE  |            DESCRIPTION             | MODULE |
+       +--------+--------+------------------------------------+--------+
+       | INF001 | ERROR  | Help not available.  Contact sup-  |ISARCINF|
+       |        |        |          port personnel.           |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        |  The file $$TEMP$$ $$FILE$$ could  |        |
+       |        |        | not be located.  This file must be |        |
+       | ISA001 | SEVERE |  present before any ISAR services  | ISARC  |
+       |        |        |  will be made available.  Contact  |        |
+       |        |        |support personnel immediately.  All |        |
+       |        |        |           services down.           |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        | The file ISARCMNU XEDIT could not  |        |
+       |        |        |   be located.  This file must be   |        |
+       | ISA002 | SEVERE |  present before any ISAR services  | ISARC  |
+       |        |        |  will be made available.  Contact  |        |
+       |        |        |support personnel immediately.  All |        |
+       |        |        |           services down.           |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        |   Menu item modules or auxiliary   |        |
+       |        |        |  files could not be located.  At   |        |
+       |        |        | least one of the menu item modules |        |
+       |        |        |(and all of its necessary auxiliary |        |
+       | ISA003 | SEVERE |files) must be locatable before the | ISARC  |
+       |        |        | ISAR component will be made avail- |        |
+       |        |        |able in some form.  Contact support |        |
+       |        |        |  personnel immediately.  All ser-  |        |
+       |        |        |          vices are down.           |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        |The ISAR component or another proc- |        |
+       | ISA004 |PLANNED | ess is down for maintenance.  All  | ISARC  |
+       |        |        |       services unavailable.        |        |
+       +--------+--------+------------------------------------+--------+
+ 
+1      Page 15
+ 
+0      +--------+--------+------------------------------------+--------+
+       |  CODE  | STATE  |            DESCRIPTION             | MODULE |
+       +--------+--------+------------------------------------+--------+
+       |        |        |  Unable to determine location of   |        |
+       |        |        |  ISARC executable code or support  |        |
+       | ISA005 | SEVERE | files.  Contact support personnel  | ISARC  |
+       |        |        |immediately.  All services unavail- |        |
+       |        |        |               able.                |        |
+       +--------+--------+------------------------------------+--------+
+       | MNU001 | ERROR  | Help not available.  Contact sup-  |ISARCMNU|
+       |        |        |          port personnel.           |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        |  Unknown internal failure experi-  |        |
+       |        |        |enced.  See if customer can explain |        |
+       | MNU002 | SEVERE | the circumstances surrounding the  |ISARCMNU|
+       |        |        |failure.  Contact support personnel |        |
+       |        |        | immediately.  All services suspect |        |
+       |        |        |          until resolved.           |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        | One or more of the menu items are  |        |
+       |        |        |  not available.  This message is   |        |
+       |        |        |  generated when support personnel  |        |
+       |        |        |are not aware of the problem (i.e., |        |
+       |        |        |   when a menu item was made not    |        |
+       | MNU003 | SEVERE | available, but not because support |ISARCMNU|
+       |        |        | personnel had instructed ISARC to  |        |
+       |        |        | perform this action).  See if cus- |        |
+       |        |        | tomer can detail which menu items  |        |
+       |        |        |are not available, and contact sup- |        |
+       |        |        |    port personnel immediately.     |        |
+       +--------+--------+------------------------------------+--------+
+       | QRY001 | ERROR  | Help not available.  Contact sup-  |ISARCQRY|
+       |        |        |          port personnel.           |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        |  Unknown internal failure experi-  |        |
+       |        |        |enced.  See if customer can explain |        |
+       | QRY002 | SEVERE | the circumstances surrounding the  |ISARCQRY|
+       |        |        |failure.  Contact support personnel |        |
+       |        |        | immediately.  Query services sus-  |        |
+       |        |        |        pect until resolved.        |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        |  A query status message group is   |        |
+       | QST001 | ERROR  |  larger than allowed for display.  |ISARCQST|
+       |        |        |     Contact support personnel.     |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        |  A message line of a query status  |        |
+       | QST002 | ERROR  | message group is too long for dis- |ISARCQST|
+       |        |        | play.  Contact support personnel.  |        |
+       +--------+--------+------------------------------------+--------+
+       | REQ001 | ERROR  | Help not available.  Contact sup-  |ISARCREQ|
+       |        |        |          port personnel.           |        |
+       +--------+--------+------------------------------------+--------+
+ 
+1      Page 16
+ 
+0      +--------+--------+------------------------------------+--------+
+       |  CODE  | STATE  |            DESCRIPTION             | MODULE |
+       +--------+--------+------------------------------------+--------+
+       |        |        |  Unknown internal failure experi-  |        |
+       |        |        |enced.  See if customer can explain |        |
+       | REQ002 | SEVERE | the circumstances surrounding the  |ISARCREQ|
+       |        |        |failure.  Contact support personnel |        |
+       |        |        |immediately.  Request services sus- |        |
+       |        |        |        pect until resolved.        |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        |    Unable to detect presence of    |        |
+       |        |        | VMSERV01 service machine.  Contact |        |
+       | RST001 | SEVERE |support personnel immediately.  Re- |ISARCRST|
+       |        |        |  quest services unavailable, and   |        |
+       |        |        | query services limited in some re- |        |
+       |        |        |              spects.               |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        |   Unable to transmit data to the   |        |
+       |        |        |VMSERV01 service machine.  The SMSG |        |
+       |        |        | facility denied the transmission,  |        |
+       |        |        |  cause unknown.  Contact support   |        |
+       | RST002 | SEVERE |  personnel immediately.  Request   |ISARCRST|
+       |        |        | services available, but will fail  |        |
+       |        |        |at request submission stage.  Query |        |
+       |        |        | services are also likely to be af- |        |
+       |        |        |    fected in a limited manner.     |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        | The VMSERV01 service machine never |        |
+       |        |        | responded to repeated data trans-  |        |
+       |        |        |  missions.  This could be a tran-  |        |
+       |        | POSSI- |   sient problem; however, if it    |        |
+       | RST003 |BLY SE- | persists contact support personnel |ISARCRST|
+       |        |  VERE  |   immediately.  Request services   |        |
+       |        |        |available, but will fail at request |        |
+       |        |        | submission stage.  Query services  |        |
+       |        |        |are also likely to be affected in a |        |
+       |        |        |          limited manner.           |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        |  The VMSERV01 service machine re-  |        |
+       |        |        | sponded to a data transmission in  |        |
+       |        |        |an unexpected manner.  Contact sup- |        |
+       |        |        |  port personnel immediately.  The  |        |
+       |        |        |return message to the customer will |        |
+       | RST004 | SEVERE |  have the response of the service  |ISARCRST|
+       |        |        |    machine in the message body.    |        |
+       |        |        |Please record the response and give |        |
+       |        |        |this to support personnel.  Request |        |
+       |        |        |  services and query services are   |        |
+       |        |        |      suspect until resolved.       |        |
+       +--------+--------+------------------------------------+--------+
+ 
+1      Page 17
+ 
+0      +--------+--------+------------------------------------+--------+
+       |  CODE  | STATE  |            DESCRIPTION             | MODULE |
+       +--------+--------+------------------------------------+--------+
+       |        |        | A request status message group is  |        |
+       | RST005 | ERROR  |  larger than allowed for display.  |ISARCRST|
+       |        |        |     Contact support personnel.     |        |
+       +--------+--------+------------------------------------+--------+
+       |        |        | A message line of a request status |        |
+       | RST006 | ERROR  | message group is too long for dis- |ISARCRST|
+       |        |        | play.  Contact support personnel.  |        |
+       +--------+--------+------------------------------------+--------+
+ 

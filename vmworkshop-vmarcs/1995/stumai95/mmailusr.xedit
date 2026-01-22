@@ -1,0 +1,567 @@
+/*                                                                   */
+/* MMAILUSR XEDIT                                                    */
+/*                                                                   */
+/* Usage:  This file is to be used by either invoking the DOPANEL    */
+/*         command and supplying the command with the name of this   */
+/*         panel or invoking a XEDIT session on a file with this     */
+/*         file specified as the PROFILE to be used.                 */
+/*                                                                   */
+/* MMAILUSR is a XEDIT file containing various XEDIT and REXX        */
+/* instructions combined to construct an input panel and the         */
+/* instructions necessary to process the input gathered from the     */
+/* customer.  See the USAGE statement above for information on how   */
+/* to invoke the MMAILUSR panel.                                     */
+/*                                                                   */
+/* Exit Code Definitions:                                            */
+/*   Not applicable.                                                 */
+/*                                                                   */
+/* Mod Date  Init  Description                                       */
+/* --------  ----  ------------------------------------------------- */
+/* 06291994  PDL   Initial development.                              */
+/* 07071994  PDL   Changed default of yes for log the note to no.    */
+/*                 This was done so as to respect the personal mail  */
+/*                 profile of the customer.                          */
+/* 07071994  PDL   Removed code to set NOLOG option if the customer  */
+/*                 did not specify logging the outgoing note.  Done  */
+/*                 to respect the personal mail profile.             */
+/* 07071994  PDL   Removed code to set NOACK option if the customer  */
+/*                 did not specify acknowledge receipt of the note.  */
+/*                 Done to respect the personal mail profile.        */
+/* 07071994  PDL   Accentuated "or" with "-or-" between the filemode */
+/*                 and SFS directory spec fields.                    */
+/* 07201994  PDL   Added message handler                             */
+/* 07201994  PDL   Added code to un-RESERVE lines.                   */
+/* 07221994  PDL   Removed BETA descriptor from panel.  Release level*/
+/*                 107 meant for first public release.               */
+/*                                                                   */
+/* 08171994  PDL   Changed the option "Log the outgoing note" to     */
+/*                 "Do not log the outgoing note".  Execution code   */
+/*                 was also updated properly.                        */
+/*                                                                   */
+ 
+level="108"
+ 
+/* Define the control characters for panel definition */
+address xedit
+"SET CTLCHAR  % ESCAPE"
+"SET CTLCHAR  @ PROTECT   HIGH"
+"SET CTLCHAR  ! PROTECT   NOHIGH"
+"SET CTLCHAR  $ NOPROTECT HIGH"
+ 
+/* Set up the XEDIT environment for panel definition */
+"SET CASE     MIXED"
+"SET LINEND   OFF"
+"SET TOFEOF   OFF"
+"SET PREFIX   OFF"
+"SET SCALE    OFF"
+"SET MSGLINE  ON 21 2"
+"SET CMDLINE  OFF"
+"SET MSGMODE  ON"
+"VERIFY OFF 1 80"
+ 
+/* Ensure the PF keys are defined as we need them so */
+/* that we can avoid the problem with a key defined  */
+/* as TABKEY, COPYKEY, NULLKEY, or CP BRKKEY (which  */
+/* will cause a XEDIT READ to -NOT- terminate).  We  */
+/* cannot have this.                                 */
+do index=1 to 24
+    "SET PF"index "BEFORE EMSG INTERNAL FAILURE:  EXIT",
+    "IMMEDIATELY AND REPORT THIS TO THE HELPDESK (7997)"
+end
+ 
+/* Make sure that we set the appropriate PF */
+/* keys with a QQUIT definition.  This is to*/
+/* make sure the customer can get out even  */
+/* though an internal failure has occurred. */
+"SET PF3  BEFORE QQUIT"
+"SET PF12 BEFORE QQUIT"
+"SET PF15 BEFORE QQUIT"
+"SET PF24 BEFORE QQUIT"
+ 
+/* "un-RESERVE" all of the XEDIT lines */
+/* that were reserved, if any.         */
+"EXTRACT /RESERVED */"
+do index=1 to RESERVED.0
+    parse var RESERVED.index linenum otherstuff
+    "SET RESERVED" linenum "OFF"
+end
+ 
+address command
+ 
+/* Request that the panel be constructed, and place the cursor */
+/* at the first input field.                                   */
+call BuildDisplay
+address xedit "CURSOR SCREEN 8 29"
+ 
+/* Initialize all input variables */
+towhom=""
+subject=""
+acknowledge=""
+donotlognote=""
+includefile=""
+filename=""
+filetype=""
+filemode=""
+sfsdir1=""
+sfsdir2=""
+sfsdir3=""
+sfsdir4=""
+ 
+/* Begin processing of the panel.  The "status" variable indicates */
+/* what mode we are in.                                            */
+/*     Status=0    indicates that the customer has submitted the   */
+/*                 panel for processing.  Syntax/Field checking    */
+/*                 is performed as required, and if no problem is  */
+/*                 found then the external command is              */
+/*                 constructed and executed.                       */
+/*     Status=1    indicates that reading of the panel is to       */
+/*                 continue until otherwise indicated.             */
+/*     Status=2    indicates that an exit from the panel has been  */
+/*                 requested.                                      */
+/*     Status=3    indicates that help has been requested.         */
+/*     Status=4    indicates that the customer wants to resume     */
+/*                 a previously suspended note.                    */
+status=1
+do while (status = 1)
+ 
+    /* Request that the panel be rebuilt to reflect customer entries */
+    call BuildDisplay
+    /* Request that XEDIT read the panel and return the results */
+    address xedit "READ NOCHANGE NUMBER TAG"
+ 
+    /* Process the results of the XEDIT READ until no more are left */
+    do queued()
+        parse pull tag line column data
+ 
+        /* If the result was from an input field, then process it */
+        if tag = "RES" then do
+            /* Remove all blanks and underscore characters */
+            /* from the input                              */
+            data=strip(data,trailing,"_")
+            data=strip(data)
+            select
+                /* Line  8 is the userid/nickname field */
+                when line = 8 then do
+                    upper data
+                    towhom=data
+                end
+                /* Line  9 is the subject field */
+                when line = 9
+                     then subject=data
+                /* Line 13 is the sfs dirspec field, line 1 */
+                when line = 13 then do
+                    upper data
+                    acknowledge=data
+                end
+                /* Line 14 is the do not log outgoing note field */
+                when line = 14 then do
+                    upper data
+                    donotlognote=data
+                end
+                /* Line 15 is the include file field */
+                when line = 15 then do
+                    upper data
+                    includefile=data
+                end
+                /* Line 16, Column 28 is the filename field */
+                when (line = 16) & (column = 28) then do
+                    upper data
+                    filename=data
+                end
+                /* Line 16, Column 47 is the filetype field */
+                when (line = 16) & (column = 47) then do
+                    upper data
+                    filetype=data
+                end
+                /* Line 17 is the filemode field */
+                when line = 17 then do
+                    upper data
+                    filemode=data
+                end
+                /* Line 18 is the SFS directory spec field, line 1 */
+                when line = 18 then do
+                    upper data
+                    sfsdir1=data
+                end
+                /* Line 19 is the SFS directory spec field, line 2 */
+                when line = 19 then do
+                    upper data
+                    sfsdir2=data
+                end
+                /* Line 20 is the SFS directory spec field, line 3 */
+                when line = 20 then do
+                    upper data
+                    sfsdir3=data
+                end
+                otherwise nop
+            end
+ 
+        end
+ 
+        /* If the customer pressed a PF key, process it */
+        if tag = "PFK" then do
+ 
+            select
+                /* If the customer pressed PF1, PF13, PF9, PF21, */
+                /* PF2, or PF14 then help is requested on the    */
+                /* panel or on XEDIT options.                    */
+                when (line = 1)  | (line = 13) |,
+                     (line = 9)  | (line = 21) |,
+                     (line = 2)  | (line = 14) then status=3
+                /* If the customer pressed PF3, PF15, PF12, or PF24 */
+                /* then the customer wishes to exit.                */
+                when (line = 3)  | (line = 15) |,
+                     (line = 12) | (line = 24) then do
+                    "DESBUF"
+                    status=2
+                    leave
+                end
+                /* If the customer pressed PF4 or PF16, then the */
+                /* customer wants to RESUME a previously         */
+                /* SUSPENDed note.                               */
+                when (line = 4)  | (line = 16) then
+                    status=4
+                /* Otherwise, the PF key is not defined to us. */
+                otherwise
+                    message="PFKey is not defined."
+                    call display_message
+            end
+ 
+        end
+ 
+        /* If the customer pressed the ENTER key, then set the */
+        /* status flag to "check/process input panel".         */
+        if tag = "ETK" then status=0
+ 
+    end
+ 
+    /* The customer requested assistance for the panel */
+    /* or XEDIT options.                               */
+    if status = 3 then do
+        if (line = 2) | (line = 14) then
+            address command "HELP MAIL ( DETAIL OPTIONS"
+        else address command "HELP MMAILUSR"
+        /* Now, resume panel input/processing */
+        status=1
+    end
+ 
+    /* If the customer wanted to resume, then resume */
+    if (status = 4) then do
+        if (towhom = "") then do
+            message="A userid or nickname must be",
+                    "supplied to resume a previously",
+                    "suspended note."
+            call display_message
+            address xedit "CURSOR SCREEN 8 29"
+            status=1
+        end
+        else do
+            status=4
+            /* Let us go ahead and try to resume */
+            address cms "PIPE CMS MAIL" towhom,
+                        "(RESUME | STACK FIFO"
+            /* Did we get a message back stating that   */
+            /* the resume MAIL file could not be found? */
+            cannotresume=0
+            do queued()
+                parse upper pull text
+                if (find(text,"CAN'T FIND") ^= 0) &,
+                   (find(text,"MAIL FILE TO RESUME.") ^= 0) then
+                    cannotresume=1
+            end
+            /* MailBook RESUME failed, so resume panel */
+            /* input processing.                       */
+            if (cannotresume = 1) then do
+                status=1
+                message="Unable to resume any",
+                        "previously suspended note",
+                        "for the userid or nickname",
+                        "supplied."
+                call display_message
+            end
+            else
+                "DESBUF"
+        end
+    end
+ 
+    /* Was panel checking/processing requested? */
+    if status = 0 then do
+ 
+        /* Check to see if we have any "error" conditions... */
+        select
+            /* Scenario 1:  The customer has not supplied a */
+            /*              userid or a nickname            */
+            when (towhom = "") then do
+                status=1
+                message="A userid or nickname must be",
+                        "supplied to send mail to a person",
+                        "or group."
+                call display_message
+                address xedit "CURSOR SCREEN 8 29"
+            end
+            /* Scenario 2:  The customer wants to include a file, but*/
+            /*              did not specify a filename.              */
+            when (filename = "") & (includefile ^= "") then do
+                status=1
+                message="A filename must be supplied to",
+                        "include a file."
+                call display_message
+                address xedit "CURSOR SCREEN 16 28"
+            end
+            /* Scenario 3:  The customer wants to include a file, but*/
+            /*              did not specify a filetype.              */
+            when (filetype = "") & (includefile ^= "") then do
+                status=1
+                message="A filetype must be supplied to",
+                        "include a file."
+                call display_message
+                address xedit "CURSOR SCREEN 16 47"
+            end
+            /* Scenario 4:  The customer wants to include a file */
+            /*              but specified neither a filemode or  */
+            /*              a SFS directory.                     */
+            when (sfsdir1 = "") & (sfsdir2 = "")  &,
+                 (sfsdir3 = "") & (filemode = "") &,
+                 (includefile ^= "") then do
+                status=1
+                message="A filemode or SFS directory",
+                        "must be supplied to include a file."
+                call display_message
+                address xedit "CURSOR SCREEN 17 28"
+            end
+            /* Scenario 5:  The customer wants to include a file */
+            /*              and has specified both a filemode and*/
+            /*              a SFS directory.                     */
+            when ((sfsdir1 ^= "") | (sfsdir2 ^= "")  |,
+                 (sfsdir3 ^= "")) & (filemode ^= "")  &,
+                 (includefile ^= "") then do
+                status=1
+                message="Both a filemode and a SFS",
+                        "directory cannot be supplied to",
+                        "include a file."
+                call display_message
+                address xedit "CURSOR SCREEN 17 28"
+            end
+            otherwise nop
+        end
+ 
+    end
+ 
+    /* If status is still zero then we have passed the panel checks. */
+    /* Now let us construct and perform the command for the customer.*/
+    if status = 0 then do
+        /* Initialize the By-pass Send flag */
+        bypasssend=0
+        /* Initialize the Access Performed flag */
+        accessperformed=0
+        /* Form part of the MailBook options string */
+        options=""
+ 
+        /* Did the customer want an acknowledgement? */
+        if (acknowledge ^= "") then
+            options=options||" ACK"
+ 
+        /* Did the customer not want logging of the outgoing note? */
+        if (donotlognote ^= "") then
+            options=options||" NOLOG"
+ 
+        /* Did the customer want to include a file? */
+        if (includefile ^= "") then do
+            /* Form the SFS dirspec strings */
+            sfsdir=sfsdir1||sfsdir2||sfsdir3
+            /* Did the customer specify a SFS directory spec?         */
+            /* If so, we will have to make sure that is accessed, and */
+            /* if not, then attempt to access the directory           */
+            if (sfsdir ^= "") then do
+                /* First, let us make the directory exists or has */
+                /* been specified correctly.                      */
+                address cms "PIPE CMS LISTDIR" sfsdir " (NOSUB |",
+                            "STACK FIFO"
+                /* Did we get a return code (^= 0)?  If so, error */
+                if RC ^= 0 then do
+                    /* Discard anything stacked and set the flags */
+                    do queued()
+                        pull trash
+                    end
+                    bypasssend=1
+                    status=1
+                    message="The SFS directory specification",
+                            "you supplied could not be resolved. ",
+                            "Please check the SFS directory",
+                            "you specified and make sure it is",
+                            "correct."
+                    call display_message
+                    address xedit "CURSOR SCREEN 18 33"
+                end
+                /* Otherwise, the directory exists...            */
+                /* Now check to see if it is already accessed... */
+                else do
+                    pull trash
+                    parse upper pull fmaccessed .
+                    fmaccessed=strip(fmaccessed)
+                    /* If a hyphen was returned, then the directory */
+                    /* has not been accessed.                       */
+                    if fmaccessed = "-" then do
+                        /* Now, let us see if we can get */
+                        /* a free filemode               */
+                        address cms "GETFMADR"
+                        parse upper pull . freemode . check
+                        if (check ^= "") then do
+                            message="Unable to obtain a free",
+                                "filemode to access the specified SFS",
+                                "directory.  Please exit, release a",
+                                "filemode and then try again."
+                            call display_message
+                            address xedit "CURSOR SCREEN 18 33"
+                            bypasssend=1
+                            status=1
+                        end
+                        /* We were able to get a free filemode, so */
+                        /* let us go ahead and access it.          */
+                        else do
+                            address cms "PIPE CMS ACCESS" sfsdir,
+                                        freemode "| HOLE"
+                            accessperformed=1
+                            filemode=freemode
+                        end
+                    end
+                    /* The directory has already been */
+                    /* accessed, so just pass it on.  */
+                    else filemode=fmaccessed
+                end
+            end
+            /* Otherwise, the customer supplied a filemode.  So let us */
+            /* check to make sure that the filemode supplied exists.   */
+            else do
+                /* Get a list of filemodes used */
+                address cms "PIPE CMS QUERY ACCESSED | STACK FIFO"
+                modefound=0
+                /* Discard the header line */
+                pull trash
+                do queued()
+                    parse upper pull mode .
+                    /* Obtain only the first character */
+                    /* of the given mode               */
+                    mode=strip(left(mode,1))
+                    if (mode = filemode) then modefound=1
+                end
+                if (modefound = 0) then do
+                    bypasssend=1
+                    status=1
+                    message="Unable to resolve the filemode",
+                            "that you specified.  Please specify",
+                            "a filemode that currently exists."
+                    call display_message
+                    address xedit "CURSOR SCREEN 17 28"
+                end
+            end
+            options=options||" FILE" filename filetype filemode
+        end
+ 
+        /* Did the customer want to include a subject? */
+        if (subject ^= "") then
+            options=options||" SUBJECT" subject
+ 
+        if (bypasssend = 0) then do
+            /* Check to make sure the include file exists, if needed */
+            if (includefile ^= "") then
+                "PIPE CMS STATE" filename filetype filemode "| HOLE"
+            if (RC ^= 0) & (includefile ^= "") then do
+                status=1
+                message="The include file specified does not",
+                        "exist.  Please check the file",
+                        "information you supplied and",
+                        "make sure it is correct."
+                call display_message
+                address xedit "CURSOR SCREEN 16 28"
+            end
+            else
+                address cms "MAIL" towhom "(" options
+        end
+        if (sfsdir ^= "") then do
+            if (accessperformed = 1) then do
+                address cms "RELEASE" filemode
+                accessperformed=0
+                filemode=""
+            end
+        end
+    end
+end
+ 
+address xedit "QQUIT"
+exit
+ 
+/* Construct the input panel for the customer... */
+BuildDisplay:
+address xedit
+"SET RESERVED  1 N %!MMAILUSR                %@SEND MAIL USING",
+                   "MAILBOOK%!                  LEVEL"level
+"SET RESERVED  3 N %@Enter the information below to send",
+                   "mail to a person or a group of people.%!"
+"SET RESERVED  4 N %@Assistance for MailBook options on this",
+                   "panel is available by pressing PF2.%!"
+"SET RESERVED  6 N %!     Send Mail To...%!"
+"SET RESERVED  8 N %!          UserID/Nickname",
+                   "%$"left(towhom,50,"_")"%!"
+"SET RESERVED  9 N %!          Subject        ",
+                   "%$"left(subject,50,"_")"%!"
+"SET RESERVED 11 N %!     Mailing Options...  "
+"SET RESERVED 13 N %!          {%$"left(acknowledge,1,"_")"%!}",
+                   "Receive acknowledgment when read%!"
+"SET RESERVED 14 N %!          {%$"left(donotlognote,1,"_")"%!}",
+                   "Do not log the outgoing note%!"
+"SET RESERVED 15 N %!          {%$"left(includefile,1,"_")"%!}",
+                   "Include a file in the note%!"
+"SET RESERVED 16 N %!                ",
+                   "Filename%$"left(filename,8,"_")"%!",
+                   "Filetype%$"left(filetype,8,"_")"%!"
+"SET RESERVED 17 N %!                ",
+                   "Filemode%$"left(filemode,1,"_")"%! -or-"
+"SET RESERVED 18 N %!                ",
+                   "SFS Directory%$"left(sfsdir1,46,"_")"%!"
+"SET RESERVED 19 N %!                             ",
+                   "%$"left(sfsdir2,46,"_")"%!"
+"SET RESERVED 20 N %!                             ",
+                   "%$"left(sfsdir3,44,"_")"%!"
+"SET RESERVED -1 N %@PF1/PF9%! Help    %@PF2%! MailBook Help   ",
+                   "%@PF3/PF12%! Quit    %@PF4%! Resume a Note"
+address command
+return
+ 
+display_message:
+ 
+if message ^= "" then do
+  /* Now format the message for proper display */
+  nextword=""
+  msglines.0=1
+  msgindex=msglines.0
+  do index=1 to 2
+    msglines.index=""
+  end
+  do index=1 to words(message)
+    msgindex=msglines.0
+    nextword=word(message,index)
+    /* If we can fit the next word into the line, then do so */
+    if (length(msglines.msgindex)+length(nextword)) <= 78 then
+      if length(msglines.msgindex) = 0 then
+        msglines.msgindex=nextword
+      else
+        msglines.msgindex=msglines.msgindex||" "||nextword
+    /* Otherwise, pad the rest of the current line, */
+    /* and start a new line.                        */
+    else do
+      msglines.msgindex=left(msglines.msgindex,79)
+      msglines.0=msglines.0+1
+      msgindex=msglines.0
+      msglines.msgindex=nextword
+    end
+  end
+  msgtodisplay=""
+  do index=1 to msglines.0
+    msgtodisplay=msgtodisplay||msglines.index
+  end
+  address xedit "EMSG" msgtodisplay
+  message=""
+end
+ 
+return

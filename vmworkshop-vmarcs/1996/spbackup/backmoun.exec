@@ -1,0 +1,28 @@
+/* BACKMOUN EXEC:
+We are trapping the following two VMTAPE MSNGOH's:
+ 
+VMTMNT073I Volume 'MVS1' ready on 0181 (1882) R/W SL.
+VMTBUF016I MOUNT completion code=0.
+ 
+MODIFICATION HISTORY:
+02/13/96 - Roger Deschner - Original Version
+*/
+ADDRESS COMMAND
+PARSE ARG msgl
+msgl = STRIP(msgl)
+'GLOBALV SELECT SPBACKUP GET MODEMOUN' /* Were we recording already? */
+SELECT
+  WHEN (modemoun = 'RECORD') THEN DO /*Yes, we were recording already.*/
+    'PIPE VAR msgl | >> BACKMOUN SAVEMSGS A' /* Add to msg queue */
+    IF (SUBSTR(msgl,1,10) = 'VMTBUF016I') THEN DO    /* Done? */
+      'EXEC BACKUP MOUNTED'               /* Doit toit */
+      'GLOBALV SELECT SPBACKUP SETL MODEMOUN NORMAL' /* Stop recoding */
+    END
+  END
+  WHEN (SUBSTR(msgl,1,10) = 'VMTMNT073I') THEN DO
+    'GLOBALV SELECT SPBACKUP SETL MODEMOUN RECORD' /* Start recording */
+    'PIPE VAR msgl | > BACKMOUN SAVEMSGS A' /* Start new msg queue */
+  END
+  OTHERWISE NOP
+END
+EXIT

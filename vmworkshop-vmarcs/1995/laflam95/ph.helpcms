@@ -1,0 +1,145 @@
+.CM Created June, 1995, by Nick Laflamme
+.cm with contributions from John Hammond of UConn
+PH EXEC
+version 2.57
+June 13, 1995
+.CS BRIEF ON
+ 
+ PH EXEC does phone  book lookups against phone book servers,  also known as qi
+ server, on the Internet. You can view the results either entry by entry or all
+ at once.
+ 
+  FORMAT:   PH <whom> ( <HOST host.domain> <PORT port> <STACK|STACKALL|UNIQUE>
+ 
+  EXAMPLES:
+ +-------------------------------------------------------------------+
+ |PH                                                                 |
+ |PH (HOST host.domain                                               |
+ |PH first_name middle_initial last_name                             |
+ |PH email=userid@host.domain ( HOST host2.domain PORT 106           |
+ |PH first_name last_name email=userid@host.domain (HOST host3.domain|
+ |PH last_name email=userid@host.domain (PORT 205 STACK              |
+ |PH part_of_last_name*                                              |
+ +-------------------------------------------------------------------+
+ 
+.CS BRIEF OFF
+.CS DESCRIPT ON
+ ¢|Description¢%
+ 
+ ¢|PH¢% (CMS command)
+ 
+  Use the PH command  to issue a query to a  phonebook (CSO/qi/ph) server.  you
+  may supply  only a name  and get local  directory information.  You  may also
+  supply a host name and port number with the command for a phonebook server at
+  another site.  The default  host and port are the phonebook  server host name
+  and port number configured by your site.
+ 
+  You will be presented  with an input screen.  Fill in the  name of the person
+  you know for  the entry that you wish  to view, and then press  Enter.  If an
+  entry or entries are found which match  your query, they will be displayed in
+  response.  By default, the Name field is searched.
+ 
+  If you wish  to search a different  field, chose the keyword  associated with
+  the field name and enter keyword=value  and press Enter.  Multiple fields may
+  be entered for the same search.  Use "*" as the wildcard character.
+ 
+  This command is also  issued from within Gopher and WWW when  you open a menu
+  entry  of type¢|<phonebk>.¢%  Gopher and  WWW will  automatically supply  the
+  correct host name and port number.
+ 
+.CS DESCRIPT OFF
+.CS FORMAT ON
+  ¢|Format¢%
+ 
+ +-------+------------------------------------------------------------------+
+ | PH    | <whom> ( <HOST host.domain>  <PORT port>  <STACK|STACKALL|UNIQUE>|
+ +-------+------------------------------------------------------------------+
+ 
+.CS FORMAT OFF
+.CS PARMS ON
+ ¢|Operands¢%
+ 
+    ¢|whom¢% is the personal name of the person for whom you are searching.  It
+          may also be a keyword=value (e.g. email=userid@host.domain) for other
+          fields that are  searchable or a combination of  both.  This argument
+          is optional.
+ 
+.CS PARMS OFF
+.CS OPTIONS ON
+ ¢|Options¢%
+ 
+    ¢|host¢%   represents the  name  or IP  address of  the  desired host.   If
+          omitted, the  GLOBALV group PHCMS will  be queried for the  name HOST
+          and  this used  instead.  If  the name  HOST is  undefined, then  the
+          default phonebook server configured by your site will be used.
+ 
+    ¢|port¢%   represents the  port  number  to use  on  the  remote host.   If
+          omitted, the  GLOBALV group PHCMS will  be queried for the  name PORT
+          and this used instead.  If the name PORT is undefined, then port 105,
+          the  standard  port for  a  CSO/qi/PH  server,  will be  used.   This
+          argument is optional.
+ 
+    ¢|STACK¢% entries which  are accepted (PF5) by  the user will be  placed in
+          the program stack  for retrieval by another  program.  This parameter
+          is optional.
+ 
+    ¢|STACKALL¢% entries which are matches will  be placed in program stack for
+          retrieval by another program.  This parameter is optional.
+ 
+    ¢|UNIQUE¢% will  either return one  entry to the stack  or a return  code 8
+          indicating  that the  query did  not  specify only  one entry.   This
+          parameter is optional.
+ 
+.CS OPTIONS OFF
+.CS NOTES ON
+ ¢|Usage Notes¢%
+ 
+  1) When searching for entries that match your query, case is not significant:
+       upper and lower case letters are treated as equivalent.
+ 
+.CS NOTES OFF
+.CS ERRORS ON
+ ¢|Return Codes¢%
+ 
+  ¢|0¢%  The query or command was successful.
+ 
+  ¢|1¢%  The server couldn't find any matches for your query.
+ 
+  ¢|2¢%   The server  found  more entries  that matched  your  query than  it's
+       allowed to return. This often reflects privacy issues and regulations.
+ 
+  ¢|3¢%  The server rejected your query as  being invalid.  One common cause of
+       this is asking for a non-existent  field.  Remember: there are almost no
+       standards for what fields are valid.¢%
+ 
+  ¢|4¢%  The  response from  the server  was incomplete  and aborted.   This is
+       beyond your control and probably is temporary.
+ 
+  ¢|5¢%  Part of the conversation with the  server failed.  This is beyond your
+       control and probably is temporary.
+ 
+  ¢|6¢%  Something in the PH program went  very wrong. Tell your systems people
+       how you got  this error and ask them  to contact the author.  If you are
+       your systems people, well....
+ 
+  ¢|7¢%  The user used  PF12 to indicate that she or he wishes  to break out of
+       any loop one might be in.
+ 
+  ¢|8¢%   You used  the UNIQUE  option but  got more  than one  entry from  the
+       server.
+ 
+  ¢|9¢%  The host and port combination you were  querying don't seem to be a qi
+       server. This may have  been specified for you by a  Gopher or Web client
+       and may be the result bad data on the Internet.
+ 
+  ¢|10¢% That PH command, while legal, is not implemented in this client. a
+ 
+  ¢|100¢%You called PH using old parameters or an old syntax.
+ 
+.CS ERRORS OFF
+.CS RELATED ON
+ ¢|Related Help¢%
+ 
+       Be sure to try the PHMAIL and PH2NAMES commands.
+ 
+.CS RELATED OFF

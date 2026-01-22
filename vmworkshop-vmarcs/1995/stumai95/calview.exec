@@ -1,0 +1,6 @@
+/* CALVIEW EXEC - Front end for viewing calendars.
+Author: Paul Lewis, IT-DCS, 2/07/95
+Requires: DOPANEL EXEC, TELLPRMT XEDIT  (by PDL, IT-DCS)
+History: 02/07/95 In Test
+*/
+'DOPANEL CALVIEW'

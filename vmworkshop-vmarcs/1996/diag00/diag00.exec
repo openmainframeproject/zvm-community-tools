@@ -1,0 +1,154 @@
+/*-------------------------------------------------------------------*/
+/* Field           | Characteristics | Description                   */
+/*-----------------|-----------------|-------------------------------*/
+/* Reserved        | 8 bytes, EBCDIC | Contains the constant "VM/ESA"*/
+/* (formerly       |                 | (for compatibility with the   */
+/* "System Name")  |                 | prior product name)           */
+/*-----------------|-----------------|-------------------------------*/
+/* Environment     | 2 bytes, binary | Identifies the z/VM execution */
+/*                 |                 | environment.                  */
+/*-----------------|-----------------|-------------------------------*/
+/* Version         | 1 byte,         | The version number of the     */
+/* Information     | hexadecimal     | product identified in the     */
+/*                 |                 | System Name field.  It is an  */
+/*                 |                 | unsigned binary number.       */
+/*-----------------|-----------------|-------------------------------*/
+/* Version code    | 1 byte,         | The version code from the     */
+/*                 | hexadecimal     | CPUID                         */
+/*-----------------|-----------------|-------------------------------*/
+/* reserved        | 2 bytes,        | z/VM stores zeros in this     */
+/*                 | hexadecimal     | field.  (VM/SP stores the     */
+/*                 |                 | machine check extended logout */
+/*                 |                 | field (MCEL) length.)         */
+/*-----------------|-----------------|-------------------------------*/
+/* Processor       | 2 bytes,        | The address of the processor  */
+/* address         | hexadecimal     | on which z/VM is currently    */
+/*                 |                 | running                       */
+/*-----------------|-----------------|-------------------------------*/
+/* User ID         | 8 bytes, EBCDIC | The user ID of the virtual    */
+/*                 |                 | machine  issuing the DIAGNOSE */
+/*-----------------|-----------------|-------------------------------*/
+/* Licensed program| 8 bytes,        | The level of CP that is       */
+/* bit map         | hexadecimal     | installed.                    */
+/*-----------------|-----------------|-------------------------------*/
+/* Time zone       | 4 bytes,        | Represents the time zone      */
+/* differential    | hexadecimal     | differential in seconds from  */
+/*                 |                 | Coordinated Universal Time    */
+/*                 |                 | (UTC)                         */
+/*-----------------|-----------------|-------------------------------*/
+/* Release         | 4 bytes,        | The first byte is the release */
+/* Information     | hexadecimal     | number, the second byte is the*/
+/*                 |                 | release modification level,   */
+/*                 |                 | and the third and fourth bytes*/
+/*                 |                 | are the service level. All    */
+/*                 |                 | three subfields are unsigned  */
+/*                 |                 | binary numbers.               */
+/*-------------------------------------------------------------------*/
+  Trace "O"
+  Address "COMMAND"
+  Parse value Diagrc(0) with rc 10 . 11 cc 12 . 17 Msg
+  VMLevels=Length(Msg)/40
+  Do level=1 to VMLevels
+    Parse var Msg lMsg +40 Msg
+    Parse value lMsg with D00SysName +8 D00Env +3 D00Ver +1 D00Res1 +2,
+        D00ProcAddr +2 D00UserId +8 D00LicBits +8 D00TimeZone +4,
+        D00RelInfo +4 D00Rest
+    If Bitand(D00Env,'800000'x)=='800000'x then
+      LPar="LPAR"
+    else
+      LPar=""
+    If Bitand(D00Env,'400000'x)=='400000'x then
+      XMode="64-bit"
+    else
+      XMode="31-bit"
+    CPRSU=Right(C2D(Right(D00RelInfo,2),2),4,"0")
+    TimeOffset=C2D(D00TimeZone,2)/3600
+/*  Say c2x(D00LicBits) */
+    Select
+      When Bitand(D00Env,"80"x)=="80"x then
+        VM="VM/SP, VM/SP HPO or VM/ESA (370 feature)"
+      When D00LicBits=='0000000000000000'x then
+        VM="VM/XA SF 1"
+      When D00LicBits=='4000000000000000'x then
+        VM="VM/XA SF 2"
+      When D00LicBits=='6000000000000000'x then
+        VM="VM/XA SP 1"
+      When D00LicBits=='7000000000000000'x then
+        VM="VM/XA SP 2"
+      When D00LicBits=='7800000000000000'x then
+        VM="VM/XA SP 2 with APSS"
+      When D00LicBits=='7C00000000000000'x then
+        VM="VM/XA SP 2.1"
+      When D00LicBits=='7E00000000000000'x then
+        VM="VM/XA SP 2.1 with spool file origin enhancements"
+      When D00LicBits=='7F00000000000000'x then
+        VM="VM/ESA with the ESA feature"
+      When D00LicBits=='7F80000000000000'x then
+        VM="VM/ESA 1.1.1"
+      When D00LicBits=='7FC0000000000000'x then
+        VM="VM/ESA 1.2.0"
+      When D00LicBits=='7FE0000000000000'x then
+        VM="VM/ESA 1.2.1"
+      When D00LicBits=='7FF0000000000000'x then
+        VM="VM/ESA 1.2.2"
+      When D00LicBits=='7FF8000000000000'x then
+        VM="VM/ESA 2.1.0"
+      When D00LicBits=='7FFE000000000000'x then
+        VM="VM/ESA 2.2.0"
+      When D00LicBits=='7FFF000000000000'x then
+        VM="VM/ESA 2.3.0"
+      When D00LicBits=='7FFF800000000000'x then
+        VM="VM/ESA 2.4.0"
+      When D00LicBits=='7FFFC00000000000'x then
+        VM="z/VM 3.1.0  "
+      When D00LicBits=='7FFFE00000000000'x then
+        VM="z/VM 4.1.0  "
+      When D00LicBits=='7FFFF00000000000'x then
+        VM="z/VM 4.2.0  "
+      When D00LicBits=='7FFFF80000000000'x then
+        VM="z/VM 4.3.0  "
+      When D00LicBits=='7FFFFC0000000000'x then
+        VM="z/VM 4.4.0  "
+      When D00LicBits=='7FFFFE0000000000'x then
+        VM="z/VM 5.1.0  "
+      When D00LicBits=='7FFFFF0000000000'x then
+        VM="z/VM 5.2.0  "
+      When D00LicBits=='7FFFFF8000000000'x then
+        VM="z/VM 5.3.0  "
+      When D00LicBits=='7FFFFFC000000000'x then
+        VM="z/VM 5.4.0  "
+      When D00LicBits=='7FFFFFE000000000'x then
+        VM="z/VM 6.1.0  "
+      When D00LicBits=='7FFFFFF000000000'x then
+        VM="z/VM 6.2.0  "
+      Otherwise
+        Vm="z/VM 6.2.0+"
+    End /* Select */
+    LevelNote=Word("This -1 -2 -3 -4",Level)
+    Say "====" LevelNote "level of VM ===="
+    Say "VM:" VM CPRSU XMode LPar
+    Say "User:" D00UserId "  Time offset:" TimeOffset
+    Call DumpIt lMsg
+  End /* VMLevels */
+Exit
+DumpIt: Procedure
+  Parse arg String
+  StrLen=Length(String)
+  PerLine=16
+  Do i=1 to Format(StrLen/PerLine,,0)
+    l=Min(PerLine,StrLen-((i-1)*PerLine))
+    Piece=Substr(String,((i-1)*PerLine)+1,l)
+    /*                     0...4...8...C...0...4...8...C... */
+    VDump=Translate(Piece,"................................"||,
+                          "................................"||,
+                          " ..........¢<(+|&.........!$*);^"||,
+                          "-/.........,%_>?..........:#@'="""||,
+                          ".abcdefghi.......jklmnopqr......"||,
+                          ".~stuvwxyz......................"||,
+                          "{ABCDEFGHI......}JKLMNOPQR......"||,
+                          "\.STUVWXYZ......0123456789......",,
+                          XRange("00"x,"FF"x))
+    Say D2x((i-1)*PerLine,4) Left(C2X(Piece),PerLine*2),
+        "*"Left(VDump,PerLine)"*"
+  End
+Return

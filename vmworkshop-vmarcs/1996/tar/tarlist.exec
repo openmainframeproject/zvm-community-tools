@@ -1,0 +1,12 @@
+/*
+ *        Name: TARLIST EXEC
+ *              rather like FILELIST,  but for TAR archives
+ *              Copyright 1992, Richard M. Troth
+ */
+ 
+Parse Arg fn ft fm args '(' opts ')' rest
+If fn = "" Then fn = "TAP1"
+'XEDIT' fn 'TARLIST A0 (WIDTH 240 PROFILE PROFTLST)' ,
+        fn ft fm args '(' opts ')' rest
+Exit rc
+ 

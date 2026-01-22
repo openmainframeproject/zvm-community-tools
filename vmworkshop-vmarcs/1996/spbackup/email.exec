@@ -1,0 +1,83 @@
+/* Send a message as e-mail. The message is contained in the CMS file
+whose name is passed as this program's arguments. The message will be
+scanned for the change strings passed in the stack.
+ 
+SYNTAX:
+ 
+EXEC EMAIL fn ft fm (JOHNDOE (NONOTEBOOK
+                     |||||||  ||||||||||
+                 Recipient(s) NOTE cmd options
+ 
+FORMAT OF STACKED LINES:
+ 
+/&NAME/John Doe/
+/&SVMNAME/RSCS/
+!&SCP!VM/ESA!
+ 
+The message file should begin with the "Subject:" line, followed by a
+single blank line, followed by the body of the message starting on line 3
+ 
+When creating test and changes, be careful not to extend lines too long.
+ 
+THIS PROGRAM EXPLOITS THE STACK. It expects data for it to be on the
+stack, and then it uses the stack internally. Calling programs should
+not depend upon the state of the stack before or after this program.
+ 
+MODIFICATION HISTORY:
+02/17/95 - Roger Deschner - Original version
+*/
+PARSE UPPER ARG msgfn msgft msgfm '(' noteopts
+/* Are we being called as an EXEC or as an XEDIT Profile? */
+IF (msgfn = ')PROFILE') THEN SIGNAL PROFILE
+ 
+/* Mainline code */
+ADDRESS COMMAND
+ 
+IF (msgfm = '') THEN msgfm = '*'
+ADDRESS CMS 'ESTATE' msgfn msgft msgfm
+IF (rc <> 0) THEN EXIT rc
+ 
+/* Pull changes off the stack; write pipeline stages. */
+IF (QUEUED() > 0) THEN DO
+  'PIPE (STAGESEP \) STACK',
+    '\ SPECS /| CHANGE/ 1 1-* NEXTWORD',
+    '\ JOIN *',
+    '\ VAR changes'
+END
+ELSE DO
+  changes = ''
+END
+ 
+ 
+/* Read in the file and change it. */
+ 
+QUEUE 'EXEC EMAIL )PROFILE'
+'PIPE <' msgfn msgft msgfm,
+   changes,
+   '| SPECS /I / 1 1-* NEXT', /* Make into XEDIT INPUT commands */
+   '| PAD 3',      /* Minimum length for I command */
+   '| STACK'
+QUEUE 'SEND'
+'EXEC NOTE' noteopts
+EXIT
+ 
+ 
+/**********************************************************************\
+* THIS IS AN XEDIT PROFILE:                                            *
+\**********************************************************************/
+PROFILE:
+ADDRESS XEDIT
+'SET CASE M I'
+'EXTRACT /MSGMODE'
+'SET MSGMODE OFF'
+/* Get rid of Subject line and blank line after it, if present. */
+'TOP'
+'FIND Subject:'
+orc = rc
+IF (orc = 0) THEN 'DELETE *'
+/* Last line blank? */
+'BOTTOM'
+'EXTRACT /CURLINE'
+IF (curline.3 = ' ') THEN 'DELETE 1'
+'SET MSGMODE' msgmode.1 msgmode.2
+EXIT

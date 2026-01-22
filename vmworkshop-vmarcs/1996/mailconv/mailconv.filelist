@@ -1,0 +1,16 @@
+* 
+*         Name: MAILCONVERT FILELIST 
+*               list of files in the MAILCONVERT package 
+*       Author: Rick Troth, Houston, Texas, USA 
+*         Date: 1993-May-20 
+* 
+      MAILCONVERT FILELIST *  "README"  0 
+      MAILCONVERT README   *  "README2" 
+* 
+      MAILCONVERT EXEC     * 
+      MAILCONVERT REXX     * 
+      MAILCONVERT HELPCMS  * 
+* 
+      A2E      REXX     * 
+      E2A      REXX     * 
+* 

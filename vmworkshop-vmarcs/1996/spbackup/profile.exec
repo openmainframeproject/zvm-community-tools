@@ -1,0 +1,28 @@
+/* PROFILE EXEC for the SPBACKUP virtual machine. Place this on 191-A.
+All other files go on the 3E1 minidisk.
+See file PROCESS EXEC on minidisk 3E1 for everything else.
+ 
+MODIFICATION HISTORY:
+04/19/96 - Roger Deschner - Add TERMINAL LINEND # to allow #CP DISC.
+02/13/96 - Roger Deschner - Original version.
+*/
+'CP TERMINAL LINEND #'
+'CP SET PF06 RETRIEVE'
+'CP SET PF18 RETRIEVE'
+'CP LINK * 3E1 3E1 RR'  /* Change this address if you wish */
+'ACCESS 3E1 C'         /* Access this server's tailorable minidisk */
+ 
+'GLOBALV SELECT SPBACKUP SETL QBACKUP 0'
+ 
+'PIPE CP QUERY USER' USERID() '| VAR qustring'
+PARSE UPPER VAR qustring . . termaddr .
+IF (termaddr ^= 'DSC') THEN DO
+  /* Tell the human user how to do our thingy */
+  SAY 'Terminal session detected. Entering CMS.'
+  SAY 'Enter the command "PROCESS" to continue as though disconnected.'
+END
+ELSE DO
+  /* Do our thingy */
+  PUSH 'EXEC PROCESS'
+END
+EXIT

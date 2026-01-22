@@ -1,0 +1,369 @@
+/* © Copyright 1995, Richard M. Troth, all rights reserved.  <plaintext>
+ *
+ *        Name: MSGD EXEC
+ *              CMS MessageD TCP/IP (RFC 1312) message receiver
+ *      Author: Rick Troth, Houston, Texas, USA
+ *        Date: 1992-May-27, Jun-03, Jun-29, 1993-Feb-24
+ *
+ *        Note: the one line that would enable the asterisk ('*')
+ *              for "all users" is commented out,  because most sites
+ *              will probably *not* want such exposure.
+ *
+ *     Changes:
+ * 1993-Feb-24: Converted to use REXX/Sockets (RXSOCKET version 2).  RMT
+ * 1993-Aug-21: Present remote hostname in lower case.               RMT
+ */
+ 
+Address "COMMAND"
+ 
+progid = "CMS MessageD 1.2.2"
+ 
+Parse Upper Arg port . '(' . ')' .
+ 
+If port = "" Then port = "18"
+ 
+If ^Datatype(port,'N') Then Do
+    Say "TCP/IP service port must be numeric."
+    Exit 24
+    End  /*  If  ..  Do  */
+ 
+Say progid "starting"
+ 
+    stdin  = 0
+    stdout = 1
+    stderr = 2
+ 
+/*
+ *  Verify REXX/Sockets (RXSOCKET version 2).
+ */
+Parse Value Socket("VERSION") With rc . ver .
+If ver < 2 Then Do
+    Say progid "requires REXX/Sockets (RXSOCKET version 2)"
+    Exit -1
+    End  /*  If  ..  Do  */
+ 
+/*
+ *  Initialize REXX/Sockets.
+ */
+Parse Value Socket("INITIALIZE", "MessageD") With rc . maxdesc .
+If rc ^= 0 Then Do
+    Say tcperror()
+    Exit rc
+    End  /*  If  ..  Do  */
+Say "REXX/Sockets initialized for" maxdesc "descriptors"
+ 
+/*
+ *  Request a new socket descriptor (TCP protocol).
+ */
+Parse Value Socket("SOCKET", "AF_INET", "SOCK_STREAM") ,
+    With rc tcp
+If rc ^= 0 Then Do
+    Say tcperror()
+    Exit rc
+    End  /*  If  ..  Do  */
+Say "TCP socket =" tcp
+ 
+/*
+ *  Set this socket to non-blocking mode.
+ */
+Parse Value Socket("IOCTL", tcp, "FIONBIO", "ON") With rc .
+If rc ^= 0 Then Do
+    Say tcperror()
+    Exit rc
+    End  /*  If  ..  Do  */
+ 
+/*
+ *  Bind to port 18.
+ */
+Parse Value Socket("BIND", tcp, "AF_INET" port) With rc .
+If rc ^= 0 Then Do
+    Say tcperror()
+    Exit rc
+    End  /*  If  ..  Do  */
+Say "Socket" tcp "bound to port" port
+ 
+/*
+ *  Set the socket to listen for new connections.
+ */
+Parse Value Socket("LISTEN", tcp, maxdesc) With rc .
+If rc ^= 0 Then Do
+    Say tcperror()
+    Exit rc
+    End  /*  If  ..  Do  */
+ 
+/*
+ *  Request a new socket descriptor (UDP protocol).
+ */
+Parse Value Socket("SOCKET", "AF_INET", "SOCK_DGRAM") With rc udp .
+If rc ^= 0 Then Do
+    Say tcperror()
+    Exit rc
+    End  /*  If  ..  Do  */
+Say "UDP socket =" udp
+ 
+/*
+ *  Set this socket to non-blocking mode.
+ */
+Parse Value Socket("IOCTL", udp, "FIONBIO", "ON") With rc .
+If rc ^= 0 Then Do
+    Say tcperror()
+    Exit rc
+    End  /*  If  ..  Do  */
+ 
+/*
+ *  Bind to the right IP port.
+ */
+Parse Value Socket("BIND", udp, "AF_INET" port) With rc .
+If rc ^= 0 Then Do
+    Say tcperror()
+    Exit rc
+    End  /*  If  ..  Do  */
+Say "Socket" udp "bound to port" port
+ 
+/*
+ *  Enable ASCII <---> EBCDIC translation option.
+ */
+Parse Value Socket("SETSOCKOPT", udp, "SOL_SOCKET", "SO_ASCII", "ON") ,
+    With rc .
+If rc ^= 0 Then Do
+    Say tcperror()
+    Exit rc
+    End  /*  If  ..  Do  */
+ 
+Say progid "waiting for a connection"
+ 
+Do Forever
+ 
+    Say "*"     /* waiting */
+ 
+    Parse Value Socket("SELECT", "READ" tcp udp stdin) ,
+        With rc ec "READ" rl "WRITE" wl "EXCEPTION" xl
+    If rc ^= 0 Then Leave
+ 
+    If Find(rl,tcp) > 0 Then Call READ_TCP(tcp)
+    If Find(rl,udp) > 0 Then Call READ_UDP(udp)
+    If Find(rl,stdin) > 0 Then Leave
+ 
+    End  /*  Do  Forever  */
+ 
+/*
+ *  Close primary TCP socket.
+ */
+Parse Value Socket("CLOSE", tcp) With rc .
+If rc ^= 0 Then Say tcperror()
+ 
+/*
+ *  Close the UDP socket.
+ */
+Parse Value Socket("CLOSE", udp) With rc .
+If rc ^= 0 Then Say tcperror()
+ 
+/*
+ *  Tell REXX/Sockets that we are done with this IUCV path.
+ */
+Parse Value Socket("TERMINATE") With rc .
+If rc ^= 0 Then Say tcperror()
+ 
+Exit
+ 
+ 
+ 
+/* ------------------------------------------------------------ READ_TCP
+ * Read packets from a TCP connection.
+ */
+READ_TCP: Procedure
+Parse Arg tcp
+ 
+/*
+ *  Accept this inbound connection.
+ */
+Parse Value Socket("ACCEPT", tcp) With rc tcp client
+If rc ^= 0 Then Do
+    Say "READ_TCP:" tcperror()
+    Return
+    End  /*  If  ..  Do  */
+Say "READ_TCP: accepted" tcp "at" Time()
+Say "READ_TCP: client" client
+ 
+/*
+ *  Resolve remote hostname (if we can).
+ */
+Parse Var client . . cipa
+Parse Value Socket("RESOLVE", cipa) With rc RemoteAddress RemoteHost .
+If rc ^= 0 Then Do
+    Say "READ_TCP:" tcperror()
+    RemoteAddress = cipa
+    RemoteHost = cipa
+    End  /*  If .. Do  */
+Else Do
+    Say "READ_TCP: Remote host looks like" RemoteHost
+    Say "READ_TCP: Accepted" tcp "from" RemoteHost "at" Time()
+    End  /*  Else Do  */
+ 
+/*
+ *  Enable ASCII <---> EBCDIC translation option.
+ */
+Parse Value Socket("SETSOCKOPT", tcp, "SOL_SOCKET", "SO_ASCII", "ON") ,
+    With rc .
+If rc ^= 0 Then Do
+    Say "READ_TCP:" tcperror()
+    Parse Value Socket("CLOSE", tcp) With .
+    Return
+    End  /*  If  ..  Do  */
+ 
+/*
+ *  Loop, reading message(s) from the client.
+ */
+Do Forever
+ 
+    /*
+     *  Read a packet from the client.
+     */
+    Parse Value Socket("READ", tcp, 4096) With rc bc pack
+    If rc ^= 0 Then Do
+        Say "READ_TCP:" tcperror()
+        Parse Value Socket("CLOSE", tcp) With .
+        Return
+        End  /*  If  ..  Do  */
+    If bc < 1 Then Leave
+ 
+    /*
+     *  Process the MSP message packet.
+     */
+    Parse Var pack ver +1 .
+    Say "READ_TCP: Protocol version" ver
+    Select  /*  ver  */
+        When ver = 'A' Then rs = reva(pack)
+        When ver = 'B' Then rs = revb(pack)
+        Otherwise           rs = "unknown protocol version" ver
+        End  /*  Select  ver  */
+ 
+    /*
+     *  Send some reply back to the client.
+     */
+    If rs = "" Then rs = '+'            /*  ACK  */
+               Else Say "READ_TCP: Reply" rs
+    Parse Value Socket("WRITE", tcp, rs || '00'x) With rc bc .
+    If rc ^= 0 Then Do
+        Say "READ_TCP:" tcperror()
+        Parse Value Socket("CLOSE", tcp) With .
+        Return
+        End  /*  If  ..  Do  */
+    If bc < 1 Then Leave
+ 
+    End  /*  Do  Forever  */
+ 
+/*
+ *  All done, relinquish our socket descriptor.
+ */
+Parse Value Socket("CLOSE", tcp) With rc .
+If rc ^= 0 Then Do
+    Say "READ_TCP:" tcperror()
+    Return
+    End  /*  If  ..  Do  */
+Say "READ_TCP: Closed" tcp "at" Time()
+ 
+Return
+ 
+ 
+ 
+/* ------------------------------------------------------------ READ_UDP
+ * Read packets as UDP datagrams.
+ */
+READ_UDP: Procedure Expose ticket.
+Parse Arg udp
+ 
+Parse Value Socket("RECVFROM", udp, 512) With rc afam sock cipa bc pack
+If rc ^= 0 Then Do
+    Say "READ_UDP:" tcperror()
+    Return
+    End  /*  If  ..  Do  */
+If bc < 1 Then Return
+Say "READ_UDP: client" afam sock cipa
+ 
+Say "READ_UDP: client's IP address is" cipa
+Parse Value Socket("RESOLVE", cipa) With rc RemoteAddress RemoteHost .
+If rc ^= 0 Then Do
+    Say "READ_UDP:" tcperror()
+    Return
+    End  /*  If  ..  Do  */
+Say "READ_UDP: remote host looks like" RemoteHost
+ 
+    Parse Var pack ver +1 .
+    Say "READ_UDP: Protocol version" ver
+    Select  /*  ver  */
+        When ver = 'A' Then rs = reva(pack)
+        When ver = 'B' Then rs = revb(pack)
+        Otherwise           rs = "unknown protocol version" ver
+        End  /*  Select  ver  */
+ 
+    If rs = "" Then rs = '00'x
+               Else Say "READ_UDP: reply" rs
+/*  bc = Socket('SendTo', udp, rs, 0, client)
+    If bc = "-1" Then Do
+        Say "RXSOCKET subfunction SENDTO returned error" errno
+        Leave
+        End                                                           */
+ 
+Return
+ 
+ 
+ 
+/* ---------------------------------------------------------------- REVA
+ *  Handle a Message Send Protocol "revision A" packet.
+ */
+REVA: Procedure Expose RemoteHost
+Parse Arg data
+'PIPE VAR REMOTEHOST | XLATE LOWER | VAR REMOTEHOST'
+ 
+Parse Var data ver +1 data
+Parse Var data user '00'x data; Upper user
+Parse Var data term '00'x data
+Parse Var data text '00'x data
+Parse Value Diagrc(08,'MSGNOH' user "From" ,
+    RemoteHost || ":" text) With 1 rc 10 . 17 rs '15'x .
+Say "REVA: leftover data:" data
+ 
+Return rs
+ 
+ 
+ 
+/* ---------------------------------------------------------------- REVB
+ *  Handle a Message Send Protocol "revision B" packet.
+ */
+REVB: Procedure Expose RemoteHost ticket.
+Parse Arg data
+'PIPE VAR REMOTEHOST | XLATE LOWER | VAR REMOTEHOST'
+ 
+Parse Var data +1 data          /* skip past protocol version byte */
+Parse Var data LocalUser '00'x data; Upper LocalUser
+Parse Var data LocalTerminal '00'x data         /* not useable */
+Parse Var data MessageText '00'x data
+Parse Var data RemoteUser '00'x data
+Parse Var data RemoteTerminal '00'x data        /* not used */
+Parse Var data ticket '00'x data
+Parse Var data secure '00'x data
+/* remainder of packet is ignored */
+ 
+If ticket.LocalUser = ticket Then Return '-' || "DUP_OF" ticket
+from = "From" RemoteHost || "(" || RemoteUser || "):"
+ 
+Parse Value Diagrc(08,'QUERY USER' LocalUser) With ,
+        1 rc 10 . 17 rs '15'x .
+If rc ^= 0 Then Return '-' || rs
+/*  If LocalUser = '*' Then LocalUser = "ALL"  */
+ 
+Do While MessageText ^= ""
+    Parse Var MessageText text '25'x MessageText
+    Parse Var text text '0D'x .
+    Parse Value Diagrc(08,'MSGNOH' LocalUser from text) With ,
+        1 rc 10 . 17 rs '15'x .
+    If rc = 1 | rc = -1 Then
+    Parse Value Diagrc(08,'MSG' LocalUser from text) With ,
+        1 rc 10 . 17 rs '15'x .
+    If rc = 0 Then ticket.LocalUser = ticket
+              Else Return '-' || rs
+    End  /*  Do  While  */
+ 
+Return ""
+ 

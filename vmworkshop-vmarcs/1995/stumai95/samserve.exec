@@ -1,0 +1,354 @@
+/* Service machine waits for job listings from  VMSECURE attempts to
+   reset MVS passwords in synch with VM password updates.
+   Will eventually also process student account requests to prepare
+   file for batch creation of those accounts. */
+ 
+Trace All
+'CP SPOOL CONSOLE MAINT START'          /* for a while */
+'ACCESS 492 B'                          /* make sure of disks */
+ 
+/* initialize */
+quit_flag= 'NO'
+create_flag= 1                          /* assume all jobs ok */
+message_flag= 0                         /* reset until new file */
+verify_flag= 0                          /* reset until new file */
+inact_flag= 0                           /* reset until new file */
+sam5_flag= 0                            /* SET JOB FLAGS */
+sam6_flag= 0
+vercount= 0                             /* count verify files */
+/*** if SAMSERVE is restarted between 12:00AM and 12:05AM the filename
+     for submitting the data will not be correct ***/
+subfname= Delstr(Date(O),3,1)           /* set submit fn at startup */
+subfname= 'ST'Delstr(subfname,5,1)
+/* use to create duplicate userid characters */
+counter= '1 2 3 4 5 6 7 8 9 A B C D E F G H I J K L M N O P Q R S',
+'T U V W X Y Z'
+ 
+/* WAKEUP for RDR files or SMSG */
+'WAKEUP AT 00:15:00 ( RDR SMSG CONS'
+ 
+Do while quit_flag^='YES'               /* governing loop */
+  Select
+ 
+    When rc=1 then do                   /* SMSG processing */
+ 
+      /* GET SMSG DATA SENT from ULINFO userid */
+      /* PROCESS 2: FOR STUDENT ACCOUNT REQUEST SETUP */
+      'ACCESS 491 C'                    /* make sure of disks */
+      'CP LINK * 192 192 RR'            /* relink 192 */
+      'ACCESS 192 D'
+      srecord= 'NONE'                   /* reset variables */
+      rrecord= 'NONE'
+      msgcode= 0
+      dutotal= 0
+      rutotal= 0
+      rfname= Delstr(Date(O),3,1)       /* reset request fn */
+      rfname= 'ST'Delstr(rfname,5,1)
+      Parse Pull flag aisuser userdata  /* get SMSG data */
+      /* VERIFY is AIS user and type of SMSG request */
+      Parse var userdata checkreq restreq
+      If Substr(aisuser,1,5)='S7C4E',
+         | aisuser='PDLEWI01',          /* special test cases */
+         | aisuser='TEST1111',
+         | aisuser='TEST2222',
+         | aisuser='TEST2222' then
+      If checkreq='REQID' then do
+        Parse var restreq  msgssn 11 msgdate 18 msgid .
+        'PIPE < STUDBASE MASTER D',
+        '| FIND 'msgssn||,              /* for ssn */
+        '| VAR MRECORD'                 /* read record */
+        Parse var mrecord master 20 muserid .
+        msgcode= 'REQID 'muserid        /* requested id info */
+        'CP SMSG 'aisuser msgcode       /* send response back */
+        End                             /* end userid request */
+      Else Do                           /* regular request */
+        Parse var userdata rssn 11 tcode 13 rpin 20 ruserid 29 rlast ,
+        44 rfirst 59 rinitial
+        'PIPE < STUDBASE MASTER D ',    /* read database */
+        '| FIND 'rssn||,                /* for ssn */
+        '| VAR SRECORD'                 /* read reacord */
+        Parse var srecord sssn 11 scode 13 sdate 20 suserid 29 sLAST ,
+        44 sfirst 59 sinitial
+ 
+        If srecord='NONE' | srecord='SRECORD' then do /* user is new? */
+          'PIPE < 'rfname' REQUEST B ', /* check requests for SSN */
+          '| FIND 'rssn||,              /* for ssn */
+          '| VAR RRECORD'               /* read reacord */
+          /* user not yet requested */
+          If rrecord='NONE' | rrecord='RRECORD' then do
+            /* count occurrences of userid string */
+            rusertry= Substr(ruserid,1,7) /* drop last digit */
+            'PIPE < STUDBASE MASTER D ',  /* read database */
+            '| APPEND < 'rfname' REQUEST * ',/* read requests */
+            '| LOCATE 20-26 /'rusertry'/',/* get userids */
+            '| SPECS 27 1 ',            /* get id characters used */
+            '| JOIN *',                 /* join into 1 string */
+            '| VAR USERUSED'            /* put in variable to test */
+            /* determine next appropriate userid identfier character */
+            Do idcount= 1 to 36         /* check all codes */
+              nextchar= Word(counter,idcount) /* get next character */
+              chartest= Pos(nextchar,userused) /* already used? */
+              If chartest=0 then do     /* build new userid */
+                rusertry= rusertry||nextchar
+                idcount= 36             /* exit counted loop */
+                End
+              End
+            /* build request userid */
+            userdata= Overlay(rusertry,userdata,20)
+            'PIPE VAR USERDATA' ,       /* use new record */
+            '| >> 'rfname' REQUEST B'   /* append to request file */
+            msgcode= '23 'rusertry      /* info for request ok */
+            End                         /* end new user process do */
+          Else do                       /* userid already requested */
+            Parse var rrecord rdssn 11 rdcode 13 rdpin 20 rduserid ,
+            29 rdlast 44 rdfirst 59 rdinitial
+            msgcode= '24 'rduserid
+            End
+          End                           /* end no active ssn do */
+        /* user found in database */
+        Else
+          If scode='H' then do          /* user on HOLD? */
+            /* make request userid match existing held userid */
+            userdata= Overlay(suserid,userdata,20)
+            'PIPE VAR USERDATA' ,       /* use new request data */
+            '| >> 'rfname' REQUEST B'   /* append to request file */
+            msgcode= '22 'suserid       /* INFO FOR HELD MESSAGE */
+            End
+          Else msgcode= '21 'suserid    /* info for ACTIVE message */
+ 
+        'CP SMSG 'aisuser msgcode       /* send response back */
+ 
+        End                             /* end SMSG user ok do */
+ 
+      End                               /* end SMSG do */
+ 
+    When rc=2 then do                   /* Timer interrupt */
+ 
+      /* It will process the jobs required to update the MVS
+         datasets for request files */
+ 
+      'ACCESS 491 C'                    /* make sure of disks */
+      'ACCESS 192 D'
+ 
+      /* initialize */
+      newpass= ''
+      create_flag= 1                    /* assume all jobs ok */
+      message_flag= 0                   /* reset until new file */
+      verify_flag= 0                    /* reset until new file */
+      inact_flag= 0                     /* reset until new file */
+      vercount= 0                       /* count verify jobs */
+      /* reset TAB files for new set */
+      'ERASE PROD OLDEVER B'
+      'ERASE PROD OLDEMSG B'
+      'ERASE PROD OLDEINA B'
+      'RENAME PROD EMAILVER B PROD OLDEVER B'
+      'RENAME PROD EMAILMSG B PROD OLDEMSG B'
+      'RENAME PROD EMAILINA B PROD OLDEINA B'
+ 
+      /* modify SAMGEN JCL fields: jobname,pw */
+      'EXECIO 1 DISKR SAMGEN DATA A 1 (VAR JOBDATA ' /* get jobname */
+      Parse var jobdata jobname jobrest
+      jobnum= Right(Substr(jobname,7,2)+1,2,0)
+      /* put jobname back together with new number */
+      jobname= Substr(jobname,1,6)||jobnum
+      /* record new jobname in data file */
+      'EXECIO 1 DISKW SAMGEN DATA A 1 (VAR JOBNAME FINIS'
+ 
+      /* create userdata for job, on Saturday change pw */
+      If Date(W)='Saturday' then do
+        /* GENERATE RANDOM 8 CHARACTER string */
+        alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        newpw= ''
+        Do I = 1 to 8 by 1              /* RANDOM LETTER LOOP */
+          newpw= newpw || SUBSTR(alpha,Random(1,26),1)
+          End                           /* END RANDOM LETTER LOOP */
+        newpass= newpw                  /* set newpass parameter */
+        End
+      'EXECIO 1 DISKR SAMGEN DATA A 2 (VAR PCARD '
+      Parse var pcard pstring userdata
+      If newpass^='' then do            /* rebuild the card */
+        userdata= Strip(userdata)'/'newpass
+        pcard= pstring newpass
+        /* record new in data file */
+        'EXECIO 1 DISKW SAMGEN DATA A 2 (VAR PCARD FINIS'
+        End
+ 
+      /* prepare for punch */
+      'CP SPOOL PUN RSCS CONT'
+      'CP TAG DEV 00D ULKYMVS2 JOB'
+      /* submit request file update */
+      sam5_flag= 0                      /* reSET JOB FLAG */
+      Call SUBJCL 'SAMD050 'subfname' REQUEST B'
+      /* submit master file update */
+      sam6_flag= 0                      /* reSET JOB FLAG */
+      If newpass^='' then               /* was password updated */
+        userdata= Substr(userdata,10,8) /* no pw update on second job */
+      Call SUBJCL 'SAMD060 STUDBASE MASTER D'
+ 
+      /* if there is no request file, reset old file names.  This
+         prevent VMSERV02 filename query from getting an old file */
+      'STATE 'subfname' REQUEST B'
+      If rc^=0 then 'RENAME * REQUEST B = REQUESTD ='
+ 
+      creatname= subfname               /* save old name for creation */
+      subfname= Delstr(Date(O),3,1)     /* reset subfn for new day */
+      subfname= 'ST'Delstr(subfname,5,1)
+ 
+      'CP SLEEP 1 MIN'                  /* don't wake right back up */
+ 
+      End                               /* end timer do */
+ 
+    When rc=4 then do                   /* RDR file received */
+ 
+      /* This code will process job listings in the reader and verify
+         that the VMXACF2,SAMD jobs have condition code of 0.  If the
+         condition code is not 0 the file will be forwarded to ASKSAMIT
+         for review and a note generated. */
+ 
+      /* initialize variables */
+ 
+      /* read job listing rdr info into stem */
+      'PIPE CP QUERY RDR * NOHOLD ALL',
+      '| STEM RDRFILES. '
+ 
+      'CP SPOOL RDR KEEP'               /* preserve files */
+      Do rdrcnt=  2 to rdrfiles.0       /* skip header line */
+        cond0000= 0                     /* reset for each file */
+        /* get spoolid and jobname data for next pipe */
+        Parse var rdrfiles.rdrcnt . spoolid . . . . status . . qname ,
+        qtype .
+ 
+        Select                            /* select file processing */
+ 
+        /* VMSECURE reset jobs */
+        When Substr(qname,1,6)='VMXACF' then do
+          /* PIPE to count occurences of COND 0000 into variable */
+          'PIPE READER FILE 'spoolid ,
+          '| LOCATE /IEF142I 'qname' ACFB01 STEP01 - STEP WAS EXECUTED',
+          '- COND CODE 0000/',
+          '| COUNT LINES ',
+          '| VAR COND0000 '
+          /* if condcode 0000 not found send file for review */
+          If cond0000=0 then do
+            /* send note about error also */
+            'MAIL ASKSAMIT ( NOLOG NOEDIT NOPROMPT FILE BADRESET',
+            'LISTING A SUBJECT Bad MVS Password Reset Job '
+            'CP TRANSFER RDR 'spoolid' MAINT    ' /* send for review */
+            End
+          End                           /* end VMXACF listings do */
+ 
+        /* SAMGEN jobs */
+        When Substr(qname,1,5)='SAMD0' then do
+          If Substr(qname,6,1)=5 then   /* DETERMINE WHICH JOB */
+            jobstep= 'SAM0501'
+          If Substr(qname,6,1)=6 then   /* DETERMINE WHICH JOB */
+            jobstep= 'SAM0601'
+          /* PIPE to count occurences of COND 0000 into variable */
+          'PIPE READER FILE 'spoolid ,
+          '| LOCATE /IEF142I 'qname jobstep' - STEP WAS EXECUTED',
+          '- COND CODE 0000/',
+          '| COUNT LINES ',
+          '| VAR COND0000 '
+          /* if condcode 0000 not found send file for review */
+          If cond0000=0 then do
+            /* send note about error also */
+            'MAIL ASKSAMIT ( NOLOG NOEDIT NOPROMPT FILE BADUPDT',
+            'LISTING A SUBJECT 'qname' Update Job Failed'
+            'CP TRANSFER RDR 'spoolid' ASKSAMIT' /* send for review */
+            create_flag= 0              /* both jobs must run */
+            /* create "no create" message file from request file */
+            'PIPE < 'subfname' REQUEST B',
+            '| SPECS 1-9 1 /'Substr(subfname,3)'/ nextword',
+            '/31/ nextword',
+            '| > PROD EMAILMSG B'
+            message_flag= 1             /* pretend we received file */
+            End                         /* end bad job cc if */
+          Else do                       /* update job flags */
+            If jobstep='SAM0501' then sam5_flag= 1
+            If jobstep='SAM0601' then sam6_flag= 1
+            End
+          End                           /* end SAMGEN listings do */
+ 
+        /* receive output from verify jobs */
+        When Substr(qname,1,5)='SAMD9' then do
+          /* receive to replace existing versions */
+          'PIPE CMS EXEC RECEIVE 'spoolid' = = B ( REPL NOPROMPT',
+          '| VAR RECDATA'
+          Parse var recdata . recfn recft recfm .
+          'CP PURGE RDR 'spoolid        /* don't let KEEP save file */
+          If recfn='PROD' & recft='EMAILVER' then do
+            vercount= vercount+1        /* update count */
+            verify_flag= 1
+            End
+          If recfn='PROD' & recft='EMAILMSG' then do
+            vercount= vercount+1        /* update count */
+            message_flag= 1
+            End
+          If recfn='PROD' & recft='EMAILINA' then do
+            vercount= vercount+1        /* update count */
+            inact_flag= 1
+            End
+          End
+ 
+        Otherwise                       /* put odd files on hold */
+         'CP CHANGE RDR 'spoolid' HOLD' /* no wakeup for held files */
+ 
+        End                             /* end rdr file select */
+ 
+        End                             /* end rdr q do */
+ 
+      'CP SPOOL RDR NOKEEP'             /* reset rdr */
+      /* is it time to kick off creation machine */
+say      create_flag   verify_flag   message_flag inact_flag
+      If create_flag & verify_flag & message_flag & inact_flag then do
+        'CP SMSG VMSERV02 CREATE 'creatname
+        verify_flag= 0                  /* reset flags */
+        message_flag= 0
+        inact_flag= 0
+        sam5_flag= 0
+        sam6_flag= 0
+        End
+ 
+      End                               /* end rdr do */
+ 
+    When rc=6 then do                   /* Console interrupt */
+ 
+      /* used to exit exec when loggin on */
+      quit_flag= 'YES'
+ 
+      End                               /* end console do */
+ 
+    Otherwise Nop
+    End                                 /* end rc select processing */
+ 
+  If quit_flag^='YES' then              /* reset WAKEUP */
+    'WAKEUP AT 00:15:00 ( RDR SMSG CONS'
+ 
+  End                                   /* end governing loop */
+ 
+EXIT:
+Exit
+ 
+subjcl:
+  /* subroutine to build and submit JCL for request and master file
+     updates (called by timer process (RC=2)) */
+ 
+  Arg jobid datafid
+  /* fix jobname */
+  jobcode= Substr(jobid,6,1)
+  jobname= Overlay(jobcode,jobname,6,1)
+ 
+  /* create JCL for SAMGEN */
+  'PIPE < 'jobid' JCL D',
+  '| REXX PUTDATA 'datafid ,
+  '| LITERAL /*ROUTE PRINT ULKYVM.VMSERV01', /* add job card records */
+  '| LITERAL //*PASSWORD 'userdata,
+  '| LITERAL //*LOGONID VMSERV01',
+  '| LITERAL //             REGION=1024K',
+  '| LITERAL //             TIME=(,5),MSGLEVEL=(1,1),',
+  '| LITERAL //             CLASS=4,',
+  '| LITERAL //'jobname' JOB (ACF12399,MAINT),''LOUIS.W'',',
+  '| PUNCH'
+  'CP SPOOL PUN CLOSE NOCONT'
+  Say 'End of JOB card build'             /* exit message */
+  Return
