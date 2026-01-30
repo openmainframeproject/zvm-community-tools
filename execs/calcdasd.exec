@@ -1,90 +1,237 @@
 /*-------------------------------------------------------------------*/
 /* CALCDASD EXEC - compute disk space from output of CP QUERY DASD   */
 /* Licensed under the Apache License, Version 2.0                    */
-/* Syntax: CALCDASD                                                  */
 /* https://github.com/openmainframeproject/zvm-community-tools/execs */
 /*-------------------------------------------------------------------*/
 address command
-parse upper arg arg1
-if arg1 = '?' | arg1 = "-H" then do
-  say "Name:  CALCDASD EXEC - compute total disk space"
-  say "Usage: CALCDASD"
-  exit 1
+free = 0                             /* check free space */
+verbose = 0                          /* verbose - list rdevs */
+parse upper arg arg1 rest
+if arg1 = '?' | arg1 = "-H" then
+  call help
+else if arg1 = "-V" then             /* verbose flag included */
+  verbose = 1
+else if arg1 = "-F" then             /* free flag included */
+  free = 1
+else if arg1 = "-A" then do          /* All - verbose and free */
+  verbose = 1
+  free = 1
 end
- 
-/* set counters for each sized disk */
-m1s = 0                             /* num 3390-1s    (1113 cyls)    */
-m2s = 0                             /* num 3390-2s    (2226 cyls)    */
-m3s = 0                             /* num 3390-3s    (3339 cyls)    */
-m9s = 0                             /* num 3390-9s   (10017 cyls)    */
-m27s = 0                            /* num 3390-27s  (30051 cyls)    */
-m32Ks = 0                           /* num 3390-32Ks (32760 cyls)    */
-m54s = 0                            /* num 3390-54s  (60102 cyls)    */
-m64Ks = 0                           /* num 3390-64Ks (65520 cyls)    */
-mAs = 0                             /* num 3390 "model As"           */
-CPcyls = 0                          /* total CP-Owned cylinders      */
-SYScyls = 0                         /* total SYSTEM cylinders        */
- 
-'PIPE CP QUERY DASD | specs w2-5 | stem dasd.' /* get Q DASD output  */
+else do
+  say "ERROR: Unrecognized flag:" arg1
+  call help
+end
+call setGlobals                      /* set global variables */
+if free = 0 | verbose = 1 then       /* process attached DASD */
+  call queryDASD
+if free = 1 then                     /* process free DASD */
+  call freeDASD
+exit                                 /* CALCDASD EXEC */
+
+/*-------------------------------------------------------------------*/
+setGlobals: procedure,
+  expose m1s m2s m3s m9s m27s m32Ks m54s m64Ks mAs CPcyls Scyls free,
+  verbose m1lst m2lst m3lst m9lst m27lst m32Klst m54lst m64Klst mAlst
+/* Set or reset global variables */
+/*-------------------------------------------------------------------*/
+CPcyls = 0                          /* total CP-Owned cylinders */
+m1s = 0                             /* num 3390-1s    (1113 cyls) */
+m2s = 0                             /* num 3390-2s    (2226 cyls) */
+m3s = 0                             /* num 3390-3s    (3339 cyls) */
+m9s = 0                             /* num 3390-9s   (10017 cyls) */
+m27s = 0                            /* num 3390-27s  (30051 cyls) */
+m32Ks = 0                           /* num 3390-32Ks (32760 cyls) */
+m54s = 0                            /* num 3390-54s  (60102 cyls) */
+m64Ks = 0                           /* num 3390-64Ks (65520 cyls) */
+mAs = 0                             /* num 3390 "model As" */
+m1lst = ""                          /* 3390-1s list */
+m2lst = ""                          /* 3390-2s list */
+m3lst = ""                          /* 3390-3s list */
+m9lst = ""                          /* 3390-9s list */
+m27lst = ""                         /* 3390-27s list */
+m32Klst = ""                        /* 3390-32s list */
+m54lst = ""                         /* 3390-54s list */
+m64Klst = ""                        /* 3390-64s list */
+mAlst = ""                          /* 3390 model A list */
+Scyls = 0                         /* total SYSTEM cylinders */
+return                              /* setGlobals() */
+
+/*-------------------------------------------------------------------*/
+queryDASD: procedure,
+  expose m1s m2s m3s m9s m27s m32Ks m54s m64Ks mAs CPcyls Scyls free,
+  verbose m1lst m2lst m3lst m9lst m27lst m32Klst m54lst m64Klst mAlst
+/* procedure to report on DASD using CP QUERY DASD */
+/*-------------------------------------------------------------------*/
+'PIPE CP QUERY DASD | specs w2-5 | stem dasd.' /* get Q DASD output */
 if (rc <> 0) then do
   say 'Error: CP QUERY DASD returned' rc
   exit 1
 end
-do i = 1 To dasd.0                  /* loop through all DASD         */
-  call processDASD dasd.i           /* process one                   */
+do i = 1 To dasd.0                  /* loop through all DASD */
+  call processDASD dasd.i           /* process one */
 end
-call printOutput                    /* output procedure              */
-exit
- 
+call printOutput "attached"         /* output procedure */
+return                              /* queryDASD() */
+
+/*-------------------------------------------------------------------*/
+freeDASD: procedure,
+  expose m1s m2s m3s m9s m27s m32Ks m54s m64Ks mAs CPcyls Scyls free,
+  verbose m1lst m2lst m3lst m9lst m27lst m32Klst m54lst m64Klst mAlst
+/* procedure to drill down into DASD with CP QUERY DASD FREE */
+/*-------------------------------------------------------------------*/
+call setGlobals                      /* set global variables */
+'PIPE CP QUERY DASD FREE | stem dasd.'
+if (rc <> 0) then do
+  say 'Error: CP QUERY DASD FREE returned' rc
+  exit 1
+end
+do i = 1 to dasd.0                  /* loop through all DASD */
+  call processFreeLine dasd.i
+end
+call printOutput "free"             /* output procedure */
+return                              /* freeDASD() */
+
+/*-------------------------------------------------------------------*/
+processFreeLine: procedure,
+  expose m1s m2s m3s m9s m27s m32Ks m54s m64Ks mAs CPcyls Scyls free,
+  verbose m1lst m2lst m3lst m9lst m27lst m32Klst m54lst m64Klst mAlst
+/* Process one line of QUERY DASD FREE output */
+/*-------------------------------------------------------------------*/
+parse arg oneLine                    /* get rdev, type and volser */
+do i = 0 to 3                        /* max 4 DASD/line */
+  nextIndex = i * 4 + 2              /* get next rdev */
+  nextRdev = WORD(oneLine, nextIndex)
+  nextIndex = nextIndex + 1         /* get next volser */
+  nextVolser = WORD(oneLine, nextIndex)
+  if C2X(nextVolser) = "000000000000" then
+    nextVolser = "none"
+  /* say "nextRdev:" nextRdev "nextVolser:'"||nextVolser||"'" */
+  if nextRdev = "" then              /* all done */
+    return
+  'PIPE CP QUERY DASD DETAILS' nextRdev '| stem details.'
+  if (rc <> 0) then do
+    say 'Unexpected return code from QUERY DASD DETAILS' nextRdev '=' rc
+    return
+  end
+  /* say "details.1:" details.1 */
+  call processDetails "FREE" details.1 /* parse first line of output */
+end
+return                               /* processFreeLine() */
+
 /*-------------------------------------------------------------------*/
 processDASD: procedure,
-  expose m1s m2s m3s m6s m9s m27s m32Ks m54s m64Ks mAs CPcyls SYScyls
-/* procedure to drill down into DASD with CP QUERY DASD DETAILS      */
+  expose m1s m2s m3s m9s m27s m32Ks m54s m64Ks mAs CPcyls Scyls free,
+  verbose m1lst m2lst m3lst m9lst m27lst m32Klst m54lst m64Klst mAlst
+/* procedure to drill down into DASD with CP QUERY DASD DETAILS */
 /*-------------------------------------------------------------------*/
-parse arg rdev cp type volser        /* get rdev, type and volser    */
-if (volser = 0) then return          /* probably PAV alias - skip    */
+parse arg rdev cp type volser        /* get rdev, type and volser */
+if (volser = 0) then return          /* probably PAV alias - skip */
 'PIPE CP QUERY DASD DETAILS' rdev '| stem details.'
 if (rc <> 0) then do
   say 'Unexpected return code from QUERY DASD DETAILS' rdev '=' rc
   return
 end
-call processLine1 type details.1    /* parse first line of output    */
-return
- 
-/* procedure to parse first line of CP QUERY DASD DETAILS output     */
-processLine1: procedure,
-  expose m1s m2s m3s m6s m9s m27s m32Ks m54s m64Ks mAs CPcyls SYScyls
-parse arg type rdev . . cuType . . devType . . volser . . cyls
+call processDetails type details.1     /* parse first line of output */
+return                               /* processDASD() */
+
+/*-------------------------------------------------------------------*/
+/* procedure to parse first line of CP QUERY DASD DETAILS output */
+processDetails: procedure,
+  expose m1s m2s m3s m9s m27s m32Ks m54s m64Ks mAs CPcyls Scyls,
+  verbose m1lst m2lst m3lst m9lst m27lst m32Klst m54lst m64Klst mAlst
+/* Sample line 1 of DASD with no volser: */
+/* CB01  CUTYPE = 2107-E8, DEVTYPE = 3390-0A, VOLSER =, CYLS = 3339 */
+/*-------------------------------------------------------------------*/
+parse arg type rdev . . cuType . . devType "VOLSER =" volSer,
+  ", CYLS =" cyls rest
+/* say "type:" type "rdev:" rdev "volSer:" volSer "cyls:" cyls */
 if (SUBSTR(devType,1,4) <> '3390') then do
   say 'Warning - device' rdev 'type' devType 'is not a 3390 - skipping'
   return
 end
-if (type = "OWNED") then            /* volume is CP-owned            */
+if (type = "OWNED") then            /* volume is CP-owned */
   CPcyls = CPcyls + cyls
-else                                /* assume vol is SYSTEM (perm)   */
-  SYScyls = SYScyls + cyls
+else                                /* assume vol is SYSTEM (perm) */
+  Scyls = Scyls + cyls
 select                              /* get model type by # clyinders */
-  When (cyls = 1113) then m1s = m1s + 1
-  When (cyls = 2226) then m2s = m2s + 1
-  When (cyls = 3339) then m3s = m3s + 1
-  When (cyls = 10017) then m9s = m9s + 1
-  When (cyls = 30051) then m27s = m27s + 1
-  When (cyls = 32760) then m32Ks = m32Ks + 1
-  When (cyls = 60102) then m54s = m54s + 1
-  When (cyls = 65520) then m64Ks = m64Ks + 1
-  Otherwise do                      /* not a standard size           */
+  when (cyls = 1113) then do
+    m1s = m1s + 1
+    if verbose = 1 then             /* add rdev to list */
+      m1lst = m1lst rdev
+  end
+  when (cyls = 2226) then do
+    m2s = m2s + 1
+    if verbose = 1 then             /* add rdev to list */
+      m2lst = m2lst rdev
+  end
+  when (cyls = 3339) then do
+    m3s = m3s + 1
+    if verbose = 1 then             /* add rdev to list */
+      m3lst = m3lst rdev
+  end
+  when (cyls = 10017) then do
+    m9s = m9s + 1
+    if verbose = 1 then             /* add rdev to list */
+      m9lst = m9lst rdev
+  end
+  when (cyls = 30051) then do
+    m27s = m27s + 1
+    if verbose = 1 then             /* add rdev to list */
+      m27lst = m27lst rdev
+  end
+  when (cyls = 32760) then do
+    m32Ks = m32Ks + 1
+    if verbose = 1 then             /* add rdev to list */
+      m32Klst = m32Klst rdev
+  end
+  when (cyls = 60102) then do
+    m54s = m54s + 1
+    if verbose = 1 then             /* add rdev to list */
+      m54lst = m54lst rdev
+  end
+  when (cyls = 65520) then do
+    m64Ks = m64Ks + 1
+    if verbose = 1 then             /* add rdev to list */
+      m64Klst = m64Klst rdev
+  end
+  Otherwise do                      /* not a standard size */
     mAs = mAs + 1
+    if verbose = 1 then             /* add rdev to list */
+      mAlst = mAlst rdev
     if (cyls < 65520) then
       say 'Warning - non standard size:' rdev 'has' cyls 'cylinders'
   end
 end
-return
- 
+return                               /* processDetails() */
+
+/*-------------------------------------------------------------------*/
+print1lst: procedure
+/* print 1 line of an rdev list              */
+/*-------------------------------------------------------------------*/
+parse arg header rdevs
+rdevsPerRow = 12                     /* number rdevs per row */
+header = JUSTIFY(header, 9)||":"     /* pad header with spaces */
+numRdevs = WORDS(rdevs)
+if numRdevs <= rdevsPerRow then
+  say header||rdevs
+else do          /* Print first 8 with header, then continue without */
+  say header SUBWORD(rdevs, 1, rdevsPerRow)
+  do i = rdevsPerRow+1 to numRdevs by rdevsPerRow
+    say "          " SUBWORD(rdevs, i, rdevsPerRow)
+  end
+  say ""                             /* leave room */
+end
+return                               /* print1lst() */
+
 /*-------------------------------------------------------------------*/
 printOutput: procedure,
-  expose m1s m2s m3s m6s m9s m27s m32Ks m54s m64Ks mAs CPcyls SYScyls
-/* procedure to print report                                         */
+  expose m1s m2s m3s m9s m27s m32Ks m54s m64Ks mAs CPcyls Scyls,
+  verbose m1lst m2lst m3lst m9lst m27lst m32Klst m54lst m64Klst mAlst
+/* print report                              */
 /*-------------------------------------------------------------------*/
+parse arg DASDtype
+say COPIES("=", 80)                  /* delimiter line */
+say DASDtype "DASD:"
 say 'Number of 3390-1s    (1113 cylinders):' m1s
 say 'Number of 3390-2s    (2226 cylinders):' m2s
 say 'Number of 3390-3s    (3339 cylinders):' m3s
@@ -95,11 +242,38 @@ say 'Number of 3390-54s  (60102 cylinders):' m54s
 say 'Number of 3390-64Ks (65520 cylinders):' m64Ks
 say 'Number of 3390-As       (other sizes):' mAs
 say ''
+if verbose = 1 then do               /* show rdev lists */
+  call print1lst "3390-1s" m1lst
+  call print1lst "3390-2s" m2lst
+  call print1lst "3390-3s" m3lst
+  call print1lst "3390-9s" m9lst
+  call print1lst "3390-27s" m27lst
+  call print1lst "3390-32Ks" m32Klst
+  call print1lst "3390-54s" m54lst
+  call print1lst "3390-64Ks" m64Klst
+  call print1lst "3390-As" mAlst
+  say ""
+end
 CPcylsGB = CPcyls * 849960 / 1024 / 1024 / 1024
-SYScylsGB = SYScyls * 849960 / 1024 / 1024 / 1024
-say 'Total CP-Owned cylinders:' CPcyls '('||FORMAT(CPcylsGB,,2) 'GiB)'
-say 'Total SYSTEM   cylinders:' SYScyls '('||FORMAT(SYScylsGB,,2) 'GiB)'
-say ''
+ScylsGB = Scyls * 849960 / 1024 / 1024 / 1024
+if DASDtype = "attached" then do
+  say "Total CP-Owned cylinders:" CPcyls "("||FORMAT(CPcylsGB,,2) "GiB)"
+  say "Total SYSTEM   cylinders:" Scyls "("||FORMAT(ScylsGB,,2) "GiB)"
+end
+else                                 /* assume FREE */
+  say "Total FREE     cylinders:" Scyls "("||FORMAT(ScylsGB,,2) "GiB)"
+say COPIES("=", 80)                  /* delimiter line */
 return
- 
+
+/*-------------------------------------------------------------------*/
+help:
+/* Give help */
+/*-------------------------------------------------------------------*/
+  say "Name:  CALCDASD EXEC - compute total space on DASD"
+  say "Usage: CALCDASD {FLAGS}"
+  say "Where: FLAGS can be one of:"
+  say "       -A: All     Report on all information"
+  say "       -F: Free    Report on FREE DASD "
+  say "       -V: Verbose Include rdevs for each size DASD "
+  exit 1
 
