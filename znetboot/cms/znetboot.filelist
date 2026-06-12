@@ -1,0 +1,45 @@
+* Copyright © 2016, 2017, 2018, Richard M. Troth, all rights reserved.   <plaintext>                                                                                                                               "width holder" because this is a wide file *
+*
+*         Name: ZNETBOOT FILELIST
+*         Date: 2015-Dec and following
+*               2017-Oct-21 (Sat) for RPH
+*               This is the package definition for ZNETBOOT,
+*               a one-shot command utility for booting Linux on z/VM.
+*
+      ZNETBOOT FILELIST *  -- this file
+      ZNETBOOT README   *  -- do what the name says, read it
+      ZNETBOOT LICENSE  *  -- simplified legal stuff
+      ZNETBOOT MD       *  -- "markdown" doc
+*
+      ZNETBOOT EXEC     *  -- the 'znetboot' command
+      ZNETBOOT HELPCMS  *  -- brief help
+      CURL     REXX     *  -- web retrieval helper stage
+*
+* boot params files for various Linux distributions
+      CLEFOS   ZNETBOOT *  -- example config for ClefOS installation
+      UBUNTU   ZNETBOOT *  -- example config for Ubuntu, requires z12
+      DEBIAN   ZNETBOOT *  -- example config for Debian installation
+      ALPINE   ZNETBOOT *  -- example config for Alpine installation
+      NORD     ZNETBOOT *  -- example config for NORD installation
+* Note: kernels requiring z12 exhibit 0BADCCCC abend when IPLed on z10
+*
+      CLEFONVM ZNETBOOT *  -- a demo specific to ClefOS, with documentation
+      CLEFONVM MD       *  -- markdown document for installing ClefOS via ZNETBOOT
+*
+* boot params files we would like to have
+*     SUSE     ZNETBOOT *  -- wanted, dead or alive
+*     OPENSUSE ZNETBOOT *  -- wanted, dead or alive
+*     CENTOS   ZNETBOOT *  -- wanted, dead or alive
+*     REDHAT   ZNETBOOT *  -- wanted, dead or alive
+*     GENTOO   ZNETBOOT *  -- wanted, dead or alive
+*     SLACK390 ZNETBOOT *  -- older release worked, not working now
+*     FEDORA   ZNETBOOT *  -- older release worked, not working now
+*
+* supplemental files
+      CURL     EXEC     *  -- to run 'curl' from the Ready prompt
+      WGET     REXX     *  -- 'wget' workalike web retrieval stage
+      WGET     EXEC     *  -- to run 'wget' from the Ready prompt
+      ZNETBOOT CMSMAKE  *  -- simple 'make' rules for [re]packaging these files
+* make -f znetboot archives
+*
+*

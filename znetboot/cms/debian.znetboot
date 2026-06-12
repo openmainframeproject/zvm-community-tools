@@ -1,0 +1,17 @@
+#                                                                                                                                                                                                                  "width holder" because this is a wide file #
+#         Name: DEBIAN ZNETBOOT
+#         Date: 2016-Jun-21 (Tue)
+#               2017-Oct-21 (Sat) for RPH
+#               This is the ZNETBOOT file for Debian Linux on z/VM.
+#               Put this file on your 191 A disk before booting.
+#
+
+# where to find the kernel and INITRD ...
+ZNETBOOT_KERNEL=http://ftp.nl.debian.org/debian/dists/testing/main/installer-s390x/current/images/generic/kernel.debian
+ZNETBOOT_INITRD=http://ftp.nl.debian.org/debian/dists/testing/main/installer-s390x/current/images/generic/initrd.debian
+#
+ZNETBOOT_BOOTPARMS=ro locale=C
+#DEBIAN_FRONTEND=text
+# the Debian installer will prompt you for additional parameters
+
+

@@ -1,0 +1,30 @@
+Copyright © 2015, 2016, 2017, Richard M. Troth, all rights reserved. <plaintext>                                                                                                                                                                               
+
+ ZNETBOOT makes it easy to bring up Linux on z/VM.
+ Just enter the command 'znetboot' from the CMS "Ready;" prompt.
+
+ ZNETBOOT is intended to reduce the number of manual steps required
+ to boot Linux on a VM/CMS system. It should make things much easier
+ for non-VM and non-mainframe users.
+
+ By default, ZNETBOOT reads a file with a filename matching the VMID
+ where you run it and a filetype of "ZNETBOOT". This file is nothing
+ but a Linux boot parameters file, with the addition of URLs for the
+ kernel and initial ramdisk. You can name a different file, so you
+ can have several ZNETBOOT files to choose from.
+
+ There is also a help file. Enter 'help cms znetboot' for that.
+
+ See ZNETBOOT LICENSE for intellectual property rights (IPR) and
+ related information. Capitalization and other indicia may be
+ obscured due to technical limitations of the supporting systems.
+
+ This package is also available via GitHub:
+
+      https://github.com/trothr/znetboot
+
+ If you have questions about this package, send e-mail to:
+
+      Rick Troth <rmt@casita.net>
+
+

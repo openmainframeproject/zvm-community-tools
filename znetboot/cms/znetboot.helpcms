@@ -1,0 +1,80 @@
+.cm
+.cm       Name: ZNETBOOT HELPCMS
+.cm       Date: 2015-Dec-27 (Sunday)
+.cm             2017-Oct-21 (Sat) for RPH
+.cm
+.cs 1 on
+.cm ¢|CMS ZNETBOOT¢%
+
+ Boot Linux from web-resident kernel.
+ Note: ZNETBOOT uses a CMS-resident config file.
+.cs 1 off
+
+.cs 2 on
+ Use 'znetboot' to boot Linux in your virtual machine (presently running CMS).
+
+ The syntax is:
+ +--------------+------------------------------------------------------+
+ |   znetboot   |   [filename]                                         |
+ +--------------+------------------------------------------------------+
+.cs 2 off
+
+.cs 3 on
+¢|Options:¢%
+
+  none - ZNETBOOT does not use command-line options
+         but does use a configuration file, <vmid> ZNETBOOT.
+
+.cs 3 off
+.cs 4 on
+¢|Example configuration:¢%
+
+  Filename: LTROTH3 ZNETBOOT
+  # the following are used by ZNETBOOT EXEC
+  ZNETBOOT_KERNEL=http://znetboot.casita.net/nord/image
+  ZNETBOOT_INITRD=http://znetboot.casita.net/nord/ramdisk.gz
+  # the following are used by the bootstrap and vary from Linux to Linux
+  NORD_HOSTNAME=mynord.mydomain.com
+  NORD_IPV4AD=192.168.1.64
+  NORD_IPV4GW=192.168.1.1
+  NORD_IPV6AD=1234:5678:abcd::390/64
+
+.cs 4 off
+.cs 5 on
+¢|Configuration parameters:¢%
+
+  ZNETBOOT_KERNEL=
+  This parameter indicates the URL where the kernel is found.
+
+  ZNETBOOT_INITRD=
+  This parameter indicates the URL where the memory-based
+  root filesystem is found. (initial RAM disk)
+
+  ZNETBOOT_TOFILE=
+  This parameter indicates a boot parameter which will be staged
+  to a n intermediate file to be read by the installer.
+
+  ZNETBOOT_PROGRESS=
+  This parameter indicates the interval of progress reporting.
+  If present, and a valid number, download progress will be reported.
+
+  All other parameters prefixed with "ZNETBOOT_" are ignored.
+
+  All parameters NOT prefixed with "ZNETBOOT_" are passed as-is
+  to the stacked boot parameter deck.
+
+.cs 5 off
+
+.cs 6 on
+¢|Return Codes:¢%
+
+ Return codes are set by CMS Pipelines and other support programs.
+.cs 6 off
+
+.cs 7 on
+See the following related topics:
+
+
+cms curl                CURL REXX, a CMS work-alike of the Unix/Linux 'curl' utility
+
+.cs 7 off

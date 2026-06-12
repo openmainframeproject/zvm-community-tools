@@ -1,0 +1,20 @@
+#                                                                                                                                                                                                                                                         #####
+#         Name: ALPINE ZNETBOOT
+#         Date: 2018-Mar-14 (Wed)
+#               This is the ZNETBOOT file for Alpine Linux on z/VM.
+#               Put this file on your 191 A disk before booting.
+#
+
+# where to find the kernel ...
+ZNETBOOT_KERNEL=http://flatglobe.org/alpine/prod/vmlinuz-vanilla
+ZNETBOOT_INITRD=http://flatglobe.org/alpine/prod/initramfs-vanilla
+ZNETBOOT_PROGRESS=1M
+
+dasd=0.0.04c0,0.0.05d1
+s390x_net=qeth_l2,0.0.0560,0.0.0561,0.0.0562
+ip=192.168.1.2::192.168.1.1:255.255.255.0:none:eth0:none:8.8.8.8
+# user could choose 1 of these 2 methods for SSH access
+ssh_pass=secret
+# ssh_key=https://github.com/tmh1999.keys
+alpine_repo=http://dl-cdn.alpinelinux.org/alpine/edge/main
+

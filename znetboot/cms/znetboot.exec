@@ -1,0 +1,192 @@
+/*
+ *        Name: ZNETBOOT EXEC
+ *        Date: 2014-Dec-10 (Wed) and following
+ *              2017-Oct-21 (Sat) for RPH
+ *
+ */
+
+/* set some needed variables to default values */
+baseurl = "http://znetboot.casita.net/znetboot"
+kfile = "image"
+rfile = "ramdisk.gz"
+check = "znetboot.exec curl.rexx"
+
+mycl = "I"
+raddr = "00C"
+paddr = "00D"
+bparm = ""
+naddr = ""
+
+/* get the VM ID we're running as as the default config file name */
+Parse Value Diag(08,'QUERY USERID') With vmid . node . '15'x .
+Parse Upper Arg args "(" . ")" .
+If args /= "" Then Parse Var args vmid .
+
+/* load those per-server variables from the config file */
+'pipe state' vmid 'znetboot *'
+If rc /= 0 Then Do
+  Upper vmid
+  Say "# you need a" vmid "ZNETBOOT file for boot parameters"
+  Say "# Create it with XEDIT or upload from another system."
+End
+If rc /= 0 Then Exit rc
+Say "# reading" vmid "ZNETBOOT for boot parameters"
+'pipe (end !) <' vmid 'znetboot | strip' ,
+  '| nlocate 1.1 /#/ | na: nlocate 1.9 /ZNETBOOT_/' ,
+  '| append strliteral # # | join * / / | strip | var parms' ,
+  '! na: | stem na.'
+If rc /= 0 Then Exit rc
+
+/* parse the stuff we loaded from that config file */
+kfile = baseurl || "/" || kfile
+rfile = baseurl || "/" || rfile
+nc.0 = 0
+pstat = ""
+Do i = 1 to na.0
+  Parse Var na.i vn "=" vv
+  Select
+    When vv = "" Then nop
+    When vn = "ZNETBOOT_KERNEL" Then kfile = vv
+    When vn = "ZNETBOOT_INITRD" Then rfile = vv
+    When vn = "ZNETBOOT_BOOTPARMS" Then bparm = vv
+    When vn = "ZNETBOOT_NICADDR" Then naddr = vv
+
+    When vn = "ZNETBOOT_TOFILE" Then Do
+      j = nc.0 + 1
+      nc.j = vv
+      nc.0 = j
+    End
+
+    When vn = "ZNETBOOT_PROGRESS" Then pstat = vv
+
+    Otherwise nop
+  End
+End
+bparm = bparm parms
+
+
+/* check CMS support files for consistency -- this is ONLY a check */
+Do While check /= ""
+  Parse Var check cfile check
+  wfile = baseurl || "/" || cfile
+  'pipe curl --text' wfile '| strip | stem c0.'
+  If rc /= 0 Then Iterate
+  Parse Upper Var cfile fn "." ft
+  'pipe <' fn ft '| strip | stem c1.'
+  If c1.0 /= c0.0 Then Do
+    Say "# CMS support file" fn ft "mismatch; consider updating; continuing ..."
+    Iterate
+  End
+  Do i = 1 to c0.0
+    If c1.i = c0.i Then Iterate
+    Say "# CMS support file" fn ft "mismatch; consider updating; continuing ..."
+    Leave
+  End
+End
+
+/* conditionally save a CMS "conffile" and set boot parms for it */
+If nc.0 > 0 Then Do
+  Say "# creating" vmid "CONFFILE for supplemental parameters"
+  'vmlink * 191 (w invoke' ,
+    'pipe stem nc. 1 | >' vmid 'CONFFILE .fm1'
+  If rc /= 0 Then Exit rc
+  bparm = bparm "CMSDASD=191" ,
+    "CMSCONFFILE=" || vmid || ".CONFFILE"
+End
+
+/* optionally construct and append a progress status reporter */
+If pstat /= "" Then Do
+  Upper pstat
+  psbs = 1
+  Select /* blocksize */
+    When Right(pstat,1) = "M" Then Do ; psbs = 1048576
+      pstat = Left(pstat,Length(pstat)-1) ; End
+    When Right(pstat,1) = "P" Then Do ; psbs = 4096
+      pstat = Left(pstat,Length(pstat)-1) ; End
+    When Right(pstat,1) = "K" Then Do ; psbs = 1024
+      pstat = Left(pstat,Length(pstat)-1) ; End
+    When Right(pstat,1) = "B" Then Do ; psbs = 1
+      pstat = Left(pstat,Length(pstat)-1) ; End
+    When Datatype(pstat,"W") Then psbs = 1
+    Otherwise psbs = 0
+  End /* Select blocksize */
+  If psbs = 0 Then pstat = "" ; Else Do
+    pstat = '| FBLOCK' psbs ,
+      '| SPEC RECNO FROM' psbs 'BY' psbs 'NW' ,
+      '| SPEC /#/ NW W1 NW /bytes received/ NW' ,
+      '| DROP LAST' ,
+      '| CONSOLE'
+  End
+End
+
+/* optionally check that we have a NIC at the expected I/O address */
+If naddr /= "" Then Do
+  Parse Value DiagRC(08,'Q V NIC' naddr) With 1 rc 10 . 17 rs '15'x .
+  If rc = 40 Then Do
+    Say "# you need a NIC at" naddr
+    Say "# Define it with 'CP DEF NIC" naddr "TYPE QDIO'"
+    Say "# and then 'CP COUPLE' it to the appropriate VSwitch."
+  End
+  If rs /= "" Then Say rs
+  If rc /= 0 Then Exit rc
+End
+
+/* query current reader and punch settings */
+Parse Value Diag(08,'Q V' raddr) ,
+  With . . . rcl rcont rhold . '15'x . . . rkeep .
+Parse Value Diag(08,'Q V' paddr) ,
+  With . . . pcl pcont phold . ,
+  '15'x . tofor ptarg . '15'x . '15'x . . . . pkeep .
+
+/* set reader and punch to CLASS I for IPL */
+'CP SP' raddr 'CL' mycl 'NOCONT NOHOLD NOKEEP'
+'CP SP' paddr 'CL' mycl 'NOCONT NOHOLD NOKEEP TO' Userid()
+
+/* pull the kernel directly to spool space */
+Say "# fetching kernel and punching it"
+Say "+" 'pipe curl --binary' kfile '| fblock 80 00 | punch'
+        'pipe curl --binary' kfile '| fblock 80 00 | punch' pstat
+/*        '| count bytes | var kbytes'                                */
+Call Diag 08, 'CLOSE' paddr
+If rc /= 0 Then Do
+  Call Diag 08, 'SP' raddr 'CL' rcl rcont rhold rkeep
+  Call Diag 08, 'SP' paddr 'CL' pcl pcont phold pkeep tofor ptarg
+  Exit rc
+End
+
+/* punch a boot parm line */
+Say "# punching boot parm line"
+Say "+" 'pipe var bparm | fblock 80 00 | punch'
+        'pipe var bparm | fblock 80 00 | punch'
+/*        '| count bytes | var pbytes'                                */
+Call Diag 08, 'CLOSE' paddr
+If rc /= 0 Then Do
+  Call Diag 08, 'SP' raddr 'CL' rcl rcont rhold rkeep
+  Call Diag 08, 'SP' paddr 'CL' pcl pcont phold pkeep tofor ptarg
+  Exit rc
+End
+
+/* pull the root FS directly to spool space */
+Say "# fetching root FS and punching it"
+Say "+" 'pipe curl --binary' rfile '| fblock 80 00 | punch'
+        'pipe curl --binary' rfile '| fblock 80 00 | punch' pstat
+/*        '| count bytes | var rbytes'                                */
+Call Diag 08, 'CLOSE' paddr
+If rc /= 0 Then Do
+  Call Diag 08, 'SP' raddr 'CL' rcl rcont rhold rkeep
+  Call Diag 08, 'SP' paddr 'CL' pcl pcont phold pkeep tofor ptarg
+  Exit rc
+End
+
+/* Say "#" kbytes "bytes kernel," pbytes "bytes parm data," rbytes "bytes root FS" */
+Say "# booting the kernel now ..."
+Say "+" 'IPL' raddr 'CLEAR'
+        'IPL' raddr 'CLEAR' ; _rc = rc
+
+/* if somehow the IPL failed then restore reader and punch settings */
+'CP SP' raddr 'CL' rcl rcont rhold rkeep
+'CP SP' paddr 'CL' pcl pcont phold pkeep tofor ptarg
+
+Exit _rc
+
+

@@ -1,0 +1,38 @@
+#                                                                                                                                                                                                                  "width holder" because this is a wide file #
+#         Name: CLEFONVM ZNETBOOT
+#         Date: 2016-Jun-25 (Sat)
+#               2017-Oct-23 (Mon) for RPH
+#               This is the ZNETBOOT file for ClefOS on z/VM.
+#               Put this file on your 191 A disk before booting.
+#
+
+# where to find the kernel ...
+ZNETBOOT_KERNEL=http://download.sinenomine.net/clefos/7/images/kernel.img
+ZNETBOOT_INITRD=http://download.sinenomine.net/clefos/7/images/initrd.img
+ZNETBOOT_PROGRESS=1M
+
+# where to find the installer ...
+root=live:http://download.sinenomine.net:/clefos/7/images/install.img
+
+# minimal ClefOS boot params ...
+ramdisk_size=40000 cio_ignore=all,!condev
+# see http://download.sinenomine.net/clefos/7/images/generic.prm
+
+# additional ClefOS boot params ...
+ZNETBOOT_TOFILE=NETTYPE=qeth
+ZNETBOOT_TOFILE=SUBCHANNELS=0.0.0340,0.0.0341,0.0.0342
+ZNETBOOT_TOFILE=IPADDR=192.168.0.100
+ZNETBOOT_TOFILE=NETWORK=192.168.0.0
+ZNETBOOT_TOFILE=NETMASK=255.255.255.0
+ZNETBOOT_TOFILE=BROADCAST=192.168.0.255
+ZNETBOOT_TOFILE=GATEWAY=192.168.0.1
+ZNETBOOT_TOFILE=DNS=8.8.8.8
+ZNETBOOT_TOFILE=SEARCHDNS=sinenomine.net:lf-dev.marist.edu:casita.net
+ZNETBOOT_TOFILE=HOSTNAME=myclefos.casita.net
+ZNETBOOT_TOFILE=LAYER2=1
+ZNETBOOT_TOFILE=VSWITCH=1
+ZNETBOOT_TOFILE=MTU=1492
+ZNETBOOT_TOFILE=DASD=1B0-1B1
+# above statements are stashed into a supplemental parameters file
+
+

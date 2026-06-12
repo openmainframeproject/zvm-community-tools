@@ -1,0 +1,22 @@
+#                                                                                                                                                                                                                  "width holder" because this is a wide file #
+#         Name: UBUNTU ZNETBOOT
+#         Date: 2016-Jun-24 (Fri)
+#               2017-Oct-21 (Sat) for RPH
+#               This is the ZNETBOOT file for Ubuntu Linux on z/VM.
+#               Put this file on your 191 A disk before booting.
+#
+
+# where to find the kernel and INITRD ...
+ZNETBOOT_KERNEL=http://ports.ubuntu.com/dists/xenial/main/installer-s390x/current/images/generic/kernel.ubuntu
+ZNETBOOT_INITRD=http://ports.ubuntu.com/dists/xenial/main/installer-s390x/current/images/generic/initrd.ubuntu
+
+# sample boot parameters for running on z/VM
+DASD=1b0-1b1
+HOST=myubuntu.mydomain.com:eth0:192.168.1.64:1500
+NETWORK=192.168.1.64:255.255.255.0:192.168.1.255:192.168.1.1
+DNS=8.8.8.8
+SEARCHDNS=casita.net
+CHANDEV=qeth0,0x340,0x341,0x342
+QETHPARM=add_parms,0x10,0x340,0x342,portname:m,secondary_router
+
+

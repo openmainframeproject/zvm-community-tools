@@ -1,0 +1,18 @@
+#                                                                                                                                                                                                                  "width holder" because this is a wide file #
+#         Name: FEDORA ZNETBOOT
+#         Date: 2019-Feb-26 (Tue)
+#               This is the ZNETBOOT file for Fedora Linux on z/VM.
+#               Put this file on your 191 A disk before booting.
+#
+
+ZNETBOOT_KERNEL=http://mirrors.kernel.org/fedora-secondary/releases/29/Server/s390x/os/images/kernel.img
+ZNETBOOT_INITRD=http://mirrors.kernel.org/fedora-secondary/releases/29/Server/s390x/os/images/initrd.img
+
+# sample boot parameters for running on z/VM
+rd.znet=qeth,0.0.cef0,0.0.cef1,0.0.cef2,layer2=1,portno=0,portname=OSAPORT
+inst.repo=http://mirrors.kernel.org/fedora-secondary/releases/29/Everything/s390x/os 
+ip=192.168.1.64::192.168.1.1:24:localhost.localdomain:enccef0:none
+nameserver=8.8.8.8
+inst.sshd
+DASD="3450-3451"
+

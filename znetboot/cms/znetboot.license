@@ -1,0 +1,27 @@
+Copyright © 2017, Richard M. Troth, all rights reserved.     <plaintext>                                                                                                                                                                                       
+
+ This software may be freely distributed provided that this notice
+ and the code itself remain unchanged. The user may make any private
+ changes needed to accomodate local conventions but may not distribute
+ said changes if not made available to the author(s) for incorporation
+ and redistribution. This software is provided AS-IS with NO WARRANTY.
+ Neither the author(s) nor any relations (employers, supporters,
+ partners, or dependents) shall be held liable for any damages
+ resulting from the use of this software.
+
+ This software is an original work to the best available knowledge,
+ inspired by other work but not having copied other work.
+
+ Portions of this software were developed on the z/VM system
+ at Marist College in Poughkeepsie, New York. This software depends on
+ other support programs, of which some are freely distributable,
+ others proprietary and/or licensed.
+
+ ClefOS is a trademark of Russ Herrold.
+
+ If you wish to support future development of this software,
+ or use it in a for-profit distribution, contact the author:
+
+      Rick Troth <rmt@casita.net>
+
+

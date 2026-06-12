@@ -1,0 +1,22 @@
+#
+#
+#         Name: ZNETBOOT CMSMAKE
+#         Date: 2016-Jun-21 (Tue)
+#               2017-Oct-21 (Sat) for RPH
+#               This file is part of the ZNETBOOT package
+#               but requires CMS Make, VMARC, and CMS TAR for operation.
+#
+
+archives:  znetboot.vmarc  znetboot.tar
+
+znetboot.vmarc:  znetboot.filelist
+        @cms ' pipe < znetboot filelist \
+                | nlocate 1.1 /*/ \
+                | spec /vmarc pack/ nw w 1 nw w 2 nw /a/ nw \
+                    /znetboot vmarc a ( append/ nw \
+                | cms | console '
+
+znetboot.tar:  znetboot.filelist
+        tar cvf znetboot.tar (include znetboot
+
+

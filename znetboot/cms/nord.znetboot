@@ -1,0 +1,24 @@
+#                                                                                                                                                                                                                  "width holder" because this is a wide file #
+#         Name: NORD ZNETBOOT
+#         Date: 2017-Oct-23 (Mon)
+#               This is the ZNETBOOT file for NORD Linux on z/VM.
+#               Put this file on your 191 A disk before booting.
+#
+
+# where to find the kernel and INITRD ...
+ZNETBOOT_KERNEL=http://znetboot.casita.net/nord/image
+ZNETBOOT_INITRD=http://znetboot.casita.net/nord/ramdisk.gz
+
+# boot parameters used by the installer ...
+NORD_HOSTNAME=mynord.mydomain.com
+NORD_IPV4AD=192.168.1.64
+NORD_IPV4GW=192.168.1.1
+NORD_IPV6AD=1234:5678:abcd::390/64
+
+# fixed addresses assumed by the installation media ...
+#  1B0 - boot disk (system disk, can be shared, OS goes here)
+#  1B1 - root disk (per-server storage, becomes root FS)
+#  340 - NIC (QDIO with layer 2)
+dasd=1b0-1b3,91b0-91b3 root=/dev/ram0 ro init=/sbin/nordinst.sh
+
+
