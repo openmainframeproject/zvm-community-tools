@@ -1,0 +1,12 @@
+/* © Copyright 1992, 1996, Richard M. Troth, all rights reserved. 
+ *		(casita sourced) <plaintext>
+ * 
+ *        Name: TAR EXEC
+ *		run CMS TAR from the command line 
+ */
+ 
+Parse Arg argstring
+'pipe tar' argstring
+Exit rc
+ 
+ 

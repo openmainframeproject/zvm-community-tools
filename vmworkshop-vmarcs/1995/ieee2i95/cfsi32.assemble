@@ -1,0 +1,126 @@
+       TITLE ' Convert IBM Floating Single => IEEE 32 bit long '                
+* ------------------------------------------------------------------- *         
+*     subroutine cfsi32(ibm, ieee, n)                                 *         
+*     integer ibm(*), ieee(*), n                                      *         
+* ------------------------------------------------------------------- *         
+* PROCESSOR    - ASSEMBLER H, VERSION 2, RELEASE 1                    *         
+*                                                                     *         
+* DEPENDENCES  - NONE                                                 *         
+*                                                                     *         
+* ATTRIBUTES   - SERIALLY REUSABLE                                    *         
+*                                                                     *         
+* ENTRY POINT  - CFSI32                                               *         
+*                                                                     *         
+* STATUS       - NEW:           16 June 1989                          *         
+*                LAST REVISION: 19 July 1990                          *         
+*                                                                     *         
+*                            Val I. Garger, Technology Integration    *         
+*                            Group, CNSF, Cornell University          *         
+*                                                                     *         
+*                               vig@cornellf.tn.cornell.edu           *         
+*                               vig@eagle.cnsf.cornell.edu            *         
+*                               vig@cornellf.bitnet                   *         
+*-------------------------------------------------------------------- *         
+*                                                                     *         
+*  COPYRIGHT -  VAL GARGER, CORNELL NATIONAL SUPERCOMPUTER FACILITY,  *         
+*               (JUNE 1990) CORNELL UNIVERSITY, ITHACA, NY.           *         
+*               CONTAINS RESTRICTED MATERIALS OF CORNELL UNIVERSITY,  *         
+*               (C) COPYRIGHT CORNELL UNIVERSITY 1990                 *         
+*                                                                     *         
+*-------------------------------------------------------------------- *         
+* Change log:                                                         *         
+* ------------------------------------------------------------------- *         
+* Convert floating point, 32-bit IBM to 32-bit IEEE standard.         *         
+*                                                                     *         
+*   Example: call cfsi32(ibm, ieee, n)                                *         
+*                                                                     *         
+*  input: ibm    Array of IBM floating point numbers, REAL*4 values.  *         
+*         n      Number of elements in ibm to convert, integer.       *         
+* output: ieee   Array of 32-bit IEEE floating point numbers,         *         
+*                  single  precision.                                 *         
+*                                                                     *         
+* Format (bits, left to right):            |    Exponent bias:        *         
+*              sign   exponent   mantissa  |                          *         
+*  IBM           1      7           24     |     64 hex               *         
+*  IEEE          1      8           23     |     127                  *         
+*                                          |                          *         
+* Usage notes:                                                        *         
+* 1. Data could be converted "inplace".                               *         
+* 2. IBM values that do not conform to IEEE standard are converted to *         
+*    either infinite IEEE values (positive or negative)  or to zero.  *         
+* 3. Non-normalized with zero exponent values are kept intact.        *         
+* 4. Conversion does not incur the loss of mantissa accuracy.         *         
+* =================================================================== *         
+CFSI32 RMODE      ANY                                                           
+CFSI32 AMODE      ANY                                                           
+CFSI32 BEGIN      DATE=/7-19-90/version#1.9/                                    
+       LM         R2,R4,00(R1)                                                  
+       L          R11,00(,R4)          numb of elem                             
+       LTR        R11,R11                                                       
+       BZ         EXIT                                                          
+NEXT   DS         0H                                                            
+       L          R9,00(,R2)           next element                             
+       LR         R8,R9                ibs                                      
+       LR         R5,R9                ibe                                      
+       LR         R6,R9                ibt                                      
+       N          R8,=X'80000000'      .and. sign                               
+*                                                                               
+       N          R6,=X'00FFFFFF'                                               
+       BNE        NRML                                                          
+       SR         R5,R5          then ibe = 0 also, so store the result         
+       B          STORE                                                         
+*                                                                               
+NRML   DS         0H                                                            
+       N          R5,=X'7F000000'                                               
+       BZ         TISSA                                                         
+       LR         R0,R6                                                         
+       N          R0,=X'00F00000'      and yet non-normalized                   
+       BNZ        TISSA                                                         
+       ST         R9,RBT                                                        
+       LE         R0,RBT               normalize it                             
+       AE         R0,=E'0.0'                                                    
+       STE        R0,RBT                                                        
+       L          R9,RBT                                                        
+       LR         R5,R9                                                         
+       LR         R6,R5                                                         
+*                                                                               
+TISSA  DS         0H                                                            
+       SLL        R6,8                                                          
+       LA         R7,4                 see for one in a first nibble            
+TISHFT DS         0H                                                            
+       LTR        R6,R6                                                         
+       SLL        R6,1                                                          
+       BM         TISNMR                                                        
+       BCT        R7,TISHFT                                                     
+       LR         R8,R9                denormalized, reload back                
+       B          DONE  WITH NEXT                                               
+TISNMR DS         0H                   GR7 keeps (4-numb of zero)               
+       SRL        R6,9                 tiss in ieee place                       
+EXP    SRL        R5,22                pure quadrupled exponent                 
+       N          R5,=X'000001FC'      .and. it                                 
+       S          R5,=F'134'           - 256 - 4 - 1 + 127                      
+       AR         R5,R7                                                         
+       BNM        TRYBIG               it's not small, may be big?              
+       LA         R5,0                 too small, make zero of it               
+       LA         R6,0                                                          
+       B          STORE                                                         
+TRYBIG C          R5,=F'255'           is too big?                              
+       BNP        EXPRDY                                                        
+       L          R5,=X'7F800000'      make +/- infinite of it                  
+       LA         R6,0                                                          
+       B          STORE                                                         
+EXPRDY SLL        R5,23                                                         
+STORE  DS         0H                                                            
+       OR         R8,R5                                                         
+       OR         R8,R6                                                         
+DONE   ST         R8,00(,R3)                                                    
+       LA         R2,4(R2)                                                      
+       LA         R3,4(R3)                                                      
+       BCT        R11,NEXT                                                      
+* -----------------------------------------------------------------             
+EXIT   L          R13,4(R13)                                                    
+       RETURN     (14,12),,RC=0      Reload caller's registers and ret.         
+* -----------------------------------------------------------------             
+RBT    DC         E'0.0'                                                        
+* -----------------------------------------------------------------             
+       END        CFSI32                                                        

@@ -1,0 +1,138 @@
+/*                                                                   */
+/* CALVIEWV XEDIT                                                    */
+/*                                                                   */
+/* Usage:  This file is to be used only through a call provided by   */
+/*         the CALVIEW XEDIT input panel.  This environment was      */
+/*         only intended to provide a viewing environment for the    */
+/*         results returned to CALVIEW from the calendar request     */
+/*         service machine.                                          */
+/*                                                                   */
+/* CALVIEWV is a XEDIT file containing various XEDIT and REXX        */
+/* instructions combined to construct a viewing environment for the  */
+/* results returned from the calendar request service machine.       */
+/* Execution of this file was meant to occur only from the CALVIEW   */
+/* routine.  Other uses are not supported.                           */
+/*                                                                   */
+/* Exit Code Definitions:                                            */
+/*   Not applicable.                                                 */
+/*                                                                   */
+/* Mod Date  Init  Description                                       */
+/* --------  ----  ------------------------------------------------- */
+/* 06291994  PDL   Initial development.                              */
+/* 02021995  PDL   Enabled Top-of-file/End-of-file screen display.   */
+/* 02031995  PDL   Changed name of referenced calendar to print as   */
+/*                 "$$CAL$$ userid A".                               */
+/* 0531995   BAJ   Replaced 'BETA' with 'LEVEL' in the screen title. */
+/*                                                                   */
+ 
+level="102"
+ 
+trace off
+ 
+/* Check to make sure we called by CALVIEW XEDIT, not DOPANEL EXEC */
+parse upper arg fn ft .
+ 
+if (strip(fn) = "$$TEMP$$") & (strip(ft) = "$$FILE$$") then do
+    say "This XEDIT macro (CALVIEWV XEDIT) must be called from"
+    say "CALVIEW XEDIT.  Any other invocations would produce"
+    say "unwanted results.  The proper method to invoke this"
+    say "series of XEDIT macros is to issue the command:"
+    say ""
+    say "          DOPANEL CALVIEW"
+    address xedit "QQUIT"
+    exit
+end
+ 
+/* Retrieve CALVIEW information from program stack */
+parse upper pull userid
+parse upper pull month
+parse upper pull day
+parse upper pull year
+parse upper pull consdays
+ 
+/* Define the control characters for panel definition */
+address xedit
+ 
+/* Define XEDIT escape/field set characters */
+"SET CTLCHAR  % ESCAPE"
+"SET CTLCHAR  @ PROTECT   HIGH"
+"SET CTLCHAR  ! PROTECT   NOHIGH"
+"SET CTLCHAR  $ NOPROTECT HIGH"
+ 
+/* Set up the XEDIT environment for panel definition */
+"SET CASE     MIXED"
+"SET LINEND   OFF"
+"SET TOFEOF   ON"       /* ENABLED PER 02021995 MODIFICATION */
+"SET PREFIX   OFF"
+"SET SCALE    OFF"
+"SET MSGLINE  ON -4 1"
+"SET CMDLINE  OFF"
+"SET MSGMODE  ON"
+"SET CURLINE  ON 5"
+"VERIFY OFF 1 80"
+ 
+/* Release all reserved lines for the use of this routine */
+"EXTRACT /RESERVED */"
+do index=1 to RESERVED.0
+    parse var RESERVED.index linenum otherstuff
+    "SET RESERVED" linenum "OFF"
+end
+ 
+/* Go ahead and do a blanket define for all of the PF keys. */
+/* If we have any exceptions (different definitions), then  */
+/* we can override them later.                              */
+ 
+do index=1 to 24
+    "SET PF"index "BEFORE EMSG Undefined PF Key"
+end
+ 
+/* Define the PF Keys as we need them */
+"SET LINEND OFF"
+"SET PF1  BEFORE CMS HELP CALVIEWV"
+"SET PF2  BEFORE CMS CMSPRINT $$CAL$$" userid "A"
+"SET PF3  BEFORE CMS ERASE $$CAL$$" userid "A#QQUIT"
+"SET PF7  BEFORE BACKWARD"
+"SET PF8  BEFORE FORWARD"
+"SET PF9  BEFORE CMS HELP CALVIEWV"
+"SET PF12 BEFORE CMS ERASE $$CAL$$" userid "A#QQUIT"
+"SET PF13 BEFORE HELP CALVIEWV"
+"SET PF14 BEFORE CMS CMSPRINT $$CAL$$" userid "A"
+"SET PF15 BEFORE CMS ERASE $$CAL$$" userid "A#QQUIT"
+"SET PF19 BEFORE BACKWARD"
+"SET PF20 BEFORE FORWARD"
+"SET PF21 BEFORE CMS HELP CALVIEWV"
+"SET PF24 BEFORE CMS ERASE $$CAL$$" userid "A#QQUIT"
+"SET LINEND ON #"
+ 
+/* Set up CURLINE and FILEAREA area colors to default */
+"SET COLOR FILEAREA DEFAULT NONE NOHIGH"
+"SET COLOR CURLINE  DEFAULT NONE NOHIGH"
+ 
+/* Set up the viewing screen... */
+"SET RESERVED  1 N %!                                             ",
+                   "                       LEVEL"level
+if (consdays = 1) then
+    "SET RESERVED  2 N %@Calendar for" userid",",
+                       month"/"day"/"year "for" consdays,
+                       "consecutive day%!"
+else
+    "SET RESERVED  2 N %@Calendar for" userid",",
+                       month"/"day"/"year "for" consdays,
+                       "consecutive days%!"
+"SET RESERVED  3 N %@------------------------------------- *",
+                  "--------------------------------------- "
+"SET RESERVED  4 N"
+"SET RESERVED -4 N"
+"SET RESERVED -3 N %@------------------------------------- *",
+                  "--------------------------------------- "
+"SET RESERVED -2 N %@PF1/PF9%! Help          ",
+                  "       %@PF2%! Print Calendar    ",
+                  "       %@PF3/PF12%! Quit"
+"SET RESERVED -1 N %@PF7%!     Scroll Backward",
+                  "      %@PF8%! Scroll Forward"
+ 
+"CURSOR SCREEN 1 80"
+ 
+address command
+ 
+exit

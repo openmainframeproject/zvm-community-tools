@@ -1,0 +1,70 @@
+/* REXX */
+ 
+Parse Upper Arg l .
+Parse       Arg . c
+ 
+Select  /*  l  */
+ 
+    When l = "" Then Do
+        'COMMAND EXTRACT/LINE'
+        'COMMAND CURSOR CMDLINE'
+        'LOCATE :' || line.1
+        End  /*  When  ..  Do  */
+ 
+    When l = "CURSOR" Then Do
+        'COMMAND EXTRACT/LINE/CURSOR'
+        If cursor.3 = -1 Then Do
+            Address "COMMAND" 'XMITMSG 561 (CALLER TAR VAR'
+            Do i = 1 to message.0; 'EMSG' message.i; End
+            Exit 3
+            End
+        Call EXECUTAR cursor.3 c
+        'LOCATE :' || line.1
+        End  /*  When  ..  Do  */
+ 
+    When l = '*' Then Do
+        'COMMAND EXTRACT/LINE/SIZE'
+        Do i = line.1 to size.1
+            Call EXECUTAR i c
+            End  /*  Do  For  */
+        'LOCATE :' || line.1
+        End  /*  When  ..  Do  */
+ 
+    End  /*  Select  l  */
+ 
+Exit
+ 
+ 
+ 
+EXECUTAR: Procedure
+Parse Arg l c
+ 
+'LOCATE :' || l
+'COMMAND EXTRACT/CURLINE'
+Parse Var curline.3 81 skip name
+ 
+c2 = ""
+Do While c ^= ""
+    Parse Var c c1 c
+    If c1 = '/' Then c1 = name
+    If c1 = '/N' Then c1 = name
+    If c1 = '/S' Then c1 = skip
+    c2 = c2 c1
+    End  /*  Do  While  */
+c = c2
+ 
+Parse Var c c1 c2
+Select  /*  c1  */
+    When c1 = "X"        Then
+        'COMMAND CMS PIPE' xc c2 '| CONSOLE'
+    When c1 = "EXTRACT"  Then
+        'COMMAND CMS PIPE' xc c2 '| CONSOLE'
+    When c1 = "PEEK"     Then
+        'COMMAND CMS PIPE' xc c2 '(PEEK | CONSOLE'
+    Otherwise 'COMMAND CMS' c
+    End  /*  Select  c1  */
+ 
+'COMMAND REPLACE *' || Substr(curline.3,2)
+ 
+Return
+ 

@@ -1,0 +1,6 @@
+/* TELLPRMT EXEC - Front end for TELL command.
+Author: Barbara Jones, IT-DCS, 6/13/94
+Requires: DOPANEL EXEC, TELLPRMT XEDIT  (by PDL, IT-DCS)
+History: 07/27/94 In Production (without help screens)
+*/
+'DOPANEL TELLPRMT'

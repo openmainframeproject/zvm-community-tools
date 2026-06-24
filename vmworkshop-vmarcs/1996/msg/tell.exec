@@ -1,0 +1,33 @@
+/* © Copyright 1995, Richard M. Troth, all rights reserved.  <plaintext>
+ *
+ *        Name: TELL EXEC
+ *              an RSCS *and* TCP/IP based replacement for CMS TELL
+ *      Author: Rick Troth, Houston, Texas, USA
+ *        Date: 1992-May-27, Jun-05, Oct-27, Dec-09, 1993-Feb-24
+ *              1995-May-02
+ *
+ *        Note: See RFC 1312 for details of the Message Send protocol.
+ *
+ *     Co-reqs: TELL REXX, HOSTNAME EXEC, USERLIST REXX
+ */
+ 
+Parse Upper Arg . at .
+ 
+If at = "AT" Then Do
+    Parse Arg user . node message
+    If message = "" Then ,
+        'PIPE CONSOLE ASYNCH | TELL' user 'AT' node '| CONSOLE'
+    Else ,
+        'PIPE VAR MESSAGE | TELL' user 'AT' node '| CONSOLE'
+    End  /*  If  ..  Do  */
+ 
+Else Do
+    Parse Arg user message
+    If message = "" Then ,
+        'PIPE CONSOLE ASYNCH | TELL' user '| CONSOLE'
+    Else ,
+        'PIPE VAR MESSAGE | TELL' user '| CONSOLE'
+    End  /*  Else  Do  */
+ 
+Exit rc
+ 

@@ -1,0 +1,51 @@
+/*
+ *        Name: MIMESEND XEDIT
+ *      Author: Rick Troth, Houston, Texas
+ *        Date: 1993-Apr-28
+ *
+ *        Note: this XEDIT MACRO, specifically for use with
+ *              Richard Schafer's MAILBOOK package,  is useless
+ *              without the rest of the MIME package,  although it
+ *              is sometimes not included with the MIME package.
+ *              Get the CMS MIME package via Anonymous FTP from
+ *              ftp.rice.edu,  or (better) from the web page at
+ *              http://ua1vm.ua.edu/~troth/rickvmsw/rickvmsw.html.
+ *
+ *        Note: this XEDIT MACRO must be invoked from MAILBOOK exits
+ *              POSTSEND (Mailbook 91+) or SEND (Mailbook 90 or older).
+ *              If the latter,  then it must be program stack queued.
+ */
+ 
+Parse Arg args '(' opts ')' .
+ 
+mailbook = 0
+Do While opts ^= ""
+    Parse Upper Var opts op opts
+    If op = "RICEMAIL" Then mailbook = 1
+    If op = "MAILBOOK" Then mailbook = 1
+    End  /*  Do  While  */
+ricemail = mailbook
+'COMMAND CMS GLOBALV SELECT MIME PUT RICEMAIL MAILBOOK'
+ 
+'COMMAND SET SYNONYM  ATTACH   3 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  SIGN     3 MACRO    MIMEMAIN'
+ 
+'COMMAND CMS GLOBALV SELECT MIME SET BOUNDARY'  /* to clear it */
+ 
+/*  don't REinsert the MIME header lines upon resuming composition  */
+'COMMAND CMS GLOBALV SELECT MAIL GET COMMAND_LINE VERSION'
+Parse Upper Var command_line . '(' opts ')' .
+If Index(opts,"RESUME") > 0 Then Exit
+version = "MAILBOOK/" || version
+ 
+'COMMAND EXTRACT/LINE/CURSOR'           /*  retain current position   */
+'COMMAND TOP'                           /*  move to top of file       */
+'INPUT MIME-Version: 1.0'               /*  insert MIME tags          */
+'INPUT Content-Type: text/plain'        /*  "      "    "             */
+'INPUT X-Mail-User-Agent:' version      /*  indicate mail program     */
+'COMMAND :' || line.1 + 3               /*  adjust current line       */
+'COMMAND CURSOR FILE' cursor.3 + 3      /*  adjust cursor location    */
+'COMMAND SET ALT 0 0'                   /*  mark this file as fresh   */
+ 
+Exit
+ 

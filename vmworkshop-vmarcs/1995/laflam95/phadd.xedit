@@ -1,0 +1,144 @@
+/* Solicit names, build a MAIL INCLUDE command                */
+/* Nick Laflamme - U. of Notre Dame                           */
+/* Dominique.P.Laflamme.1@nd.edu                              */
+/* UDM/Nick                                                   */
+/*                                                            */
+/* February, 1993                                                    */
+ 
+signal prologue                         /* skip to start of code      */
+ 
+/* SYNTAX: and NOVALUE: come first so REXX can always find them       */
+ 
+syntax:                                 /* in case of syntax error    */
+erc = rc                                /* preserve error code        */
+$error='REXX error' erc 'in line' sigl':' errortext(erc)
+say $error                              /* get excited                */
+say "Line" sigl':' sourceline(sigl)     /* show offending line        */
+trace '?r'; nop                         /* start trace mode for debug */
+rc = Socket('Terminate')
+exit erc
+ 
+novalue:
+$error='Novalue error in line' sigl
+say $error                              /* get excited                */
+say sourceline(sigl)                    /* show offending line        */
+trace '?r'; nop                         /* start trace mode for debug */
+rc = Socket('Terminate')
+exit 100
+ 
+prologue:                               /* start of real code         */
+signal on novalue             /* complain about missing vairables     */
+signal on syntax              /* semi-graceful exit for syntax errors */
+parse source . invocation progfn progft progfm calledas addressee
+ 
+parse arg wanthelp .          /* check first argument                 */
+select
+when wanthelp='?' then
+ signal somehelp        /* break to explanation                 */
+when wanthelp='??' then
+ signal morehelp        /* break to long explanation            */
+otherwise
+ nop                    /* on with life                         */
+end   /* of select on wanthelp      */
+ 
+/* trace i */
+ 
+/************* START OF CODE *************************/
+ 
+Address "COMMAND"
+ 
+progid = "PH to Mail include .91"    /*    .9 - getting close now. */
+ 
+Signal on SYNTAX
+ 
+'STATE PIPE MODULE *'
+If rc ^= 0 Then Do
+Say "You must have CMS Pipelines to run" progid
+Exit rc
+End  /*  If  ..  Do  */
+ 
+host = ''
+mailopts = '' /* by default */
+towhom = ''
+phdata.0 = 0
+parse arg whomlist '(' optstring ')' .
+optstring = translate(optstring,' ','=') /* allow "=" as whitespace  */
+do while optstring /= ''
+parse var optstring thisopt optstring
+select
+when translate(thisopt) = 'HOST' then
+parse var optstring host optstring
+otherwise
+mailopts = mailopts thisopt
+end                                                      /* select */
+end                                 /* do while optstring isn't null */
+ 
+do while whomlist /= ''
+parse var whomlist cc whom ',' whomlist 
+if (translate(cc) = 'CC:') | (translate(cc) = 'BCC:') then
+  towhom = towhom cc
+else
+  whom = cc whom
+if host = '' then
+"EXEC PH" whom "( STACK"         
+else
+'EXEC PH' whom "( STACK HOST" host
+QRC = rc
+select /* on outcome of QueryCSO */
+when QRC = 5 then               /* -1: Read or Write failed   */
+do
+address xedit "MSG Read or write failure on CSO Query." 
+whomlist = ''
+end
+when QRC = 0 then               /*  0: no problem             */
+"PIPE STACK | stem PHDATA."     /* read from stack            */
+when QRC = 4 then               /*  4: no end of data?        */
+do
+address xedit "MSG Data end never received."
+whomlist = ''
+end
+when QRC = 3 then               /*  3: bad parameters         */
+do
+address xedit "MSG Bad parameters passed." 
+whomlist = ''
+end
+when QRC = 1 then               /*  1: no matches             */
+do
+address xedit "MSG No matches; assuming" whom, 
+"is an e-mail address already."
+towhom = towhom whom
+end
+when QRC = 7 then               /*  7: User wants out         */
+do
+whomlist = ''
+phdata.0 = 0
+end
+otherwise                       /* 2: too many matches        */
+address xedit "MSG No luck on" whom". RC=" QRC 
+phdata.0 = 0
+end /* select on QRC */
+ 
+if (phdata.0 /= 0) then         /* no answer        */
+do
+"PIPE (end \) STEM PHDATA.",
+"| strip leading",
+"| find email:",
+"| specs w2 1",
+"| var userid" 
+towhom = towhom userid
+end
+end /* of whomlist loop */
+ 
+push 'INCLUDE' towhom '(' mailopts
+Exit
+ 
+somehelp:
+say 'Build MAIL command from PH.'
+exit 100                      /* non-zero RC for explanation mode     */
+ 
+morehelp:
+say 'Build MAIL command from PH.'
+say 'Syntax:' progfn "whom {, {cc:|bcc:} whom2 {,...}} {( options }"
+say 'Options: HOST host.some.where | mail_options'
+exit 100
+ 

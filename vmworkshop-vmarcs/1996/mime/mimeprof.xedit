@@ -1,0 +1,94 @@
+/*
+ *        Name: MIMEPROF XEDIT
+ *              profile for XEDIT when reading MIME mail objects
+ */
+ 
+Parse Arg args '(' opts ')' .
+Parse Upper Var args fn ft fm .
+ 
+'COMMAND CMS GLOBALV SELECT MIME GET RICEMAIL MAILBOOK'
+mailbook = (mailbook = 1)
+Do While opts ^= ""
+    Parse Upper Var opts op opts
+    Select
+        When Abbrev("RICEMAIL",op,4)    Then mailbook = 1
+        When Abbrev("NORICEMAIL",op,3)  Then mailbook = 0
+        When Abbrev("MAILBOOK",op,8)    Then mailbook = 1
+        When Abbrev("NOMAILBOOK",op,3)  Then mailbook = 0
+        Otherwise 'COMMAND XMITMSG 3' op '(ERRMSG'
+        End  /*  Select  */
+    End  /*  Do  While  */
+ricemail = mailbook
+'COMMAND CMS GLOBALV SELECT MIME PUT RICEMAIL MAILBOOK'
+ 
+/*  MIMEMAIN figures out which verb from a PARSE SOURCE statement,    *
+ *  thus MIMEMAIN handles all of the following verbs:                 */
+'COMMAND SET SYNONYM  DELETE   6 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  DISCARD  7 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  EXClude  3 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  FOrward  2 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  INClude  3 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  Log      1 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  MAIL     4 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  NExt     2 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  PRint    2 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  PREvious 3 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  Reply    1 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  Quit     1 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  SEnd     2 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  SUspend  2 MACRO    MIMEMAIN'
+'COMMAND SET SYNONYM  SUBject  3 MACRO    MIMEMAIN'
+ 
+/*  these match (old) MAILBOOK's default PFKey settings  */
+'COMMAND SET PF01 HELP'
+'COMMAND SET PF02 NEXT'
+'COMMAND SET PF03 QUIT'
+'COMMAND SET PF04 PRINT'
+'COMMAND SET PF05 REPLY'
+'COMMAND SET PF06 SWITCH SEND'
+'COMMAND SET PF07 COMMAND BACKWARD'
+'COMMAND SET PF08 COMMAND FORWARD'
+'COMMAND SET PF09 DELETE'
+'COMMAND SET PF10 MENUBAR'
+'COMMAND SET PF11 LOG'
+'COMMAND SET PF12 CANCEL'
+'COMMAND SET PF13'
+'COMMAND SET PF14'
+'COMMAND SET PF15'
+'COMMAND SET PF16'
+'COMMAND SET PF17'
+'COMMAND SET PF18'
+'COMMAND SET PF19'
+'COMMAND SET PF20'
+'COMMAND SET PF21'
+'COMMAND SET PF22'
+'COMMAND SET PF23'
+'COMMAND SET PF24'
+ 
+/*  these verbs are specific to MIME  */
+'COMMAND SET SYNONYM  RETurn   3 COMMAND  QUIT'
+ 
+/*
+If ^mailbook Then Do
+    'COMMAND CMS PIPE COMMAND STATE MAILUSER XEDIT *'
+    If rc ^= 0 Then Leave
+    'MACRO MAILUSER READ'
+    If rc ^= 0 Then Exit rc
+    End  **  If  ..  Do  */
+ 
+'COMMAND SET LINEND OFF'
+ 
+/*  the following section is tricky, relies on XEDIT ring  */
+If fn ^= "" Then Do
+    'COMMAND CMS STATE' fn 'CMSUT2 *'
+    If rc = 0 Then Do
+        'COMMAND EXTRACT/FNAME'
+        'COMMAND XEDIT' fn 'CMSUT2'
+        'COMMAND SET FN' fname.1
+        'COMMAND SET FT HEAD'
+        'COMMAND XEDIT'
+        End  /*  If .. Do  */
+    End  /*  If .. Do  */
+ 
+Exit
+ 

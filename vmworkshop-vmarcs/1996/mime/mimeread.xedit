@@ -1,0 +1,26 @@
+/*
+ *        Name: MIMEREAD XEDIT
+ *        Date: 1993-Apr-23
+ */
+ 
+Parse Arg args '(' opts ')' .
+ 
+mailbook = 0
+Do While opts ^= ""
+    Parse Upper Var opts op opts
+    If op = "RICEMAIL" Then mailbook = 1
+    If op = "MAILBOOK" Then mailbook = 1
+    End  /*  Do  While  */
+'COMMAND CMS GLOBALV SELECT MIME PUT MAILBOOK'
+ 
+Parse Arg argstring
+ 
+'COMMAND EXTRACT/LINE'
+'MACRO ALL'
+'COMMAND TOP'
+Trace "OFF"
+'COMMAND CMS PIPE XEDIT | MIMEREAD' argstring
+'COMMAND :' || line.1
+ 
+Exit
+ 

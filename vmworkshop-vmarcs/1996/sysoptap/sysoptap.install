@@ -1,0 +1,53 @@
+SYSOPTAP Installation                                    June 22, 1996
+ 
+To install SYSOPTAP, create a userid SYSOPTAP with a 1-cylinder 191 disk,
+and CP class BG. You can use a different userid if you wish, but if you
+do, you'll need to rename file SYSOPTAP CONFIG to be <userid> CONFIG.
+ 
+Load all the files to its A disk.
+ 
+Modify SYSOPTAP CONFIG to alter the list of displays which will be
+attached, their virtual addresses, and their physical screen dimensions.
+Also, alter the list of users who should be allowed to mount ANY foreign
+tape, not just their own. Ideally, there will be nobody in this list
+except system administration staff, as it represents a security hole.
+ 
+Give it OPERATOR privileges in VMTAPE.
+ 
+If you want to exploit its feature of looking up FOREIGN tape mounts, you
+should allow any user to mount a FOREIGN tape by NOT using the EXIT1 exit
+from VMTAPE. This can be done by removing/commenting out its line in
+VMTAPE CONFIG.
+ 
+Use PROP or HMF or VMTAPE CONFIG to route all VMTAPE mount messages to
+it.
+ 
+If you run batch jobs, review the code in QMOUNT EXEC which implements
+the UIC local convention that all batch jobs run with the ACIGROUP set to
+the user who submitted the job.
+ 
+Start it as a disconnected server. In your system startup (whether by HMF
+or AUTOLOG1) you will need to ATTACH the displays you always want to come
+up with every time. (Beware that you cannot ATTACH unless it is DISABLED,
+and that the CP DISABLE command runs asynchronously and takes about 5
+seconds to complete. This restriction makes the use of directory DEDICATE
+statements very difficult.)
+ 
+Otherwise, you can manually DIAL to it. When DIALing, if you have
+different screen sizes defined at different virtual addresses, you'll
+need to specify which you want to dial to. If the display is scrambled,
+you have defined the physical screen sizes wrong. To undial, flip the
+Test/Normal switch on the terminal. LDEVs work fine with DIAL to
+SYSOPTAP, as long as you are following the above rules about screen sizes
+matching.
+ 
+The QMOUNT EXEC which drives SYSOPTAP can be invoked with the (TEST
+option to display mounts from file QMOUNT TEST on your own terminal, so
+you can try it out without disrupting your normal operations.
+ 
+LEGAL NOTICE: SYSOPTAP is offered "as-is" without any warranty, including
+any warranty of merchantibility or fitness for a particular purpose.
+ 
+VM:Tape is a trade mark of Sterling Software Inc.
+ 
+Roger Deschner    University of Illinois at Chicago   rogerd@uic.edu

@@ -1,0 +1,14 @@
+/*
+ *        Name: MIMEREAD EXEC
+ *              "opens" MIME formatted messages from CMS disk files
+ *      Author: Rick Troth, Rice University, Information Systems
+ *        Date: 1993-May-18
+ *
+ *        Note: this EXEC is primarily used from the
+ *              FILELIST of a broken-out multi-part message
+ */
+ 
+Parse Arg fn ft fm . '(' opts ')' .
+'PIPE <' fn ft fm '| MIMEREAD (' opts
+Exit rc
+ 

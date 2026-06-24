@@ -1,0 +1,469 @@
+/*********************************************************************/                                                           
+/*                                                                   */                                                           
+/* ISARC   EXEC                                                      */                                                           
+/*                                                                   */                                                           
+/* Usage:  ISARC                                                     */                                                           
+/*                                                                   */                                                           
+/* ISARC is the EXEC name issued when a customer wishes to start     */                                                           
+/* up the individual account request mechanism.  From this EXEC, the */                                                           
+/* various XEDIT input panels are called to gather the appropriate   */                                                           
+/* information from the customer as needed.                          */                                                           
+/*                                                                   */                                                           
+/* Exit Code Definitions:                                            */                                                           
+/*   No exit codes are used in this EXEC.                            */                                                           
+/*                                                                   */                                                           
+/* Required Files:                                                   */                                                           
+/*   ISARCREQ XEDIT    (Profile containing the account request panel)*/                                                           
+/*   ISARCQRY XEDIT    (Profile containing the account query panel)  */                                                           
+/*   ISARCINF XEDIT    (Profile containing the account info display) */                                                           
+/*   ISARCMNU XEDIT    (Profile containing the top level menu)       */                                                           
+/*   INFORM   ISARCTXT (Plain text file containing the account info) */                                                           
+/*   $$TEMP$$ $$FILE$$ (Temporary file used to gain entry to XEDIT)  */                                                           
+/*   ISARCRST XEDIT    (Profile containing service wait screen)      */                                                           
+/*   ISARCQST XEDIT    (Profile containing query results display)    */                                                           
+/*                                                                   */                                                           
+/* Mod Date  Init  Description                                       */                                                           
+/* --------  ----  ------------------------------------------------- */                                                           
+/* 07181994  PDL   Initial Development                               */                                                           
+/* 07261994  PDL   Added code to preserve the cursor placement in the*/                                                           
+/*                 menu area by interacting with INDACCTM XEDIT via  */                                                           
+/*                 the program stack.                                */                                                           
+/* 07281994  PDL   Revised userid generation code to take care of    */                                                           
+/*                 special cases (names with an apostrophe or hyphen)*/                                                           
+/* 07291994  PDL   Program/modules names changed.                    */                                                           
+/* 08011994  PDL   Various message text changes.                     */                                                           
+/* 08021994  PDL   Added code to allow an ISARC maintenance mode.    */                                                           
+/* 08031994  PDL   Added code to recognize the MAINT exit code from  */                                                           
+/*                 ISARCMNU when a maintenance request is issued.    */                                                           
+/* 08121994  PDL   Modified code to look for disabler files on 319-P */                                                           
+/*                 instead of VMSERV02 491.  This will allow "Z"     */                                                           
+/*                 accounts to also see the disabler files and       */                                                           
+/*                 perform the appropriate actions as needed.        */                                                           
+/* 09011994  PDL   Changed initial "lastcol" value from 20 to 22     */                                                           
+/*                 to support changes made in ISARCMNU.              */                                                           
+/* 09061994  PDL   Modified code to look for disabler files and      */                                                           
+/*                 auxiliary files in the                            */                                                           
+/*                 VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS SFS directory. */                                                           
+/*                 "Z" accounts will still be able to see the        */                                                           
+/*                 needed files.                                     */                                                           
+/*                                                                   */                                                           
+/*********************************************************************/                                                           
+                                                                                                                                  
+trace off                                                                                                                         
+                                                                                                                                  
+/* Make sure that nothing unexpected is coming our way. */                                                                        
+"DESBUF"                                                                                                                          
+                                                                                                                                  
+/* 09061994 ADDITION: Added master_loc variable which points to*/                                                                 
+/*                    the SFS directory containing ISARC code, */                                                                 
+/*                    auxiliary files, and disabler files.     */                                                                 
+master_loc="VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS"                                                                                   
+                                                                                                                                  
+/* Check to see if $MAINT $DISABLE is present on VMSERV02 491. */                                                                 
+/* If so, a maintenance mode has been declared.  Shut the      */                                                                 
+/* front-end system down.                                      */                                                                 
+/* 08121994 MODIFICATION:  Now looking on 319-P for file.      */                                                                 
+/* 09061994 MODIFICATION:  Now looking in                      */                                                                 
+/*                         VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS  */                                                                 
+/*                         for $MAINT $DISABLE.                */                                                                 
+/* address command "GETFMADR"                                  */                                                                 
+/* parse upper pull . freemode . check                         */                                                                 
+/* if check ^= "" then do                                                    */                                                   
+/*   say "ERROR ISA005: Unable to allocate a free filemode."                 */                                                   
+/*   say ""                                                                  */                                                   
+/*   say "Please notify the HelpDesk at 502/852-7997 and report the"         */                                                   
+/*   say "following message to them:"                                        */                                                   
+/*   say ""                                                                  */                                                   
+/*   say "> Report to support personnel that the ISARC module is unable   <" */                                                   
+/*   say "> to properly allocate free filemodes.  Further processing      <" */                                                   
+/*   say "> cannot continue.                                              <" */                                                   
+/*   say ""                                                                  */                                                   
+/*   say "Press ENTER to continue..."                                        */                                                   
+/*   parse upper pull waiting                                                */                                                   
+/*   exit                                                                    */                                                   
+/* end                                                                       */                                                   
+freemode=DetermineCodeMode(master_loc)                                                                                            
+if freemode = "UNKNOWN" then do                                                                                                   
+  say "ERROR ISA005: Unable to determine location of ISARC files."                                                                
+  say ""                                                                                                                          
+  say "Please notify the HelpDesk at 502/852-7997 and report the"                                                                 
+  say "following message to them:"                                                                                                
+  say ""                                                                                                                          
+  say "> Report to support personnel that the ISARC module is unable   <"                                                         
+  say "> to properly determine the location of its files.  Further     <"                                                         
+  say "> processing can not continue.                                  <"                                                         
+  say ""                                                                                                                          
+  say "Press ENTER to continue..."                                                                                                
+  parse upper pull waiting                                                                                                        
+  exit                                                                                                                            
+end                                                                                                                               
+else do                                                                                                                           
+  address command "PIPE CMS ACCESS 319 P | HOLE"                                                                                  
+/* 09061994 MODIFICATION: Replaced "P" with "freemode" for detection */                                                           
+/*                        of the $MAINT disabler file.               */                                                           
+/*address command "PIPE CMS STATE $MAINT $DISABLE P | HOLE" */                                                                    
+  address command "PIPE CMS STATE $MAINT $DISABLE" freemode "| HOLE"                                                              
+  if RC = 0 then do                                                                                                               
+/* 09061994 MODIFICATION: Disabled RELEASE code.  The location where */                                                           
+/*                        ISARC code and files are stored can not be */                                                           
+/*                        released.                                  */                                                           
+/*  address command "PIPE CMS RELEASE" freemode "| HOLE"    */                                                                    
+    say "ERROR ISA004: Individual Student Account request/information"                                                            
+    say "              services are not available at this time.  These"                                                           
+    say "              services are currently under maintenance."                                                                 
+    say "              Please try again at a later time."                                                                         
+    say ""                                                                                                                        
+    say "Press ENTER to continue..."                                                                                              
+    parse upper pull waiting                                                                                                      
+    exit                                                                                                                          
+  end                                                                                                                             
+end                                                                                                                               
+                                                                                                                                  
+/* 09061994 MODIFICATION: Disabled RELEASE code.  The location where */                                                           
+/*                        ISARC code and files are stored can not be */                                                           
+/*                        released.                                  */                                                           
+/* address command "PIPE CMS RELEASE" freemode "| HOLE"              */                                                           
+                                                                                                                                  
+/* Does the temporary file (to gain XEDIT environment access) exist? */                                                           
+"PIPE CMS STATE $$TEMP$$ $$FILE$$ * | HOLE"                                                                                       
+if RC ^= 0 then do                                                                                                                
+  say "ERROR ISA001: Unable to locate necessary file for execution."                                                              
+  say ""                                                                                                                          
+  say "Please notify the HelpDesk at 502/852-7997 and report the"                                                                 
+  say "following message to them:"                                                                                                
+  say ""                                                                                                                          
+  say "> Report to support personnel that the file named $$TEMP$$      <"                                                         
+  say "> $$FILE$$ could not be located.  Requests and queries          <"                                                         
+  say "> concerning individual student accounts can not be initiated   <"                                                         
+  say "> without the presence of this file.                            <"                                                         
+  say ""                                                                                                                          
+  say "Press ENTER to continue..."                                                                                                
+  parse upper pull waiting                                                                                                        
+  exit                                                                                                                            
+end                                                                                                                               
+                                                                                                                                  
+/* Does the profile containing the top level menu exist? */                                                                       
+"PIPE CMS STATE ISARCMNU XEDIT * | HOLE"                                                                                          
+if RC ^= 0 then do                                                                                                                
+  say "ERROR ISA002: Unable to locate necessary file for execution."                                                              
+  say ""                                                                                                                          
+  say "Please notify the HelpDesk at 502/852-7997 and report the"                                                                 
+  say "following message to them:"                                                                                                
+  say ""                                                                                                                          
+  say "> Report to support personnel that the file named ISARCMNU      <"                                                         
+  say "> XEDIT could not be located.  Requests and queries concerning  <"                                                         
+  say "> individual student accounts can not be initiated without the  <"                                                         
+  say "> presence of this file.                                        <"                                                         
+  say ""                                                                                                                          
+  say "Press ENTER to continue..."                                                                                                
+  parse upper pull waiting                                                                                                        
+  exit                                                                                                                            
+end                                                                                                                               
+                                                                                                                                  
+/* Indicate that input is requested from the menu */                                                                              
+menu_status="INPUT"                                                                                                               
+                                                                                                                                  
+/* Initialize the cursor placement on the menus   */                                                                              
+lastline=9                                                                                                                        
+lastcol=22                                                                                                                        
+                                                                                                                                  
+/* The menu portion of the code can have 7 states                   */                                                            
+/*   INPUT       - input is needed                                  */                                                            
+/*   FINISHED    - customer has requested exit from the menus       */                                                            
+/*   REQUEST     - customer wants to request an account             */                                                            
+/*   QUERY       - customer wants to query the status of an account */                                                            
+/*   INFORMATION - customer wants to view general account info      */                                                            
+/*   UNAVAILABLE - no menu items are available (could not locate    */                                                            
+/*                 the profiles for the menu items)                 */                                                            
+/*   MAINT       - ISARC has been issued a request by support       */                                                            
+/*                 personnel to go into maintenance mode.           */                                                            
+do until menu_status="FINISHED"                                                                                                   
+                                                                                                                                  
+  /* Check to see if any of the necessary external disks have been */                                                             
+  /* accessed.  If so, then release them so that other routines    */                                                             
+  /* in the menu/request mechanism do not keep requesting filemodes*/                                                             
+  /* until we run out of them...                                   */                                                             
+  "PIPE CMS QUERY ACCESSED | DROP FIRST | STACK FIFO"                                                                             
+  do index=1 to queued()                                                                                                          
+    parse upper pull fm . . vdev .                                                                                                
+    vdev=strip(vdev)                                                                                                              
+    if (vdev = "491") then                                                                                                        
+      address command "RELEASE" fm                                                                                                
+  end                                                                                                                             
+                                                                                                                                  
+  /* Check to see if $MAINT $DISABLE is present on VMSERV02 491. */                                                               
+  /* If so, a maintenance mode has been declared.  Shut the      */                                                               
+  /* front-end system down.                                      */                                                               
+  /* 08121994 MODIFICATION:  Now looking on 319-P for file.      */                                                               
+  /* 09061994 MODIFICATION:  Now looking in                      */                                                               
+  /*                         VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS  */                                                               
+  /*                         for $MAINT $DISABLE.                */                                                               
+/*address command "GETFMADR"                                                */                                                    
+/*parse upper pull . freemode . check                                       */                                                    
+/*if check ^= "" then do                                                    */                                                    
+/*  say "ERROR ISA005: Unable to allocate a free filemode."                 */                                                    
+/*  say ""                                                                  */                                                    
+/*  say "Please notify the HelpDesk at 502/852-7997 and report the"         */                                                    
+/*  say "following message to them:"                                        */                                                    
+/*  say ""                                                                  */                                                    
+/*  say "> Report to support personnel that the ISARC module is unable   <" */                                                    
+/*  say "> to properly allocate free filemodes.  Further processing      <" */                                                    
+/*  say "> cannot continue.                                              <" */                                                    
+/*  say ""                                                                  */                                                    
+/*  say "Press ENTER to continue..."                                        */                                                    
+/*  parse upper pull waiting                                                */                                                    
+/*  exit                                                                    */                                                    
+/*end                                                                       */                                                    
+  freemode=DetermineCodeMode(master_loc)                                                                                          
+  if freemode = "UNKNOWN" then do                                                                                                 
+    say "ERROR ISA005: Unable to determine location of ISARC files."                                                              
+    say ""                                                                                                                        
+    say "Please notify the HelpDesk at 502/852-7997 and report the"                                                               
+    say "following message to them:"                                                                                              
+    say ""                                                                                                                        
+    say "> Report to support personnel that the ISARC module is unable   <"                                                       
+    say "> to properly determine the location of its files.  Further     <"                                                       
+    say "> processing can not continue.                                  <"                                                       
+    say ""                                                                                                                        
+    say "Press ENTER to continue..."                                                                                              
+    parse upper pull waiting                                                                                                      
+    exit                                                                                                                          
+  end                                                                                                                             
+  else do                                                                                                                         
+    address command "PIPE CMS ACCESS 319 P | HOLE"                                                                                
+/* 09061994 MODIFICATION: Replaced "P" with "freemode" for detection */                                                           
+/*                        of the $MAINT disabler file.               */                                                           
+/*  address command "PIPE CMS STATE $MAINT $DISABLE P | HOLE"        */                                                           
+    address command "PIPE CMS STATE $MAINT $DISABLE" freemode "| HOLE"                                                            
+    if (RC = 0) | (menu_status = "MAINT") then do                                                                                 
+/* 09061994 MODIFICATION: Disabled RELEASE code.  The location where */                                                           
+/*                        ISARC code and files are stored can not be */                                                           
+/*                        released.                                  */                                                           
+/*    address command "PIPE CMS RELEASE" freemode "| HOLE"           */                                                           
+      say "ERROR ISA004: Individual Student Account request/information"                                                          
+      say "              services are not available at this time.  These"                                                         
+      say "              services are currently under maintenance."                                                               
+      say "              Please try again at a later time."                                                                       
+      say ""                                                                                                                      
+      say "Press ENTER to continue..."                                                                                            
+      parse upper pull waiting                                                                                                    
+      exit                                                                                                                        
+    end                                                                                                                           
+  end                                                                                                                             
+                                                                                                                                  
+  /* Place the cursor placement information on the program stack */                                                               
+  queue lastline                                                                                                                  
+  queue lastcol                                                                                                                   
+                                                                                                                                  
+  /* Display the menu panel */                                                                                                    
+  "XEDIT $$TEMP$$ $$FILE$$ * (PROFILE ISARCMNU NOLOCK)"                                                                           
+  parse upper pull menu_status                                                                                                    
+  if menu_status ^= "FINISHED" then do                                                                                            
+    parse pull lastline                                                                                                           
+    parse pull lastcol                                                                                                            
+    select                                                                                                                        
+                                                                                                                                  
+      when menu_status = "REQUEST" then do                                                                                        
+        /* Display the account request instructions */                                                                            
+        "XEDIT INSTRUCT ISARCTXT * (PROFILE ISARCINS NOLOCK)"                                                                     
+        /* Display the account request panel */                                                                                   
+        "XEDIT $$TEMP$$ $$FILE$$ * (PROFILE ISARCREQ NOLOCK)"                                                                     
+        parse upper pull request_status                                                                                           
+        /* Perform the appropriate request action depending */                                                                    
+        /* on the result we retrieve from the stack.        */                                                                    
+        select                                                                                                                    
+          when request_status="EXECUTE" then                                                                                      
+            call prepare_and_submit_request                                                                                       
+          when request_status="DO NOT EXECUTE" then nop                                                                           
+          otherwise nop                                                                                                           
+        end                                                                                                                       
+      end                                                                                                                         
+                                                                                                                                  
+      when menu_status = "QUERY" then do                                                                                          
+        /* Display the account request panel */                                                                                   
+        "XEDIT $$TEMP$$ $$FILE$$ * (PROFILE ISARCQRY NOLOCK)"                                                                     
+        parse upper pull request_status                                                                                           
+        /* Perform the appropriate query action depending */                                                                      
+        /* on the result returned from the panel code.    */                                                                      
+        select                                                                                                                    
+          when request_status="EXECUTE" then                                                                                      
+            /* Instead of pulling the SSN off of the stack,    */                                                                 
+            /* just leave it on for the perform query process. */                                                                 
+            "XEDIT $$TEMP$$ $$FILE$$ * (PROFILE ISARCQST NOLOCK)"                                                                 
+          when request_status="DO NOT EXECUTE" then nop                                                                           
+          otherwise nop                                                                                                           
+        end                                                                                                                       
+      end                                                                                                                         
+                                                                                                                                  
+      when menu_status = "INFORMATION" then do                                                                                    
+        /* Display the about info */                                                                                              
+        "XEDIT INFORM ISARCTXT * (PROFILE ISARCINF NOLOCK)"                                                                       
+      end                                                                                                                         
+                                                                                                                                  
+      when menu_status = "UNAVAILABLE" then do                                                                                    
+        /* None of the menu items are available because */                                                                        
+        /* the profiles for them could not be found.    */                                                                        
+        menu_status="FINISHED"                                                                                                    
+          say "ERROR ISA003: Individual Student Account request/information"                                                      
+          say "              services are not available at this time."                                                            
+          say ""                                                                                                                  
+          say "Please notify the HelpDesk at 502/852-7997 and report the"                                                         
+          say "following message to them:"                                                                                        
+          say ""                                                                                                                  
+          say "> Report to support personnel that the",                                                                           
+              "menu system could not be <"                                                                                        
+          say "> brought up either because the menu",                                                                             
+              "item profiles could not be <"                                                                                      
+          say "> located or because one or more of",                                                                              
+              "the auxiliary files could   <"                                                                                     
+          say "> not be located.                  ",                                                                              
+              "                            <"                                                                                     
+          say ""                                                                                                                  
+          say "Press ENTER to continue..."                                                                                        
+          parse upper pull waiting                                                                                                
+          exit                                                                                                                    
+      end                                                                                                                         
+                                                                                                                                  
+      when menu_status = "MAINT" then nop                                                                                         
+                                                                                                                                  
+      otherwise nop                                                                                                               
+    end                                                                                                                           
+  end                                                                                                                             
+                                                                                                                                  
+  /* Does the temporary file (to gain XEDIT environment access) exist? */                                                         
+  "PIPE CMS STATE $$TEMP$$ $$FILE$$ * | HOLE"                                                                                     
+  if RC ^= 0 then do                                                                                                              
+    say "ERROR ISA001: Unable to locate necessary file for execution."                                                            
+    say ""                                                                                                                        
+    say "Please notify the HelpDesk at 502/852-7997 and report the"                                                               
+    say "following message to them:"                                                                                              
+    say ""                                                                                                                        
+    say "> Report to support personnel that the file named $$TEMP$$      <"                                                       
+    say "> $$FILE$$ could not be located.  Requests and queries          <"                                                       
+    say "> concerning individual student accounts can not be initiated   <"                                                       
+    say "> without the presence of this file.                            <"                                                       
+    say ""                                                                                                                        
+    say "Press ENTER to continue..."                                                                                              
+    parse upper pull waiting                                                                                                      
+    exit                                                                                                                          
+  end                                                                                                                             
+                                                                                                                                  
+  /* Does the profile containing the top level menu exist? */                                                                     
+  "PIPE CMS STATE ISARCMNU XEDIT * | HOLE"                                                                                        
+  if RC ^= 0 then do                                                                                                              
+    say "ERROR ISA002: Unable to locate necessary file for execution."                                                            
+    say ""                                                                                                                        
+    say "Please notify the HelpDesk at 502/852-7997 and report the"                                                               
+    say "following message to them:"                                                                                              
+    say ""                                                                                                                        
+    say "> Report to support personnel that the file named ISARCMNU      <"                                                       
+    say "> XEDIT could not be located.  Requests and queries concerning  <"                                                       
+    say "> individual student accounts can not be initiated without the  <"                                                       
+    say "> presence of this file.                                        <"                                                       
+    say ""                                                                                                                        
+    say "Press ENTER to continue..."                                                                                              
+    parse upper pull waiting                                                                                                      
+    exit                                                                                                                          
+  end                                                                                                                             
+                                                                                                                                  
+end                                                                                                                               
+                                                                                                                                  
+/* Before we exit, make sure that we have cleaned up after       */                                                               
+/* ourselves.  Check to see what filemode(s) have been accessed  */                                                               
+/* for VMSERV02 491, and release these filemodes.                */                                                               
+"PIPE CMS QUERY ACCESSED | DROP FIRST | STACK FIFO"                                                                               
+do index=1 to queued()                                                                                                            
+  parse upper pull fm . . vdev .                                                                                                  
+  vdev=strip(vdev)                                                                                                                
+  if (vdev = "491") then                                                                                                          
+    address command "RELEASE" fm                                                                                                  
+end                                                                                                                               
+                                                                                                                                  
+"DESBUF"                                                                                                                          
+                                                                                                                                  
+exit                                                                                                                              
+                                                                                                                                  
+/********************************************************************/                                                            
+/* This routine prepares for the submission of the request by first */                                                            
+/* pulling the customer data items off of the stack, and then       */                                                            
+/* by packing the data items (in padded format) into one record.    */                                                            
+/* The record is then sent to VMSERV01.                             */                                                            
+/********************************************************************/                                                            
+prepare_and_submit_request:                                                                                                       
+                                                                                                                                  
+/* Let us form the record to transmit... */                                                                                       
+request_record_to_submit=""                                                                                                       
+parse pull first_name                                                                                                             
+parse pull middle_initial                                                                                                         
+parse pull last_name                                                                                                              
+parse pull SSN                                                                                                                    
+parse pull TTPIN                                                                                                                  
+                                                                                                                                  
+/* Now form the prospective userid */                                                                                             
+/* First of all, get the first alpha character of the name. */                                                                    
+/* The apostrophe and hyphen characters must be excluded    */                                                                    
+/* from consideration as the first character of a userid.   */                                                                    
+do firstindex = 1 to length(first_name)                                                                                           
+  char_to_consider=substr(first_name,firstindex,1)                                                                                
+  if (char_to_consider ^= "'") & (char_to_consider ^= "-") then                                                                   
+    leave firstindex                                                                                                              
+end                                                                                                                               
+                                                                                                                                  
+prosp_userid=char_to_consider||middle_initial                                                                                     
+                                                                                                                                  
+lastpart=""                                                                                                                       
+do lastindex = 1 to length(last_name)                                                                                             
+  char_to_consider=substr(last_name,lastindex,1)                                                                                  
+  if (char_to_consider ^= "'") & (char_to_consider ^= "-") then                                                                   
+    lastpart=lastpart||char_to_consider                                                                                           
+end                                                                                                                               
+                                                                                                                                  
+if length(lastpart) < 4 then                                                                                                      
+  prosp_userid=prosp_userid||lastpart||,                                                                                          
+               left("0000",(4-length(lastpart)))                                                                                  
+else                                                                                                                              
+  prosp_userid=prosp_userid||left(lastpart,4)                                                                                     
+                                                                                                                                  
+prosp_userid=prosp_userid||"Z1"                                                                                                   
+                                                                                                                                  
+upper prosp_userid                                                                                                                
+                                                                                                                                  
+request_record_to_submit=left(SSN,9)||" "||"R"||" "||left(TTPIN,6)||,                                                             
+                         " "||left(prosp_userid,8)||,                                                                             
+                         " "||left(last_name,15)||,                                                                               
+                         left(first_name,15)||left(middle_initial,1)                                                              
+queue request_record_to_submit                                                                                                    
+"XEDIT $$TEMP$$ $$FILE$$ * (PROFILE ISARCRST NOLOCK)"                                                                             
+                                                                                                                                  
+return                                                                                                                            
+                                                                                                                                  
+/**********************************************************************/                                                          
+/**********************************************************************/                                                          
+/**********************************************************************/                                                          
+/* 09061994 ADDITION:  Added function DetermineCodeMode to find the   */                                                          
+/*                     filemode where                                 */                                                          
+/*                     VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS is accessed.*/                                                          
+/**********************************************************************/                                                          
+                                                                                                                                  
+DetermineCodeMode: procedure                                                                                                      
+                                                                                                                                  
+  arg master_loc                                                                                                                  
+                                                                                                                                  
+  freemode="UNKNOWN"                                                                                                              
+                                                                                                                                  
+  /* Get the mode definitions from CMS */                                                                                         
+  address command "PIPE CMS QUERY ACCESSED",                                                                                      
+                  "|    DROP FIRST",                                                                                              
+                  "|    STEM MODES.",                                                                                             
+                  "|    HOLE"                                                                                                     
+                                                                                                                                  
+  /* Now let us search through the mode definitions and find the mode */                                                          
+  /* at which VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS has been accessed.   */                                                          
+  do mode_index = 1 to modes.0                                                                                                    
+    parse upper var modes.mode_index cmode . . . cloc                                                                             
+    cmode=left(strip(cmode),1)                                                                                                    
+    cloc=strip(cloc)                                                                                                              
+    if (cloc = master_loc) then freemode=cmode                                                                                    
+  end                                                                                                                             
+                                                                                                                                  
+return freemode                                                                                                                   

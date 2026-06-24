@@ -1,0 +1,183 @@
+The purpose of this mod is to reformat the output of the QUERY NAMES command.                                                       
+The results of this command on a vanilla system includes the address of                                                             
+where the virtual machine is running or 'DSC' for disconnected machines.                                                            
+On a large system, such as a 3090-200E, this can generate several screens                                                           
+worth of data and is confusing to unsophisticated users.  This mod removes                                                          
+the address from the display, and shows 8 virtual machine names on each line.                                                       
+This greatly decreases the size of the display.                                                                                     
+                                                                                                                                    
+In addition, this mod adds several new options to the command.  The 'ALL'                                                           
+option shows all virtual machines running on the system, whether they                                                               
+are connected or not.  This is the default.  The 'DISCONNECT' option shows                                                          
+only those machines that are running disconnected, while 'CONNECT' shows                                                            
+only connected machines.  Finally, 'SNA' shows only those machines that                                                             
+are logged onto the system via a *VSM connection (ie. VTAM or TCPIP).                                                               
+                                                                                                                                    
+The following is an example of how the QUERY NAMES command looks after                                                              
+this mod:                                                                                                                           
+                                                                                                                                    
+query names all                                                                                                                     
+                                                                                                                                    
+STSS     KMMQ     STMQ     URCG     URBP     UICOMM   SYS$MMM  SYS$DKB                                                              
+URDB     UIHD     JZEM     MUSICB   URLS     URMJ     KK3R     HDPOPR1                                                              
+XAMWRITE MUSICC   MUSICA   SERVDIR  HDPCNTRL VMNET    MARISTA  MARISTC                                                              
+MARISTB  SPSSBAT  PRT3820  PDMREM1  PDMGRP3  SFCM     RSCS     MAILER                                                               
+LISTSERV SIM3278  SQL2DBA  NETSERV  RSCSX    GCS      AUTOLINK OPERSYMP                                                             
+URMM2                                                                                                                               
+                                                                                                                                    
+query names disconnect                                                                                                              
+                                                                                                                                    
+STSS     KMMQ     STMQ     JZEM     MUSICB   XAMWRITE MUSICC   MUSICA                                                               
+HDPCNTRL VMNET    MARISTA  MARISTC  MARISTB  SPSSBAT  PRT3820  PDMREM1                                                              
+PDMGRP3  SFCM     RSCS     MAILER   LISTSERV SIM3278  SQL2DBA  NETSERV                                                              
+RSCSX    GCS      AUTOLINK OPERSYMP                                                                                                 
+                                                                                                                                    
+query names connect                                                                                                                 
+                                                                                                                                    
+URCG     URBP     UICOMM   SYS$MMM  SYS$DKB  URDB     UIHD     URLS                                                                 
+URMJ     KK3R     HDPOPR1  SERVDIR  URMM2                                                                                           
+                                                                                                                                    
+query names sna                                                                                                                     
+                                                                                                                                    
+VSM     - VTAM                                                                                                                      
+URCG    -LM020B2A                                                                                                                   
+VSM     - TCPIPA                                                                                                                    
+VSM     - TCPIPB                                                                                                                    
+VSM     - TCPIP                                                                                                                     
+VSM     - TCPIPC                                                                                                                    
+                                                                                                                                    
+The mod contained in this file is running on VM/ESA ESA 2.1 and it only                                                             
+effects module HCPCQU.                                                                                                              
+                                                                                                                                    
+Problems, questions or comments should be sent to the mod developer,                                                                
+Martha McConaghy   URMM@MARIST (BITNET) or URMM@VM.MARIST.EDU (Internet)                                                            
+Senior VM Systems Programmer                                                                                                        
+Marist College                                                                                                                      
+Poughkeepsie, NY  12601                                                                                                             
+(914) 575-3252                                                                                                                      
+6/05/94                                                                                                                             
+                                                                                                                                    
+HCPCQU   QNAMES                                                                                                                     
+./ R 02360001 02400001 $ 2366991 6990                 05/12/94 18:50:59                                                             
+*        +----------+--------------------+                   * QNAMES                                                               
+*        |  QUERY   |  NAMES   <ALL>     |                   * QNAMES                                                               
+*        |  QUERY   |          <DISCONN> |                   * QNAMES                                                               
+*        |  QUERY   |          <CONNECT> |                   * QNAMES                                                               
+*        |  QUERY   |          <SNA>     |                   * QNAMES                                                               
+*        +----------+--------------------+                   * QNAMES                                                               
+./ R 02440001 02510001 $ 2449991 9990                 05/12/94 18:50:59                                                             
+*    ALL   - PRINTS ALL CONNECTED AND DISCONNECTED USERS     * QNAMES                                                               
+*    DISCONN- PRINTS ONLY DISCONNECTED USERS                 * QNAMES                                                               
+*    CONNECT- PRINTS ONLY CONNECTED USERS                    * QNAMES                                                               
+*    SNA    - PRINTS ALL SNA USERS W/LUNAMES                 * QNAMES                                                               
+*                                                            * QNAMES                                                               
+./ R 02540001          $ 2544991 4990                 05/12/94 18:50:59                                                             
+*        2. PLACE FIELD IN BUFFER EIGHT TO A LINE.           * QNAMES                                                               
+./ R 02640001 02660001 $ 2646991 6990                 05/12/94 18:50:59                                                             
+* USERID USERID USERID USERID USERID USERID USERID USERID    * QNAMES                                                               
+* ...                                                        * QNAMES                                                               
+*   -                                                        * QNAMES                                                               
+./ I 02930001          $ 2932001 2000                 05/12/94 18:50:59                                                             
+         LA    R0,1(0)       GET BLOCK FOR QNAMOP              QNAMES                                                               
+         HCPGETST  LEN=(R0)                                    QNAMES                                                               
+         LR    R9,R1                                           QNAMES                                                               
+         HCPUSING  QNAMOP,R9                                   QNAMES                                                               
+./ R 02960001          $ 2960391 390                  05/12/94 18:50:59                                                             
+         BNZ   SETDEF        NO OPERANDS?  SET TO 'ALL'        QNAMES                                                               
+         LR    R6,R0         SAVE LENGTH                       QNAMES                                                               
+         BCTR  R6,0                                            QNAMES                                                               
+* CHECK OPERANDS                                               QNAMES                                                               
+         EX    R6,CLCALL                                       QNAMES                                                               
+         BE    SETDEF                                          QNAMES                                                               
+         EX    R6,CLCDISC    QUERY DISCONNECTED USERS?         QNAMES                                                               
+         BNE   CONNECT       NO, NEXT ONE                      QNAMES                                                               
+         MVI   QNAMFLG,QDISC  SET DISCONNECT FLAG              QNAMES                                                               
+         B     QRYSTRT       GO DO IT                          QNAMES                                                               
+CONNECT  EX    R6,CLCCONN    QUERY CONNECTED USERS?            QNAMES                                                               
+         BNE   SNAUSRS       NO, NEXT ONE                      QNAMES                                                               
+         MVI   QNAMFLG,QCONN  SET CONNECT FLAG                 QNAMES                                                               
+         B     QRYSTRT       GO DO IT                          QNAMES                                                               
+SNAUSRS  EX    R6,CLCSNA     QUERY SNA USERS?                  QNAMES                                                               
+         BNE   SETDEF        NO, THEN DO ALL ANYWAY            QNAMES                                                               
+         MVI   QNAMFLG,QSNA   SET SNA FLAG                     QNAMES                                                               
+         B     QRYSTRT       GO DO IT                          QNAMES                                                               
+SETDEF   MVI   QNAMFLG,QALL  SET ALL FLAG                      QNAMES                                                               
+QRYSTRT  DS    0H                                              QNAMES                                                               
+./ I 04180001          $ 4183001 3000                 05/12/94 18:50:59                                                             
+         TM    QNAMFLG,QSNA  DISPLAY SNA USERS                 QNAMES                                                               
+         BO    QRYSNA                                          QNAMES                                                               
+./ R 04310001 04320001 $ 4314991 4990                 05/12/94 18:50:59                                                             
+         BZ    CHKDISC    NO, SO THIS IS A NON-SNA USER        QNAMES                                                               
+         TM    VMDOSTAT,VMDDISC                                QNAMES                                                               
+         BO    CHKDISC                                         QNAMES                                                               
+./ R 04350001          $ 4354991 4990                 05/12/94 18:50:59                                                             
+         BZ    CHKCONN    NO, SO THIS IS A NON-SNA USER        QNAMES                                                               
+./ R 04370001 04380001 $ 4375991 5990                 05/12/94 18:50:59                                                             
+         BNE   CHKCONN        NOPE - REGULAR Q NAMES           QNAMES                                                               
+DONXT    C     R10,VMDORIG-VMDBK(,R11) END IF UNDER SYS VMDBK  QNAMES                                                               
+./ R 04430001 04480001 $ 4437991 7990                 05/12/94 18:50:59                                                             
+*QRYNISF1 DS    0H                                             QNAMES                                                               
+*        CL    R10,VMDORIG-VMDBK(,R11) BACK TO START?          QNAMES                                                               
+*        BE    QRYMSGL       YES - GO STACK GSDBK AND GET SNA  QNAMES                                                               
+*                            PART OF THE RESPONSE              QNAMES                                                               
+*        L     R10,VMDCYCLE  LOAD NEXT VMDBK ADDRESS           QNAMES                                                               
+*        B     QRYCONT       CHECK IF THIS IS A NON-SNA USER   QNAMES                                                               
+./ I 04500001          $ 4500901 900                  05/12/94 18:50:59                                                             
+CHKDISC  TM    QNAMFLG,QALL   CHECK FOR 'ALL' OR 'DISC'        QNAMES                                                               
+         BO    QRYGETID                                        QNAMES                                                               
+         TM    QNAMFLG,QDISC                                   QNAMES                                                               
+         BO    QRYGETID                                        QNAMES                                                               
+         B     DONXT                                           QNAMES                                                               
+CHKCONN  TM    QNAMFLG,QALL    CHECK FOR 'ALL' OR 'CONN'       QNAMES                                                               
+         BO    QRYGETID                                        QNAMES                                                               
+         TM    QNAMFLG,QCONN                                   QNAMES                                                               
+         BO    QRYGETID                                        QNAMES                                                               
+         B     DONXT                                           QNAMES                                                               
+./ R 04620001          $ 4620991 990                  05/12/94 18:50:59                                                             
+         CLC   VMDUSER(4),=C'LOGN'  IS IT A PRE-LOGON?         QNAMES                                                               
+         BE    QRYGTID3      YES, THEN GET NEXT USERID         QNAMES                                                               
+         CLC   VMDUSER(4),=C'LOGL' IS IT A PRE-LOGON?          QNAMES                                                               
+         BE    QRYGTID3                                        QNAMES                                                               
+         CLC   VMDUSER(4),=C'LOGV' IS IT A PRE-LOGON?          QNAMES                                                               
+         BE    QRYGTID3                                        QNAMES                                                               
+         MVC   0(L'VMDUSER,R6),VMDUSER    GET USERID           QNAMES                                                               
+./ R 04810001 04830001 $ 4816991 6990                 05/13/94 13:11:59                                                             
+*        BZ    QYGTID2A                LOCAL OR LOGICAL IS OK. QNAMES                                                               
+*        CL    R10,VMDORIG-VMDBK(,R11) BACK TO START?          QNAMES                                                               
+*        BE    QRYMSGL       YES - GO STACK GSDBK AND GET SNA  QNAMES                                                               
+./ R 04990001 05000001 $ 4995991 5990                 05/12/94 18:50:59                                                             
+         MVI   L'VMDUSER(R6),C' '  SPACE OVER                  QNAMES                                                               
+         LA    R6,9(R6)        BUMP TO NEXT SEGMENT            QNAMES                                                               
+./ R 05210001          $ 5212991 2990                 05/12/94 18:50:59                                                             
+         TM    QNAMFLG,QSNA  DISPLAY SNA USERS?                QNAMES                                                               
+         BNO   QRYEXIT       GET SNA PART OF THE RESPONSE      QNAMES                                                               
+./ I 05250001          $ 5252001 2000                 05/12/94 18:50:59                                                             
+         TM    QNAMFLG,QSNA  DISPLAY SNA USERS?                QNAMES                                                               
+         BO    QRYSNA        GET SNA PART OF RESPONSE          QNAMES                                                               
+         HCPRELST BLOCK=(R9)                                   QNAMES                                                               
+         B     QRYEXIT                                         QNAMES                                                               
+./ I 05260001          $ 5265001 5000                 05/12/94 18:50:59                                                             
+         HCPDROP R9                                            QNAMES                                                               
+./ I 05370001          $ 5375001 5000                 05/12/94 18:50:59                                                             
+         HCPRELST BLOCK=(R9)                                   QNAMES                                                               
+./ I 05930001          $ 5935001 5000                 05/12/94 18:50:59                                                             
+         HCPUSING NRESP,R6                                     QNAMES                                                               
+./ I 06340001          $ 6342001 2000                 05/12/94 18:50:59                                                             
+CLCALL   CLC   0(*-*,R1),=C'ALL '                              QNAMES                                                               
+CLCDISC  CLC   0(*-*,R1),=C'DISCONN '                          QNAMES                                                               
+CLCCONN  CLC   0(*-*,R1),=C'CONNECT '                          QNAMES                                                               
+CLCSNA   CLC   0(*-*,R1),=C'SNA '                              QNAMES                                                               
+./ R 15680001          $ 15684991 4990                05/12/94 18:50:59                                                             
+QRYNCNT  EQU   8             8 QUERY NAMES PER LINE            QNAMES                                                               
+./ I 16290001          $ 16290801 800                 05/12/94 18:50:59                                                             
+************************************************************   QNAMES                                                               
+*    DSECT FOR DETERMINING TYPE OF Q NAMES OPERANDS        *   QNAMES                                                               
+************************************************************   QNAMES                                                               
+         SPACE 2                                               QNAMES                                                               
+QNAMOP   DSECT                                                 QNAMES                                                               
+QNAMFLG  DS    X               OPERAND FLAG                    QNAMES                                                               
+QALL     EQU   X'0F'           PRINT ALL OF THE USERS          QNAMES                                                               
+QDISC    EQU   X'08'           PRINT ONLY DISCONNECT USERS     QNAMES                                                               
+QCONN    EQU   X'04'           PRINT ONLY CONNECT USERS        QNAMES                                                               
+QSNA     EQU   X'82'           PRINT ONLY SNA USERS            QNAMES                                                               
+         EJECT                                                 QNAMES                                                               

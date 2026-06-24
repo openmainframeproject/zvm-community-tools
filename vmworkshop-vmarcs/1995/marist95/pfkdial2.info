@@ -1,0 +1,177 @@
+This is the original PFKDIAL mod written at McGill University by Anne-Marie                                                         
+Marcoux.  It allows the use of PF keys from the pre-logon state to dial                                                             
+into a guest system.  It was running on a VM/ESA ESA 1.0 system.                                                                    
+                                                                                                                                    
+                                                                                                   PAGE 00001                       
+./ * HCPLOG PFKDIAL                                                                                                                 
+./ * let users dial by hitting PFkeys                                                                                               
+./ * Anne-Marie Marcoux, McGill University   marie@vm1.mcgill.ca                                                                    
+./ I 00810000 $ 00810100                                                                                                            
+*              HCPPFKPG - Deallocate PF key storage             PFKDIAL                                                             
+./ I 02040000 $ 02040100                                                                                                            
+         EXTRN HCPPFKPG                                         PFKDIAL                                                             
+./ * this part entered if new user is logging on                                                                                    
+./ * skeleton vmblok must reset pfkeys first                                                                                        
+./ I 07323270 $ 07323300 100                                                                                                        
+         HCPCALL HCPPFKPG    deallocate PF key storage          PFKDIAL                                                             
+         SPACE 1                                                PFKDIAL                                                             
+                                                                                                   PAGE 00001                       
+                                                                                                                                    
+./ * HCPBVM PFKDIAL                                                                                                                 
+./ * let users dial by hitting PF keys                                                                                              
+./ * Anne-Marie Marcoux, McGill University   marie@vm1.mcgill.ca                                                                    
+./ I 01515000 $ 01515100                                                                                                            
+         COPY  HCPGSDBK - General system data block             PFKDIAL                                                             
+./ * vmdpfunc points to a 24 fullword list which in turn points                                                                     
+./ * to gsdbloks for those pfkeys having settings                                                                                   
+./ * see module HCPPFK for pfk processing                                                                                           
+./ I 07380000 $ 07380100 10                                                                                                         
+**************************************************************  PFKDIAL                                                             
+*                                                            *  PFKDIAL                                                             
+*    Now create PFK entries for menu to be shown at logon    *  PFKDIAL                                                             
+*    Make sure R8 and R10 are unchanged                      *  PFKDIAL                                                             
+*                                                            *  PFKDIAL                                                             
+**************************************************************  PFKDIAL                                                             
+         HCPUSING RDEV,R8                                       PFKDIAL                                                             
+PFKDIAL  CLI   RDEVCLAS,CLASGRAF   is this a local 3270?        PFKDIAL                                                             
+         BNE   PFKDONE             no, then no PFKs             PFKDIAL                                                             
+PFKDEFS  LA    R2,PFDEFS     R2 -> list of definitions          PFKDIAL                                                             
+         HCPUSING SYSDEF,R2                                     PFKDIAL                                                             
+         LA    R4,NPFDEFS    R4 = number of these definitions   PFKDIAL                                                             
+*        just covering here, an already defined function table  PFKDIAL                                                             
+*        means it wasn't released properly last time around!    PFKDIAL                                                             
+*        and that's a BUG !!!                                   PFKDIAL                                                             
+         ICM   R1,B'1111',VMDPFUNC get the function table       PFKDIAL                                                             
+         BNZ   FILLKEYS      this is not the first time         PFKDIAL                                                             
+         SPACE 1                                                PFKDIAL                                                             
+         LA    R0,PFTABSIZ   let's get one then!                PFKDIAL                                                             
+         HCPGETST LEN=(R0),TYPE=GUESTPERM get free storage      PFKDIAL                                                             
+         ST    R1,VMDPFUNC   save that precious address         PFKDIAL                                                             
+*        will not worry about other VMDBKs here since dummy     PFKDIAL                                                             
+*        vmdblok will never be for MP user                      PFKDIAL                                                             
+         XC    0(PFTABSIZ*8,R1),0(R1) zero out the whole thing  PFKDIAL                                                             
+FILLKEYS SLR   R3,R3         clear to                           PFKDIAL                                                             
+         IC    R3,SYSKEY     ... load PF key number             PFKDIAL                                                             
+         LA    R0,PFDENTRY   size of block                      PFKDIAL                                                             
+         HCPGETST ID=GSDBK,LEN=(R0),TYPE=GUESTPERM  get it!     PFKDIAL                                                             
+         SLL   R3,2          Calculate the index into the       PFKDIAL                                                             
+         S     R3,PFX4       ...function table for this PF      PFKDIAL                                                             
+         A     R3,VMDPFUNC   point to right spot                PFKDIAL                                                             
+         ST    R1,0(,R3)     store gsdbk into addr table slot   PFKDIAL                                                             
+         SPACE 1                                                PFKDIAL                                                             
+         HCPUSING GSDBK,R1   addressability to PF GSDBK         PFKDIAL                                                             
+         STH   R0,GSDFRESZ   save the double word size          PFKDIAL                                                             
+         LA    R5,L'DIAL+L'SYSNAME  length of data to be moved  PFKDIAL                                                             
+         STH   R5,GSDDCNT    save the pfdata data count         PFKDIAL                                                             
+         MVC   GSDDATA(L'DIAL),DIAL move pfdata part 1          PFKDIAL                                                             
+         MVC   GSDDATA+L'DIAL(L'SYSNAME),SYSNAME  move part 2   PFKDIAL                                                             
+         MVC   GSDFLAG,=AL1(GSDPFIMM)  immediate PF key         PFKDIAL                                                             
+         CLI   RDEVTYPE,TYP3278  got 24-PFkey terminal ?        PFKDIAL                                                             
+         BNE   NEXTSYS       nope, all done for this one then   PFKDIAL                                                             
+         SPACE 1                                                                                                                    
+         HCPGETST ID=GSDBK,LEN=(R0),TYPE=GUESTPERM  get one morePFKDIAL                                                             
+         LA    R3,4*12(,R3)  repeat at PF(n+12)                 PFKDIAL                                                             
+         ST    R1,0(,R3)     store gsdbk into addr table slot   PFKDIAL                                                             
+         HCPUSING GSDBK,R1   addressability to PF GSDBK         PFKDIAL                                                             
+         STH   R0,GSDFRESZ   save the double word size          PFKDIAL                                                             
+         STH   R5,GSDDCNT    save the pfdata data count         PFKDIAL                                                             
+         MVC   GSDDATA(L'DIAL),DIAL move pfdata part 1          PFKDIAL                                                             
+         MVC   GSDDATA+L'DIAL(L'SYSNAME),SYSNAME  move part 2   PFKDIAL                                                             
+         MVC   GSDFLAG,=AL1(GSDPFIMM)  immediate PF key         PFKDIAL                                                             
+         SPACE 1                                                PFKDIAL                                                             
+NEXTSYS  LA    R2,SYSLEN(,R2)                                   PFKDIAL                                                             
+         BCT   R4,FILLKEYS   move on to next definition         PFKDIAL                                                             
+         DROP  R1,R2,R8                                         PFKDIAL                                                             
+         SPACE 1                                                PFKDIAL                                                             
+PFKDONE  DS    0H                                                                                                                   
+./ I 07970000 $ 07970100 100                                                                                                        
+         EJECT                                                  PFKDIAL                                                             
+DIAL     DC    C'DIAL '                                         PFKDIAL                                                             
+         SPACE 1                                                PFKDIAL                                                             
+* PFdefs :                                                      PFKDIAL                                                             
+*          Byte 1 = PFK number                                  PFKDIAL                                                             
+*          Byte 2 = cpu number  X'01' --> VM1                   PFKDIAL                                                             
+*                               X'02' --> VM2                   PFKDIAL                                                             
+*                               X'00' --> system runs on both   PFKDIAL                                                             
+*          BYTE 3-10 = system id                                PFKDIAL                                                             
+*                                                               PFKDIAL                                                             
+PFDEFS   DC    AL1(1),X'01',CL8'MUSICA'                         PFKDIAL                                                             
+         DC    AL1(2),X'01',CL8'MUSICB'                         PFKDIAL                                                             
+         DC    AL1(4),X'01',CL8'MULTI'                          PFKDIAL                                                             
+         SPACE 1                                                PFKDIAL                                                             
+NPFDEFS  EQU   (*-PFDEFS)/10                                    PFKDIAL                                                             
+PFTABSIZ EQU   13            Size of PF table in double words   PFKDIAL                                                             
+*                             copied from HCPPFK                PFKDIAL                                                             
+PFDENTRY EQU   (L'DIAL+L'SYSNAME+7)/8+GSDHSIZE   double words   PFKDIAL                                                             
+*                            Size of each PFkey entry           PFKDIAL                                                             
+         SPACE 1                                                PFKDIAL                                                             
+SYSDEF   DSECT               initial PFK definition             PFKDIAL                                                             
+SYSKEY   DS    X             PFK number                         PFKDIAL                                                             
+SYSFLAG  DS    X             cpu flag                           PFKDIAL                                                             
+SYSNAME  DS    CL8           name of system to dial             PFKDIAL                                                             
+SYSLEN   EQU   *-SYSDEF      length of this dsect               PFKDIAL                                                             
+         SPACE 3                                                PFKDIAL                                                             
+                                                                                                   PAGE 00001                       
+                                                                                                                                    
+./ * HCPMXRBK PFKDIAL                                                                                                               
+./ * let users dial by hitting PF keys                                                                                              
+./ * Anne-Marie Marcoux, McGill University   marie@vm1.mcgill.ca                                                                    
+./ R 12547100 12549200 $ 12548000 100                                                                                               
+MS706005 EQU   X'00706005'                                      PFKDIAL                                                             
+MS706006 EQU   X'00706006'                                      PFKDIAL                                                             
+MS706007 EQU   X'00706007'                                      PFKDIAL                                                             
+MS706008 EQU   X'00706008'                                      PFKDIAL                                                             
+                                                                                                   PAGE 00001                       
+                                                                                                                                    
+./ * HCPMES PFKDIAL                                                                                                                 
+./ * let users dial by hitting PF keys                                                                                              
+./ * Anne-Marie Marcoux, McGill University   marie@vm1.mcgill.ca                                                                    
+./ R 74808400 74808870 $ 74808500 10                                                                                                
+*                                                               PFKDIAL                                                             
+*  Translation information for message 7060-05                  PFKDIAL                                                             
+*         No fields need to be translated                       PFKDIAL                                                             
+70600501R                                                       PFKDIAL                                                             
+70600502  Use a PFkey to access the desired system:             PFKDIAL                                                             
+70600503                                                        PFKDIAL                                                             
+70600504     PF1  or  PF13:                musica               PFKDIAL                                                             
+70600505     PF2  or  PF14:                musicb               PFKDIAL                                                             
+70600506     PF3  or  PF15 (or type INFO): infoMcGill           PFKDIAL                                                             
+70600507     PF4  or  PF16:                tso, muse            PFKDIAL                                                             
+*                                                               PFKDIAL                                                             
+*  Translation information for message 7060-06                  PFKDIAL                                                             
+*         No fields need to be translated                       PFKDIAL                                                             
+70600601R                                                       PFKDIAL                                                             
+70600602  Use a PFkey to access the desired system:             PFKDIAL                                                             
+70600603                                                        PFKDIAL                                                             
+70600604     PF1:                   musica                      PFKDIAL                                                             
+70600605     PF2:                   musicb                      PFKDIAL                                                             
+70600606     PF3  (or type INFO):   infoMcGill                  PFKDIAL                                                             
+70600607     PF4:                   tso,muse                    PFKDIAL                                                             
+*                                                               PFKDIAL                                                             
+*  Translation information for message 7060-07                  PFKDIAL                                                             
+*         No fields need to be translated                       PFKDIAL                                                             
+70600701R                                                       PFKDIAL                                                             
+70600702  Use a PFkey to access the desired system:             PFKDIAL                                                             
+70600703                                                        PFKDIAL                                                             
+70600704     PF1  or  PF13:  musicf                             PFKDIAL                                                             
+*                                                               PFKDIAL                                                             
+*  Translation information for message 7060-08                  PFKDIAL                                                             
+*         No fields need to be translated                       PFKDIAL                                                             
+70600801R                                                       PFKDIAL                                                             
+70600802  Use a PFkey to access the desired system:             PFKDIAL                                                             
+70600803                                                        PFKDIAL                                                             
+70600804     PF1:            musicf                             PFKDIAL                                                             
+                                                                                                   PAGE 00001                       
+                                                                                                                                    
+./ * HCPLON PFKDIAL                                                                                                                 
+./ * let users dial by hitting PF keys                                                                                              
+./ * Anne-Marie Marcoux, McGill University   marie@vm1.mcgill.ca                                                                    
+./ D 09873850 09874821                                                                                                              
+./ D 09874849 09876350                                                                                                              
+./ R 09876500 09876700 $ 09876600 10                                                                                                
+         ICM   R0,ALL,=AL4(MS706005) load message nbr           PFKDIAL                                                             
+         CLI   RDEVTYPE,TYP3278  got 24-PFkey terminal ?        PFKDIAL                                                             
+         BE    PTOK              yup, R0 is OK                  PFKDIAL                                                             
+         ICM   R0,ALL,=AL4(MS706006) load 12 PFkey msg nbr      PFKDIAL                                                             
+PTOK     HCPCALL HCPERMSG,PARM=R2 Issue the prompt              PFKDIAL                                                             
+./ D 09877300 09877600                                                                                                              
