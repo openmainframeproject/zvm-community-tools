@@ -38,9 +38,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+VMA="$REPO_ROOT/bin/vma"
 
 EXECS_DIR="${1:-${REPO_ROOT}/execs}"
-VMA_BIN="${2:-${REPO_ROOT}/bin/vma}"
+# VMA_BIN="${2:-${REPO_ROOT}/bin/vma}"
 ARCHIVE_NAME="zvmtools.vmarc"
 ARCHIVE_PATH="${EXECS_DIR}/${ARCHIVE_NAME}"
 
@@ -50,9 +51,9 @@ if [[ ! -d "${EXECS_DIR}" ]]; then
 fi
 
 # Build vma on demand if it isn't already available.
-if [[ ! -x "${VMA_BIN}" ]]; then
-    echo "vma binary not found at ${VMA_BIN}; building it..."
-    "${SCRIPT_DIR}/build-vma.sh" "${VMA_BIN}"
+if [[ ! -x "${VMA}" ]]; then
+    echo "vma binary not found at ${VMA}; building it..."
+    "${SCRIPT_DIR}/build-vma.sh" "${VMA}"
 fi
 
 shopt -s nullglob
@@ -81,7 +82,7 @@ WORK_ARCHIVE="$(mktemp -u "${EXECS_DIR}/.zvmtools.XXXXXX.vmarc")"
 # vma derives the stored CMS filename/filetype from each disk filename's
 # own "name.ext" (e.g. calc.exec -> CALC EXEC), uppercasing automatically.
 pushd "${EXECS_DIR}" >/dev/null
-"${VMA_BIN}" -a -t "${WORK_ARCHIVE}" *.exec
+"${VMA}" -a -t "${WORK_ARCHIVE}" *.exec
 popd >/dev/null
 
 NEW_HASH="$(sha256sum "${WORK_ARCHIVE}" | awk '{print $1}')"
@@ -93,6 +94,6 @@ if [[ "${OLD_HASH}" == "${NEW_HASH}" ]]; then
     echo "UNCHANGED"
 else
     echo "Archive rebuilt: ${ARCHIVE_PATH}"
-    "${VMA_BIN}" "${ARCHIVE_PATH}"
+    "${VMA}" "${ARCHIVE_PATH}"
     echo "CHANGED"
 fi
