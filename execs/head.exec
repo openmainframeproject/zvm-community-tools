@@ -102,5 +102,4 @@ say "Usage: HEAD [-n] fn ft [fm]"
 say "Where: 'fn ft' is the file name and type"
 say "     : 'fm' is the file mode (default A)"
 exit 2
- 
 
