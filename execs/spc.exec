@@ -20,5 +20,4 @@ help:
 say "Name:  SPC EXEC - Spool console to unique file name"
 say "Usage: SPC"
 exit 2
- 
 
