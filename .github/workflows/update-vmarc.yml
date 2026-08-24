@@ -1,90 +1,43 @@
-name: Update VMARC Archive
+name: Update zvmtools.vmarc
 
+# Keeps execs/zvmtools.vmarc in sync whenever a .exec is added, deleted,
+# or modified. Triggers on pushes that touch execs/*.exec (but not on
+# pushes that only touch the .vmarc itself, to avoid a commit loop) and
+# can also be run by hand from the Actions tab.
 on:
   push:
+    branches: [main]
     paths:
       - 'execs/*.exec'
-      - 'execs/README.md'
-    branches:
-      - main
-  workflow_dispatch:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
 
 jobs:
   update-vmarc:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout repository
+      - name: Check out repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Cache VMARC binary
-        id: cache-vmarc
-        uses: actions/cache@v3
-        with:
-          path: ./vmarc
-          key: vmarc-binary-${{ runner.os }}
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential
 
-      - name: Build VMARC tools
-        if: steps.cache-vmarc.outputs.cache-hit != 'true'
+      - name: Rebuild zvmtools.vmarc
+        id: rebuild
         run: |
-          wget -q https://www.homerow.net/zvm/vma/vmarc.c -O vmarc.c
-          gcc -o vmarc vmarc.c
-          chmod +x vmarc
+          chmod +x scripts/*.sh
+          ./scripts/update-vmarc.sh execs bin/vma | tee /tmp/update.log
+          status="$(tail -n1 /tmp/update.log)"
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Generate VMARC archive
+      - name: Commit updated archive
+        if: steps.rebuild.outputs.status == 'CHANGED'
         run: |
-          python3 << 'EOF'
-          import os
-          import subprocess
-          
-          exec_files = []
-          execs_dir = 'execs'
-          
-          for filename in sorted(os.listdir(execs_dir)):
-              if filename.endswith('.exec'):
-                  filepath = os.path.join(execs_dir, filename)
-                  exec_files.append(filepath)
-          
-          if os.path.exists(os.path.join(execs_dir, 'README.md')):
-              exec_files.append(os.path.join(execs_dir, 'README.md'))
-          
-          print(f"Packing {len(exec_files)} files into zvmtools.vmarc")
-          for f in exec_files:
-              print(f"  - {f}")
-          
-          cmd = ['./vmarc', 'pack'] + exec_files + ['execs/zvmtools.vmarc']
-          result = subprocess.run(cmd, capture_output=True, text=True)
-          
-          if result.returncode != 0:
-              print(f"Error creating VMARC: {result.stderr}")
-              exit(1)
-          
-          print("VMARC archive created successfully")
-          EOF
-
-      - name: Check if VMARC changed
-        id: check_changes
-        run: |
-          if git diff --quiet execs/zvmtools.vmarc; then
-              echo "changed=false" >> $GITHUB_OUTPUT
-          else
-              echo "changed=true" >> $GITHUB_OUTPUT
-              echo "VMARC archive has been updated"
-          fi
-
-      - name: Commit and push changes
-        if: steps.check_changes.outputs.changed == 'true'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add execs/zvmtools.vmarc
-          git commit -m "chore: update VMARC archive from modified execs"
+          git commit -m "Rebuild zvmtools.vmarc [skip ci]"
           git push
 
