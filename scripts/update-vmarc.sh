@@ -21,7 +21,7 @@
 # changes produces a byte-identical archive (no noisy diffs/commits).
 #
 # Usage:
-#   ./update-vmarc.sh [execs_dir] [vma_binary]
+#   ./update-vmarc.sh [execs_dir] 
 #
 # Defaults:
 #   execs_dir  = <repo_root>/execs
@@ -39,9 +39,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 VMA="$REPO_ROOT/bin/vma"
-
 EXECS_DIR="${1:-${REPO_ROOT}/execs}"
-# VMA_BIN="${2:-${REPO_ROOT}/bin/vma}"
 ARCHIVE_NAME="zvmtools.vmarc"
 ARCHIVE_PATH="${EXECS_DIR}/${ARCHIVE_NAME}"
 
@@ -74,7 +72,10 @@ if [[ -f "${ARCHIVE_PATH}" ]]; then
     OLD_HASH="$(sha256sum "${ARCHIVE_PATH}" | awk '{print $1}')"
 fi
 
-WORK_ARCHIVE="$(mktemp -u "${EXECS_DIR}/.zvmtools.XXXXXX.vmarc")"
+# Build the new archive in a temporary directory.
+WORK_DIR="$(mktemp -d)"
+WORK_ARCHIVE="${WORK_DIR}/zvmtools.vmarc"
+trap 'rm -rf "${WORK_DIR}"' EXIT
 
 # Build the new archive from scratch in a temp file:
 #   -a  add files
