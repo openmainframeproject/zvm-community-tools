@@ -89,5 +89,4 @@ help:
   say "Where: '-lines' is optional number of tail lines to show"
   say "       'pattern' is optional search pattern"
 exit 1                               /* help() */
- 
 

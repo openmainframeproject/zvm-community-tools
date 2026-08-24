@@ -31,5 +31,4 @@ say "Where: 'fn1 ft1 fm1' is the source file:"
 say "       'fm2' is the target file mode"
 say "       'options' add to COPY command such as 'REP' or 'OLDD'"
 exit 2
- 
 

@@ -30,6 +30,5 @@ say "Usage: CFN fn2 fn1 ft1 fm1 ['('options')']"
 say "Where: 'fn2' is the target file name"
 say "       'fn1 ft1 fm1' is the source file:"
 say "       'options' add to COPY command such as 'REP' or 'OLDD'"
-exit 2
- 
+exit 2 
 
