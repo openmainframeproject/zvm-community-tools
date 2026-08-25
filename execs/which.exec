@@ -490,5 +490,5 @@ say "             H: create help command"
 say "             S: silent - negative verbosity"
 say "             T: trace"
 say "             V: verbose - return expanded command"
-exit 2
+exit 2                                     /* help() */
 
