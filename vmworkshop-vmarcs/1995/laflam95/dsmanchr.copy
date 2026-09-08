@@ -1,0 +1,36 @@
+.* dsmanchr copy
+.* anchor for HTML <a> handling
+.* OK, look for HREF value.
+.se @href = NONE
+.gs attval href as @href name as @name
+.*
+.*  Now handle "name=" like GML4 "refid=" handling.
+.*    That is, if it's a name, set an anchor point.
+.*
+.se @dc = &@dc + 1
+.*   IF &D1@.... EXISTS, GENERATE A STRING CONTAINING THE IDENTIFIER
+.se *D = 'D'
+.se DR@&@dc = &
+.if &E'&D1@&dsm@href eq 0 .an &E'&d1@&dsm@href eq 0 .go unknown
+.if &E'&D1@&dsm@href eq 0 .se *D = d
+.if &E'&dR@&@dc ne 0 .se *R = d
+.el .se *R = D
+.su off
+.se *cw = &$CW
+.dc cw off
+.*                GENERATE THE TEXT OF THE LIST ITEM REFERENCE
+.su on
+&&*D.1@&dsm@href..&*r.&$CONT.
+.dc cw &*cw
+.me
+.*         IF  &D1@.... DOES NOT EXIST, USE A CANNED STRING INSTEAD
+...unknown
+.* for examples, figures and title pages, SV is already off
+.if &@state = Exmpl .or &@state = F .or &@state = TtlPg
+.el .sv off
+-- &LL@LIun --&$CONT
+.el .sv on
+.*
+.*  For href's, if the length is less than eight, it must be internal?
+.*    For longer than eight, make it a footnote?
+.*

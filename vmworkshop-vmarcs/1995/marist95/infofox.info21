@@ -1,0 +1,282 @@
+The Marist INFOFOX modification allows an installation to define a new command
+that will translate into a dial into a predetermined virtual machine beginning
+at a specified address.  This essentially allows you to define a synonym
+for "DIAL xxx cuu".  At Marist, this is used to implement our INFOFOX BBS,
+which resides on system, MUSICB.  A user issues the INFOFOX command, which
+will dial the MUSICB machine, at the first available port address above
+the address configured in the mod.
+ 
+The effect, therefore, enables you to reserve ports on a specific virtual
+machine for a specific application.
+ 
+The original modification was developed at McGill University, by Anne-Marie
+Marcoux (MARIE@VM1.McGill.CA).  It supported only one synonym definition
+and the starting address was hardcoded in the mod.  While the basic
+design of the modification remains the same,
+Marist has extended the original by adding a table which allows you to define
+multiple synonyms, each with its own starting address.  It also
+now supports the command, "DIAL INFOFOX" in addition to the standard
+"INFOFOX" format.  This was made necessary by a modification that Marist
+developed for the logo screen, which automatically places the DIAL command
+into the command stream.  It is also useful, however for users who are
+used to issuing "DIAL xxxxxx".
+ 
+The most important part of the mod is in HCPDIA.  This adds a new entry point
+to HCPDIA, HCPDIAIN.  This routine is described more fully in the comments
+at the entry point.  Its purpose is to compare the specified command with
+a pre-configured table.  This table contains the synonym definition, its
+true virtual machine name and the beginning port address.  If the specified
+command matches a synonym in the table, it is modified to contain the
+true virtual machine name and beginning address.  In addition, a flag is set
+indicating that this was a synonym command.  Control is then returned to
+the main part of HCPDIA.  HCPSCNVT is called to find the first available port
+on the true virtual machine.  HCPSCNVT has been modified to recognize that
+a synonym command was issued.  In this case, it ignores all ports until it
+reaches the configured beginning address.  It then returns the first available
+port.
+ 
+Currently, the INFOFOX mod supports only one synonym per virtual machine.
+This is because HCPSCNVT does not stop searching until it reaches
+the last port on the virtual machine.  Therefore, you can control the
+beginning address of the range, but not the ending address.  This should
+not be difficult to add, however, and is planned for the future.
+ 
+In addition to HCPDIA and HCPSCN, HCPCOM is modified to define the
+new synonyms.  These should point to HCPDIAIN as the entry point
+and should be available in the pre-logon state.
+ 
+Also included are optional modifications to HCPBVM and HCPMES.  These
+are necessary if you also have the PFKDIAL modification installed.
+They change the definition of the PF keys and the messages in the
+pre-logon state.  These were required in the original mod from McGill
+but are no longer required.
+ 
+The mod in this file is for VM/ESA 1.2.1.  The original version of this
+mod was developed on VM/ESA ESA 1.0 SLC 9202.
+ 
+As usual, you may alter this modification as you wish.  Any problems,
+comments and feedback (but no complaints) can be sent to Martha
+McConaghy, Marist College (URMM@VM.MARIST.EDU) (914) 575-3252.
+06/05/94
+**********************************************************************
+HCPDIA   INFOFOX
+ 
+./ I 04420000          $ 4423000 3000                 05/05/94 16:16:21
+*  The following indicates a normal dial.  The flag will       INFOFOX
+*  be set on if we are dialing to a userid in our INFOTAB.     INFOFOX
+*  See comments at HCPDIAIN.                                   INFOFOX
+         MVI   WHICHCMD,OTHERCMD   INDICATE NORMAL DIAL        INFOFOX
+./ I 04469960          $ 4473960 4000                 05/05/94 16:16:21
+MAINENTR DS    0H                 Join main code from DIAIN    INFOFOX
+./ I 05469860          $ 5470860 1000                 05/05/94 16:16:21
+         CLI   WHICHCMD,INFOCMD   Are we doing info cmd?       INFOFOX
+         BE    NOCHECK            Yes, don't check cmd line.   INFOFOX
+./ I 05504790          $ 5506790 2000                 05/05/94 16:16:21
+NOCHECK  DS    0H                                              INFOFOX
+./ I 05539720          $ 5540320 600                  05/05/94 16:16:21
+         LR    R15,R0             Ensure length in R15         INFOFOX
+*** NOTE: we have to reload R1 because its destroyed by        INFOFOX
+*         by the MVCL.                                         INFOFOX
+         LA    R1,DIALEUSR   Get address again.                INFOFOX
+         B     INFOCHK       Go check for synonyms             INFOFOX
+*                                                              INFOFOX
+GETVMDBK DS    0H            Rejoin HCPDIA in progress         INFOFOX
+./ I 06613920          $ 6615920 2000                 05/05/94 16:16:21
+         CLI   WHICHCMD,INFOCMD    Are we doing the info thing?INFOFOX
+         BE    DEVNUMOK           Yes, skip this checking.     INFOFOX
+./ R 07085520          $ 7085810 290                  05/05/94 16:16:21
+         CLI   WHICHCMD,INFOCMD   Are we doing the info thing? INFOFOX
+         BNE   GOFORIT            No, skip it.                 INFOFOX
+         ICM   R1,B'1100',VNUMBIN Set beginning vaddr.         INFOFOX
+GOFORIT  ICM   R1,B'0010',RDEVCLAS Pass the dialer's terminal  @S5998IU,
+./ I 07117360          $ 7117960 600                  05/05/94 16:16:21
+*  Set info flag for HCPSCNVT.                                 INFOFOX
+         ICM   R0,B'1000',WHICHCMD Pass flag for type of dial  INFOFOX
+./ I 23580000          $ 23580100 100                 05/05/94 16:16:21
+*START OF SPECIFICATIONS***************************************INFOFOX
+*                                                              INFOFOX
+* Entry point name - HCPDIAIN                                  INFOFOX
+*                                                              INFOFOX
+* Descriptive name - Dial processing for INFOFOX and related   INFOFOX
+*                    commands.                                 INFOFOX
+*                                                              INFOFOX
+*     Developed by Martha McConaghy for Marist College 8/6/92  INFOFOX
+*     for VM/ESA 1.0.                                          INFOFOX
+*     Based on a modification developed at McGill University.  INFOFOX
+*     Updated for VM/ESA 2.1 by Martha McConaghy 5/5/94.       INFOFOX
+*                                                              INFOFOX
+* Function - This routine allows you to define commands in CP  INFOFOX
+*            that are pseudonyms for a dial function.  For     INFOFOX
+*            example, INFOFOX, will really dial MUSICB using   INFOFOX
+*            a specific address range.  The pseudonym commands INFOFOX
+*            and the real DIALEE's name are kept in a table    INFOFOX
+*            along with the starting address.  The table is    INFOFOX
+*            INFOTAB, located in this module.  If you don't    INFOFOX
+*            care about the vaddr of the dial port, specify    INFOFOX
+*            x'0000' in the table.                             INFOFOX
+*                                                              INFOFOX
+*            There are two ways of entering this routine:      INFOFOX
+*            entering the vanilla command, ie. INFOFOX.  The   INFOFOX
+*            operation will enter this routine via HCPDIAIN.   INFOFOX
+*            The second                                        INFOFOX
+*            way is to issue DIAL xxxx, ie. DIAL INFOFOX.      INFOFOX
+*            In this case, operation will enter via HCPDIAL    INFOFOX
+*            and will be sent down to INFOCHK before going on. INFOFOX
+*                                                              INFOFOX
+*            Prior to entering HCPSCNVT at label SCANLOOP, we  INFOFOX
+*            will set a flag in R0 that indicates if we are    INFOFOX
+*            processing an INFO command or not.  If we are,    INFOFOX
+*            HCPSCNVT will check the vaddr of each port againstINFOFOX
+*            the address defined in INFOTAB.  HCPSCNVT will    INFOFOX
+*            reject all vaddrs below this address.             INFOFOX
+*                                                              INFOFOX
+*      R2, R3 and R4 are used.                                 INFOFOX
+*      R15 is expected to have the length of dialee's name     INFOFOX
+*          upon input.                                         INFOFOX
+*                                                              INFOFOX
+*END OF SPECIFICATIONS*****************************************INFOFOX
+HCPDIAIN HCPENTER CALL,SAVE=DYNAMIC                            INFOFOX
+*                                                              INFOFOX
+*  Enter here for one of the special commands and then join    INFOFOX
+*  the main HCPDIA for terminal checking.  We will come back   INFOFOX
+*  later on.                                                   INFOFOX
+         MVI   WHICHCMD,INFOCMD    Signal the info command     INFOFOX
+         B     MAINENTR            Rejoin HCPDIA               INFOFOX
+*                                                              INFOFOX
+INFOCHK  DS    0H            Main checking code                INFOFOX
+*                                                              INFOFOX
+*  The following code will check a table of pseudonym          INFOFOX
+*  commands.  If the userid matches one, then we will          INFOFOX
+*  will reset the DIALEUSR name to the table value and set the INFOFOX
+*  vaddr value for HCPSCNVT in VNUMBIN.                        INFOFOX
+*                                                              INFOFOX
+*  Restrictions:  We expect R15 to have length in it.          INFOFOX
+*                 Also, R1 should point to DIALEUSR.           INFOFOX
+*                                                              INFOFOX
+* Set a minimum length for R15.  This is to ensure that there  INFOFOX
+* is at least 3 characters in the command to be checked.       INFOFOX
+* Otherwise, send it back to HCPDIA to be handled normally.    INFOFOX
+         CL    R15,PFX2      Is length < 3?                    INFOFOX
+         BL    GETVMDBK      Yes, then skip check.             INFOFOX
+*                                                              INFOFOX
+         LA    R2,18         Set table increment               INFOFOX
+         LA    R3,EINFOTAB   Set ending address                INFOFOX
+         LA    R4,INFOTAB    Get addr of our table             INFOFOX
+COMPTAB  EX    R15,COMPINFO  Is it an entry in the table?      INFOFOX
+         BE    INFOSET       yes, then set the information     INFOFOX
+         BXLE  R4,R2,COMPTAB Get next entry and try again      INFOFOX
+         B     GETVMDBK      None found, go back to HCPDIA.    INFOFOX
+*                                                              INFOFOX
+INFOSET  MVI   WHICHCMD,INFOCMD  Indicate the info command     INFOFOX
+         MVC   DIALEUSR(8),8(R4) Set dialee name from table    INFOFOX
+         LA    R0,8               Hardcode length at 8         INFOFOX
+         MVC   VNUMBIN,16(R4)     Set Vaddr for HCPSCNVT       INFOFOX
+         B     GETVMDBK           Rejoin HCPDIA                INFOFOX
+         EJECT                                                 INFOFOX
+./ I 23628940          $ 23629140 200                 05/05/94 16:16:21
+COMPINFO CLC   DIALEUSR(*-*),0(R4)   CHECK DIALED VM           INFOFOX
+*                                                              INFOFOX
+INFOTAB  DC    CL16'INFOFOX MUSICB  ' SYNONYM AND SYSTEM       INFOFOX
+         DC    X'05E0'                BEGIN VADDR              INFOFOX
+         DC    CL16'DOBIS   MVS     ' SYNONYM AND SYSTEM       INFOFOX
+         DC    X'0576'                BEGIN VADDR              INFOFOX
+         DC    CL16'TSO     MVS     ' SYNONYM AND SYSTEM       INFOFOX
+         DC    X'0000'                BEGIN VADDR              INFOFOX
+         DC    CL16'IAPROD  MVS     ' SYNONYM AND SYSTEM       INFOFOX
+         DC    X'0000'                BEGIN VADDR              INFOFOX
+EINFOTAB EQU   *-1                                             INFOFOX
+./ I 23854820          $ 23855120 300                 05/05/94 16:16:21
+         ORG   SAVEWRK9                                        INFOFOX
+WHICHCMD DS    XL1                is it INFO or normal DIAL ?  INFOFOX
+OTHERCMD EQU   X'00'                                           INFOFOX
+INFOCMD  EQU   X'01'                                           INFOFOX
+*********************************************************************
+ 
+HCPSCN   INFOFOX
+ 
+./ I 14930001          $ 14931001 1000                05/05/94 13:14:57
+         CLI   PFXBALSV+24,INFOCMD Are we doing the info thing?INFOFOX
+         BNE   SCNVTALL           No, then go on...            INFOFOX
+* Our beginning address is stored in VNUMBIN from HCPDIA,      INFOFOX
+* which roughly located in SAVEWRK3.  We have to get the       INFOFOX
+* address of the save area first.                              INFOFOX
+         L     R7,PFXBALSV+76     Get SAVBK address for DIA    INFOFOX
+*** NOTE, the offset must match VNUMBIN in save area!!!        INFOFOX
+         CLC   100(2,R7),VDEVDEV  Is it our vaddr or above?    INFOFOX
+         BH    VTSCNMOR           No, then get another one.    INFOFOX
+./ I 34140001          $ 34142001 2000                05/05/94 13:14:57
+* MAPPING HCPDIA R0 SAVED IN PFXBALSV+24                       INFOFOX
+OTHERCMD EQU   X'00'                                           INFOFOX
+INFOCMD  EQU   X'01'                                           INFOFOX
+*********************************************************************
+ 
+HCPBVM   INFOFOX
+ 
+./ R 12714401 12714801 $ 12714901 50                  08/06/92 15:00:32
+         DC    AL1(3),X'01',CL13'LOGOFF'                       INFOFOX
+         DC    AL1(4),X'01',CL13'INFOFOX'                      INFOFOX
+         DC    AL1(5),X'01',CL13'DOBIS'                        INFOFOX
+         DC    AL1(6),X'01',CL13'IAPROD'                       INFOFOX
+         DC    AL1(12),X'01',CL13'ADDR'                        INFOFOX
+*********************************************************************
+ 
+HCPCOM   INFOFOX
+ 
+./ I 06340001          $ 6340100 100                  08/06/92 15:11:26
+************************************************************** INFOFOX
+*                                                            * INFOFOX
+*  DOBIS COMMAND                                             * INFOFOX
+*                                                            * INFOFOX
+************************************************************** INFOFOX
+                                                       SPACE , INFOFOX
+         COMMD COMMAND=(DOBIS,5),FL=CMDONLY+CMDALOG+CMDOLOG,           *
+               CLASS=*,EP=HCPDIAIN                             INFOFOX
+                                                       SPACE , INFOFOX
+./ I 07880001          $ 7880100 100                  08/06/92 15:11:26
+************************************************************** INFOFOX
+*                                                            * INFOFOX
+*  IAPROD COMMAND                                            * INFOFOX
+*                                                            * INFOFOX
+************************************************************** INFOFOX
+                                                       SPACE , INFOFOX
+         COMMD COMMAND=(IAPROD,6),FL=CMDONLY+CMDALOG+CMDOLOG,          *
+               CLASS=*,EP=HCPDIAIN                             INFOFOX
+                                                       SPACE , INFOFOX
+./ I 08060001          $ 8060100 100                  08/06/92 15:11:26
+************************************************************** INFOFOX
+*                                                            * INFOFOX
+*  INFOFOX COMMAND                                           * INFOFOX
+*                                                            * INFOFOX
+************************************************************** INFOFOX
+                                                       SPACE , INFOFOX
+         COMMD COMMAND=(INFOFOX,4),FL=CMDONLY+CMDALOG+CMDOLOG,         *
+               CLASS=*,EP=HCPDIAIN                             INFOFOX
+                                                       SPACE , INFOFOX
+./ I 14350001          $ 14350100 100                 08/06/92 15:11:26
+                                                       SPACE , INFOFOX
+************************************************************** INFOFOX
+*                                                            * INFOFOX
+*  TSO COMMAND                                               * INFOFOX
+*                                                            * INFOFOX
+************************************************************** INFOFOX
+                                                       SPACE , INFOFOX
+         COMMD COMMAND=(TSO,3),FL=CMDONLY+CMDALOG+CMDOLOG,             *
+               CLASS=*,EP=HCPDIAIN                             INFOFOX
+*********************************************************************
+ 
+HCPMES   INFOFOX
+ 
+./ R 60569700 60569750 $ 60569755 2                   08/11/92 09:51:19
+70600506     PF3  or  PF15:     LOGOFF                         INFOFOX
+70600507     PF4  or  PF16:     INFOFOX                        INFOFOX
+70600508     PF5  or  PF17:     DOBIS                          INFOFOX
+70600509     PF6  or  PF18:     IAPROD                         INFOFOX
+70600510     PF12 or  PF24:     ADDR                           INFOFOX
+70600511                                                       INFOFOX
+70600512     To access CMS, type: LOGON accountcode            INFOFOX
+./ R 60570200 60570250 $ 60570255 2                   08/11/92 09:51:19
+70600606     PF3:               LOGOFF                         INFOFOX
+70600607     PF4:               INFOFOX                        INFOFOX
+70600608     PF5:               DOBIS                          INFOFOX
+70600609     PF6:               IAPROD                         INFOFOX
+70600610     PF12:              ADDR                           INFOFOX

@@ -1,0 +1,33 @@
+/* © Copyright 1995, Richard M. Troth, all rights reserved.  <plaintext>
+ *
+ *        Name: IDENTD EXEC
+ *              IDENT/TAP (RFC 1413) server for VM/CMS
+ *      Author: Rick Troth, Houston, Texas, USA
+ *        Date: 1994-Oct-14
+ *     Version: 1.1.1, aka (V1) R1 M1, or just "1.1"
+ *
+ *     Co-reqs: TCPSHELL EXEC (supplied)
+ *              CMS Pipelines
+ *              REXX/Sockets (RXSOCKET V2)
+ *              VM TCP/IP V2
+ */
+ 
+vrm = "1.1.1"
+ 
+Parse Source . . arg0 .
+version = arg0 || '/' || vrm
+Parse Arg args
+ 
+Address "COMMAND"
+ 
+Parse Var vrm v '.' r '.' m
+time = Time();  date = Date('S')
+'XMITMSG 8399 ARG0 V R M "N/A" TIME DATE (ERRMSG'
+ 
+'GLOBALV SELECT' arg0 'PUT VERSION VRM'
+ 
+'EXEC TCPSHELL (NOIDENT) 113' arg0 args
+ 
+Exit rc
+ 
+ 

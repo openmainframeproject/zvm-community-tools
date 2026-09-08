@@ -1,0 +1,55 @@
+/**********************************************************************
+ * WHOISIT EXEC - Shell to call WHOIS with some input params to       *
+ *                let WHOIS be called from OV menus.                  *
+ **********************************************************************
+ *                                                                    *
+ *    Author : Victoria Harpe                         4/17/93         *
+ *                                                                    *
+ *    +-------------+----------+------------+---------------------+   *
+ *    | Rev. Number |   Date   | Programmer | Reason For Revision |   *
+ *    +=============+==========+============+=====================+   *
+ *    |      1      | 4/27/93  |V Harpe     |Add Messages Waiting |   *
+ *    |             |          |            |and default to NAME  |   *
+ *    +-------------+----------+------------+---------------------+   *
+ *    |      2      | 5/7/93   |V Harpe     |Add Help info; add   |   *
+ *    |             |          |            |default info         |   *
+ *    +-------------+----------+------------+---------------------+   *
+ * 05/13/93 baj  Changed wording; spaced responses out more.          *
+ *                                                                    *
+ **********************************************************************/
+ 
+TRACE ON
+SET EMSG OFF
+ 
+MAKEBUF
+ 
+SAY ' '
+SAY' Enter the name, dept or phone number you are looking for:'
+PULL INFO
+ 
+SAY ' '
+ 
+SAY 'Is this a NAME, DEPT, or PHONE: (if it is a name, just press ENTER)'
+PULL WHAT_FIELD
+IF WHAT_FIELD = "" then WHAT_FIELD = NAME
+ 
+'CLRSCRN'
+say ' '
+SAY 'The command just entered for you is: WHOIS FIND',
+     WHAT_FIELD' 'INFO
+SAY " "
+SAY " "
+SAY '                  Searching ....'
+SAY ''
+SAY ' '
+SAY 'To learn more about WHOIS, enter HELP WHOIS at the OV command',
+    'line.'
+say ''
+say ''
+SAY '(Remember to press the Clear key when you see MORE..., HOLDING, '
+say '                                           or Messages Waiting.)'
+say ''
+say ''
+'WHOIS FIND 'WHAT_FIELD' 'INFO
+SET EMSG ON
+EXIT

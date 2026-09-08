@@ -1,0 +1,35 @@
+* © Copyright 1996, Richard M. Troth, all rights reserved.   <plaintext>
+* 
+*         Name: TAR FILELIST 
+*               this lists the files comprising CMS TAR v2 r3 m1 
+* 
+      TAR      FILELIST *  README  "this file"  0 
+      TAR      README   * 
+      TAR     COPYRIGHT * 
+* 
+* CMS TAR: 
+      TAR      EXEC     * 
+      TAR      REXX     * 
+      TARINDEX REXX     * 
+      TARREADC REXX     * 
+      TARPUNCH REXX     * 
+*     TARTAPER REXX     * 
+*     TARTAPEW REXX     * 
+      TARTAKE  REXX     * 
+* 
+*     RXVMGROUP MODULE  * 
+*     RXVMGROUP HELPCMS * 
+*     RXVMGROUP ASSEMBLE * 
+* 
+      A2E      REXX     * 
+      E2A      REXX     * 
+      MAKETEXT REXX     * 
+* 
+      TAR      HELPCMS  * 
+* 
+* TARLIST: 
+      TARLIST  EXEC     * 
+      PROFTLST XEDIT    * 
+      EXECUTAR XEDIT    * 
+      TARLIST  HELPCMS  * 
+* 

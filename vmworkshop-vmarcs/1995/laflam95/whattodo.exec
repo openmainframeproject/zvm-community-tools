@@ -1,0 +1,123 @@
+/*******************************************************************/
+/*           OUC, University of Notre Dame, IRISHVMA               */
+/* EXEC Name:   WHATTODO EXEC                                      */
+/* Function:    Read the to-do list in SQL and summarize           */
+/* Author Name: Nick Laflamme                                      */
+/*              Dominique.P.Laflamme.1@nd.edu                      */
+/* VMSHARE:     UDM                                                */
+/* Date:        December, 1991                                     */
+/* Updates:     yes :-)                                            */
+/*******************************************************************/
+ 
+Signal Prologue
+ 
+/* Error Trap for syntax errors */
+Syntax:
+rcs = rc
+$error="REXX error" rcs "in line" Sigl":" Errortext(rcs)
+Say $error
+Say "Line" Sigl":" Sourceline(Sigl)
+Nop
+exit rcs
+ 
+/* Error Trap for undefined variables */
+Novalue:
+$error = "Novalue error in line" Sigl
+say $error
+say Sourceline(Sigl)
+Trace "?r"; Nop
+exit 100
+ 
+Prologue:
+ 
+signal on Novalue
+signal on Syntax
+Parse source . intype progfn progfm progft calledas addressee
+ 
+parse arg wanthelp .          /* check first argument                 */
+select
+when wanthelp='?' then
+signal somehelp        /* break to explanation                 */
+when wanthelp='??' then
+signal morehelp        /* break to long explanation            */
+otherwise
+nop                    /* on with life                         */
+    end   /* of select on wanthelp      */
+ 
+/* Get local RSCS machine name */
+"IDENTIFY (STACK"
+parse pull me . here . rscsid .
+ 
+address command
+ 
+parse arg final 
+if final = '' then
+do
+final = '| console',
+"\  source:",
+"| target:"   /* make sure everything is counted at least once */
+say final 
+end
+if left(strip(final),1) /= '|' then
+final = '|' final
+        /* query SQL database and find out what we know              */
+ 
+select1 = "TASK,PRIO,LENGTH,ASSIGNED,DUE,FORWHOM,TASKNUM",
+"FROM NLAFLAMM.VMTODO WHERE DONE is NULL"
+b= "| drop 1",
+"| specs 1.30 1 42.1 32 54.1 34 56.10 36 67.10 47",
+"78.8 58 95.3 67",
+"| source: fanout",
+"| a: locate 32.1 /1/",                        /* take 1's         */
+"| duplicate", /* emphasize prio 1s */
+"| target: faninany",
+"| sort count 67.3",                 /* sort on task number        */
+"| specs 1.10 1.2 right 11-* nextword",
+"| sort 1.2 d 35.3"      /* sort on reasons to do task, prio, len */
+c= "\ a:",
+"| locate 32.1 /2/",                         /* 2's count, too   */
+"| target:",
+"\ source:",
+"| sort 36.10",                      /* assigned         */
+"| sort 32.3",                       /* priority secondary         */
+"| sort 34.1",                       /* length primary   */
+"| take 5",
+"| target:",
+"\ source:",
+"| sort 36.10",                      /* assigned         */
+"| take 5",
+"| target:",
+"\  source:",
+"| nlocate 58 /?/",                       /* for someone      */
+"| target:",
+"\ source:",
+"| nlocate 47 /?/",                       /* has a due date   */
+"| target:" 
+ 
+ 
+"PIPE (end \) SQLSELECT" select1,
+b,
+final,
+c
+ 
+exit 
+ 
+somehelp:
+say 'This program reads the VMTODO table in SQL/DS and sorts the '
+say 'output in an attempt to produce a prioritized list of things '
+say 'to do.'
+say ''
+say 'You can specify a Pipeline to route the output through.'
+exit 100                      /* non-zero RC for explanation mode     */
+ 
+morehelp:
+say 'This program reads the VMTODO table in SQL/DS and sorts the '
+say 'output in an attempt to produce a prioritized list of things '
+say 'to do.'
+say ''
+say 'You can specify a Pipeline to route the output through.'
+say 'The default output_filter is: | console \  source: | target:'   
+say 'To count each item one time less, specify: | console'
+say ''
+say 'Syntax:' progfn '{ output_filter | ? | ?? }'
+exit 100

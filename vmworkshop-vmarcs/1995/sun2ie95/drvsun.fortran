@@ -1,0 +1,60 @@
+       subroutine drvsun(from, to, n)                                           
+       integer from(2*n), to(2*n), n                                            
+* --------------------------------------------------------------------*         
+* PROCESSOR    - VS FORTRAN, VERSION 2, RELEASE 4.                    *         
+*                                                                     *         
+* DEPENDENCES  - NONE                                                 *         
+*                                                                     *         
+* ATTRIBUTES   - SERIALLY REUSABLE                                    *         
+*                                                                     *         
+* ENTRY POINT  - DRVSUN: Double word's bytes ReVersing in SUN 386i's  *         
+*                        data.                                        *         
+*                                                                     *         
+* STATUS       - NEW: 05/17/90                                        *         
+*                                                                     *         
+*                            Val I. Garger, Technology Integration    *         
+*                            Group, CNSF, Cornell University          *         
+*                                                                     *         
+*                               vig@cornellf.tn.cornell.edu           *         
+*                               vig@eagle.tn.cornell.edu              *         
+*                               vig@cornellf.bitnet                   *         
+*-------------------------------------------------------------------- *         
+*                                                                     *         
+*  COPYRIGHT -  VAL GARGER, CORNELL NATIONAL SUPERCOMPUTER FACILITY,  *         
+*               (JUNE 1990) CORNELL UNIVERSITY, ITHACA, NY.           *         
+*               CONTAINS RESTRICTED MATERIALS OF CORNELL UNIVERSITY,  *         
+*               (C) COPYRIGHT CORNELL UNIVERSITY 1990                 *         
+*                                                                     *         
+* --------------------------------------------------------------------*         
+* Reversing of bytes in double words in SUN 386i workstation data.    *         
+* This is to further use of SUN's data FTPed to any other computer as *         
+* regular IEEE format  data.                                          *         
+*                                                                     *         
+*     input: from  SUN array of double words.                         *         
+*            n     Number of double words to revolve.                 *         
+*    output: to    regular IEEE double words (like real*8).           *         
+*                                                                     *         
+* The result of reversing is an array of double words which can be    *         
+* used in any further computation as a regular IEEE code.             *         
+*                                                                     *         
+* The fact is that SUN 368i keeps every single data element           *         
+* (integer, logical, and real*4 in words and real*8 in double words)  *         
+* in bytes "from higher addresses to lower addresses" which is        *         
+* opposite to many other computers.                                   *         
+*                                                                     *         
+* Usage notes:                                                        *         
+*                                                                     *         
+*         1. Input and output data could be located at the same space.*         
+*         2. Twice reversed data return to their source.              *         
+*-------------------------------------------------------------------- *         
+       integer it                                                               
+       if (n .ne. 0 ) then                                                      
+       call srvsun(from, to, 2*n)                                               
+         do j = 1, 2*n, 2                                                       
+           it      = from(j)                                                    
+           to(j)   = from(j+1)                                                  
+           to(j+1) = it                                                         
+         enddo                                                                  
+       endif                                                                    
+       return                                                                   
+       end                                                                      

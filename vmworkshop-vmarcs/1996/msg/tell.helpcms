@@ -1,0 +1,28 @@
+.cm Copyright 1993, Richard M. Troth
+.cm
+ 
+ TELL EXEC
+ 
+ Use the TELL command to send interactive messages to other users
+ on this or other BITNET or InterNet connected computers.
+ 
+ The format of the TELL command is:
+ +-------------------------------------+
+ |              |                      |
+ |   TELL       |   user  Ý[message]¨  |
+ |              |                      |
+ +-------------------------------------+
+ 
+ where:
+ 
+ user
+         is the user or nickname of a list of users
+         to whom you wish to send interactive messages
+ 
+ message
+         is an optional one-line message
+         If the message is omitted,  TELL puts your virtual machine
+         into "chat mode" such that all lines entered at the console
+         are sent to the specified user.   Terminate by pressing ENTER
+         twice on a blank line (no input; Pipeline CONSOLE EOF).
+ 

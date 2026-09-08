@@ -1,0 +1,233 @@
+Return-Path: <@RICEVM1.RICE.EDU:KLENSIN@INFOODS.MIT.EDU>
+Received: from RICEVM1 (NJE origin SMTP@RICEVM1) by RICEVM1.RICE.EDU (LMail
+          V1.1d/1.7f) with BSMTP id 2482; Wed, 19 May 1993 11:04:49 -0500
+Received: from INFOODS.MIT.EDU by ricevm1.rice.edu (IBM VM SMTP V2R2) with TCP;
+   Wed, 19 May 93 11:04:45 CDT
+Received: from INFOODS.UNU.EDU by INFOODS.UNU.EDU (PMDF V4.2-11 #042B2) id
+ <01GYCM53EGKG0009OB@INFOODS.UNU.EDU>; Wed, 19 May 1993 12:04:12 EDT
+Date: Wed, 19 May 1993 12:04:11 -0400 (EDT)
+From: John C Klensin <KLENSIN@INFOODS.UNU.EDU>
+Subject: RE: CHARSET considerations
+In-reply-to: <01GYBXHRZVEA8Y5JAE@INNOSOFT.COM>
+To: TROTH@RICEVM1.RICE.EDU
+Cc: ietf-charsets@INNOSOFT.COM, ietf-822@DIMACS.RUTGERS.EDU
+Message-id: <737827451.851103.KLENSIN@INFOODS.UNU.EDU>
+X-Envelope-to: TROTH@RICEVM1.RICE.EDU
+Content-type: TEXT/PLAIN; CHARSET=US-ASCII
+Content-transfer-encoding: 7BIT
+Mail-System-Version: <MultiNet-MM(330)+TOPSLIB(156)+PMDF(4.2)@INFOODS.UNU.EDU>
+ 
+Rick, et al.,
+ 
+I've been pretty quiet on this one.  Frankly, I've been hoping that it
+would burn itself out.  But it doesn't seem to be doing that.  So let's
+go back and review a couple of things.   I'm posting this to the 822
+list, since most of the issues are really MIME ones, not character set
+ones, and to the charset list because that is where you posted your
+note.  Everyone else has been removed.  People who are already throughly
+sick of this discussion should stop reading here.
+ 
+(1) MIME, like every single other Internet protocol at or near the
+applications layer, describes "on the wire" behavior.  Neither it, nor
+any of the others, describes what should be one on a particular machine
+once things arrive there beyond hints about what other systems might
+expect vis-a-vis things that are going back out on the wire.  The way
+you _represent_ a MIME message on your host and in your UA <->user and
+UA <-> MTA communications is not the subject of Internet protocols, even
+though ease of use with those protocols may influence whether some
+decisions are as smart, or smarter, than others.
+   In particular, once something gets to your machine, you can dissect
+the headers and store them separately in some unique-to-you canonical
+form and report whatever you please to your users.  You can also store
+the characters in 17-bit reverse-slobbovian notation for all anyone
+cares.  The only requirement--of MIME or anything else--is that you be
+able to reconstruct network-canonical form (e.g., MIME) if you send the
+stuff back out.
+ 
+(2) MIME defines text/plain in the absense of an explicit charset
+indicator to be identical to "text/plain; charset=ascii".  This didn't
+happen by accident: it was discussed at tedious and exhaustive length.
+It turned out to be the only option: any other model would have caused a
+violation of RFC822 with potential information-loss.  There was fairly
+general agreement in the WG that breaking RFC822-conforming
+implementations was a terrible idea.
+   To claim that it is better to write text/plain without a charset
+parameter than with one is justified under only two circumstances that I
+can think of:
+    -- you intend to violate the protocols and hope that, if the charset
+parameter isn't listed, no one will notice.
+    -- you have gotten confused, not about a "charset" versus
+"character_set" issue, but about the difference between an on-the-wire
+mail format protocol specification and a user-level notion of reality on
+a particular terminal at a particular time.
+ 
+If looking at "charset=us-ascii" is offensive to you, take it out at
+display time in your UA, just as many of us hide Received lines unless/
+until we need them for something.  Whether you just hide that string, or
+replace it with "charset=Plutoian-666" is really not an issue for the
+network.
+ 
+(3)  For similar reasons, ISO-8859-1 can't be unqualified text/plain on
+the wire; it would violate RFC822 and unextended RFC821.  And, just
+incidentally, it would trade an "English exclusive" mail environment for
+a "Western European Latin-based language" primary mail environment.
+That wasn't considered to be enough gain to be worth the trouble.  Maybe
+that was a wrong decision, but I don't think so.   Note that trading
+"ISO-8859-1" (an assertion about coding of characters on the wire) for
+"Latin-1" (an abstraction about a particular character repertoire)
+doesn't help with this problem--one is as Western European as the
+other-- it just costs you knowledge of the coding on the wire.
+ 
+(4) There is another major piece of confusion associated with the
+assumption that BITNET MAIL is RFC822-conforming.  It isn't now.  It
+never has been.   RFC822-Mail over NJE is an oxymoron.   RFC822 messages
+are in ASCII.  It is useful sometimes to pretend that there is a virtual
+document, let's call it B-822, that defines the format of BITNET mail.
+It contains two lines.  One says "On BITNET, we use EBCDIC where RFC822
+uses ASCII" and the second one says "except for the changes implied by
+line 1, RFC822 is incorporated here by reference".  Now BITNET seems to
+be (gradually and without complete agreement) issuing B-822bis, which
+changes "EBCDIC" in that first line to "EBCDIC CodePage 1047".  B-822bis
+still isn't RFC822.
+ 
+And, since the MIME of RFC1341bis/RFC1342bis requires RFC822, BITNET
+isn't using it unless all of the headers (822 and body-part) are in
+ASCII.  That is a firm requirement, no amount of fussing with "charset"
+changes it.
+ 
+So, there is a very interesting question about what the gateways should
+do and what near-MIME should look like in a near-RFC822 environment.
+But it isn't really a MIME question, much less a charset question.  See
+item 6, below.
+ 
+(5) Now, there is something that could have been done back when the WG
+was making its decisions that would have made the work of the gateways
+between RFC822-based mail and B-822-based mail much easier, although it
+would have required changes in those gateways.   We could have decided
+that this was a transport problem, that we should extend SMTP to
+announce, in some fashion, "here comes the MIME" or "here comes the
+charset XXX".  If the receiving SMTP in this situation didn't accept
+that assertion, the mail would bounce.  But it would be immediately
+clear which gateways were able to cope in a useful way, and which ones
+couldn't.  And it would make it relatively easy to establish a
+B-1341bis/B-1342bis that used different "charset" conventions if that
+was appropriate.   The cost would have been that all of the MTAs would
+have had to be changed to implement MIME.
+ 
+Those who have been putting up with this long enough will recall that I
+argued fairly strongly for transport involvement in this process.  The
+problems, and semantic unpleasantnesses, that Rick is concerned about
+now were most of my motivation then.   Given the engineering tradeoffs
+between making things easier for some gateways and a little safe overall
+versus speed of deployment, I was probably wrong.  I was certainly
+soundly outvoted.
+ 
+(6) Ok, now what should be done with "MIME" over B-822?  There are a
+couple of realistic possibilities.  There are also a bunch of
+unrealistic ones that depend, to a greater or lesser degree, on getting
+agreement from every gateway and every host that sits on an
+Internet/EBCDIC boundary to either bounce MIME messages or handle them
+in the same specific way.  I don't think those are worth discussing now,
+although maybe it is too bad that we didn't try to deploy MIME when the
+number of gateways and hosts in this situation was closer to three than
+a few hundred.
+ 
+  (i) You can let the gateways keep blindly converting everything that
+they get from the Internet into EBCDIC, as they are doing now.  If you
+do this, you need to extend the first sentence of B-822 to say that
+anytime "us-ascii" is seen in a message, it means "ebcdic".  In this
+scenario, you don't teach the gateways to accept 8bit traffic.  If that
+means you end up with a lot of quoted-printable stuff and base64 stuff,
+that is just the way it goes.  Fix it in the receiving UAs if they
+recognize the MIME value of the "charset" parameter.  If not, life is no
+worse for them than for real MIME UAs.
+ 
+  (ii) You can do the above, but let the gateways access 8bit traffic.
+This means that they have to be a little more activist about potential
+conversions.  They might want to convert ISO-8859-1 to an appropriate
+Latin-1-oriented EBCDIC.  I strongly recommend that they identify that
+they have done this with a new header that they filter on the way in and
+out.  That header has to do with which EBCDIC is being used, presumably
+with CodePage 1047 as the default.  If you don't do that, you are going
+to be in deep trouble when Latin-2 (much less ideographic character sets
+and non-Latin-based ones) arrives.  Remember that there are EARN sites
+in Poland and Hungary and Russia and Turkey.  It won't take long and
+then BITNET will have an EBCDIC-labelling problem even if there were no
+MIME.
+ 
+   (iii) You can teach the smarter gateways to put a new verb into the
+BMSTP for sites that want it that identifies unconverted MIME and then
+pass the message exactly as received by the gateway (e.g., no character
+conversion).  This would move the conversion problem away from the
+gateways and to the delivery MTAs and UAs, which may be able to do
+smarter things for their users.  This would work well for smart gateways
+talking to smart sites.  It might be rational to assume that the others
+fall under (i) above, i.e., they are on their own and they are going to
+see some things encoded that don't strictly need to be.  As the saying
+goes, life is hard sometimes.
+ 
+(7) There are a couple of other things in your note that are invitations
+to interoperability problems.  For example...
+>Specifically,  I feel
+>(quite strongly)  that the user should be able to specify any old
+>charset and have display at least attempted at the other end.
+    I feel (quite strongly) that this falls between "looking for
+trouble" and a potential real disaster.   Suppose you receive
+"text/plain; charset=Mickey-Mouse".  What is the recipient going to try
+to display?  We made the mistake with RFC822 of permitting people to put
+anything in, subject only to the rule that we might later come along and
+assign some semantics to it.  That means that message structures that
+had a specific meaning a half-dozen years ago now may have a different
+meaning, with no real clues to anyone.  Bad mistake.  If a user wants to
+use "any old charset", use an "X-" as a warning that there had better be
+a private agreement between sender and receiver.  If the "X-" is
+offensive, let it be defined and registered so that there is some hope
+that "attempting display" will get it right.
+ 
+Similarly,
+ 
+>If you specify  "Latin-1",  then you can  (must;  I'm arguing for a
+>definition here,  not an explanation)  assume that  SMTP  will carry it
+>as ISO-8859-1,  BUT THE RECEIVING  (or sending)  HOST MIGHT NOT.
+>(and yes,  sad but true,  any SMTPs will strip the high bit)
+  If you specify "Latin-1", then you cannot make any assumptions at all
+about how SMTP will carry it.  "Latin-1" is an ambiguous reference, one
+of whose instantiations of ISO 8859-1.  If you specify "iso-8859-1",
+together with a content-transfer-encoding, you know exactly what is
+being carried on the wire.  In neither case is any assertion made about
+what the receiving host might do with it.  That is a MTA-delivery-UA
+problem, not a MIME/822/821/etc one.
+ 
+And
+>That's why I ask that
+>(today,  1993)  we  NOT LABEL  true plain text as  US-ASCII/ISO-8859-1.
+>Just leave it alone and let it default at the receiving end.
+  Get into your time machine.  Go back to 1981 or 82.  Make this case
+then.  In "today, 1981" we labelled true plain text as ANS X3.4 ASCII.
+We put the label in the protocol document, not in the mail messages, but
+the specification is clear, was clear, and will still be clear when your
+time machine gets back to 1993.
+ 
+>(nor the MIME developers;  not mad at anyone,  just trying to push a
+>point that I think is important and has been missed).
+ 
+  For whatever my assurances are worth, it hasn't been missed.  The
+questions and options were examined very carefully; nothing above is
+really new.   What is missing, I fear, is an understanding of what has
+been going on with email for the last decade.
+ 
+  There is a dirty little secret that many of us have known, or feared,
+for many years and that, for better or worse, MIME and the SMTP
+extensions have brought to the foreground.  The mail environment has
+worked for the last decade not because of a high level of conformance or
+understanding of subtle aspects of the protocols but because of a very
+high level of robustness and tolerance for nonsense.  Protocol changes
+and extensions almost inevitably raise the conformance threshold and the
+understanding threshold along with it.  And we are shaking out a lot of
+beliefs that are handy but not quite true, e.g., the one that assumes
+that BITNET uses RFC822 on NJE-wires.  It has never been true, but
+believing it up until recently hasn't been harmful.  Well, it is getting
+harmful and that is one of the prices we pay for MIME.
+ 
+    john
+ 

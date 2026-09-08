@@ -1,0 +1,94 @@
+                            S P B A C K U P
+                        INSTALLATION INSTRUCTIONS
+ 
+                   Spool Backup System, using SPXTAPE
+                    University of Illinois at Chicago
+                              June 22, 1996
+ 
+ 
+SPBACKUP is a spool backup system which uses the new SPXTAPE command to
+back up the spool.  It's purpose is to create an interface between the CP
+SPXTAPE command, and the VMTAPE tape system, and to create catalogs and
+indexes to facilitate restores.
+ 
+Prerequisites:
+ 
+    1) VM/ESA Version 2 (2.1.0+) (See below if earlier VM)
+    2) CMS/IPF Utilities Set
+ 
+To install SPBACKUP:
+ 
+Create a directory entry for it, similar to this:
+ 
+  USER SPBACKUP password 5M 8M ABDGM 64 OFF OFF 16 OFF
+   INCLUDE SYSACCTM                  <-- usual for your installation
+  IPL CMS
+  OPTION MAXCONN 255
+  IUCV ALLOW PRIORITY MSGLIMIT 255
+  * 191: Work files, scratch files, RESTORE CATALOGS
+  MDISK 191 3390 1218 400 VM0935 MR
+  * 3E1: SVM's Executable code, configuration files, TAPEPOOL DEFINITIONS
+  *      Note this is an RR link so you can get a M link and change stuff
+  MDISK 3E1 3390 1 1 VM0920 RR
+ 
+The size of the 191 minidisk will be determined by how many spool files
+you will typically have in your system, and how many backup cycles you
+are going to keep. The 400 cylinder size is about right for 200,000 spool
+files, and 8 cycles (7 days plus one for emergency backups.)
+ 
+Insure that the 3E1 minidisk has access mode RR in the directory! This is
+to allow you to reconfigure the server on the fly.
+ 
+Load all files onto the 3E1 minidisk, except for file PROFILE EXEC which
+must be on the 191 minidisk, and file SPBACKUP EXEC which must be placed
+on some minidisk that all Operators and Systems Programmers have access
+to. End-users need not have access to SPBACKUP EXEC, but it won't hurt if
+they do, as they are prevented from doing anything if they are not listed
+in the CONFIG file. (below). Therefore, you could place it on your Y disk
+if you have no other, more private, place.
+ 
+Edit file SPBACKUP CONFIG to define the list of users authorized to use
+the program.
+ 
+If your Sterling VM:Tape Service Virtual is not named VMTAPE, you will
+need to review all EXEC files to change it. Search for the string
+CONFIGURATION SECTION in each one. It needs to be changed in only one
+place in each EXEC file.
+ 
+Insure that the CMS Utilities are available to the SPBACKUP service
+virtual. This may involve a directory LINK statement.
+ 
+Insure that an external file sorting program is available to the program,
+such as PLSort or SyncSort. Edit file BACKUP EXEC, and do a string search
+on LOCAL DEPEND to find where to modify the program to get access to your
+sorting program and run it. If your sorting program can benefit from
+additional storage, do it.
+ 
+If your tape drives do not support hardware compression, edit file BACKUP
+EXEC, search for its CONFIGURATION SECTION, and edit the SPXTAPE options
+string to remove the keyword COMP. Enter HELP SPXTAPE DUMP for details
+about the COMP option. If in doubt about your tape hardware, try it first
+with COMP; it really helps.
+ 
+If you are running a version of VM before ESA 2.1.0, you will need to
+modify the code in BACKUP EXEC to trap the volser of the tape at the
+point at which the Volume Log is returned. This may not be a trivial mod;
+I didn't do it because I didn't need to.
+ 
+Edit the TAPEPOOL files, to contain the volsers of the sets of tapes you
+want to use. Insure that those tapes are in the VMTAPE catalog, and that
+the tapes actually exist in your rack, and are initialized with matching
+OS Standard Labels. (Use TAPE WVOL1.)
+ 
+Compiling the code with the Rexx compiler will only help slightly. The
+greatest performance gains can be achieved by experimenting with more or
+fewer tape drives, and by training your operators to respond quickly to
+VMTAPE tape mount requests. (See SYSOPTAP for something which may help
+here.)
+ 
+Distribute copies of SPBACKUP OPERATE to your operators.
+ 
+SPBACKUP was written by:
+ 
+Roger Deschner      University of Illinois at Chicago     rogerd@uic.edu
+Computer Center M/C 135, 1940 W. Taylor St., Room 124, Chicago, IL 60612

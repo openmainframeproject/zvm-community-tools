@@ -1,0 +1,111 @@
+       TITLE ' Convert Floating point IEEE, 32 bit length, to REAL*4'           
+* --------------------------------------------------------------------*         
+*      subroutine cfi32s(ieee, ibm, n)                                *         
+*      integer n, ieee(*), ibm(*)                                     *         
+* ------------------------------------------------------------------- *         
+* PROCESSOR    - VS ASSEMBLER H, VERSION 2, RELEASE 1.                *         
+*                                                                     *         
+* DEPENDENCES  - NONE                                                 *         
+*                                                                     *         
+* ATTRIBUTES   - SERIALLY REUSABLE                                    *         
+*                                                                     *         
+* ENTRY POINT  - CFI32S                                               *         
+*                                                                     *         
+* STATUS       - NEW:           16 June  1989                         *         
+*                LAST REVISION: 07 June  1990                         *         
+*                                                                     *         
+*                            Val I. Garger, Technology Integration    *         
+*                            Group, CNSF, Cornell University          *         
+*                                                                     *         
+*                               vig@cornellf.tn.cornell.edu           *         
+*                               vig@eagle.cnsf.cornell.edu            *         
+*                               vig@cornellf.bitnet                   *         
+*-------------------------------------------------------------------- *         
+*                                                                     *         
+*  COPYRIGHT -  VAL GARGER, CORNELL NATIONAL SUPERCOMPUTER FACILITY,  *         
+*               (JUNE 1990) CORNELL UNIVERSITY, ITHACA, NY.           *         
+*               CONTAINS RESTRICTED MATERIALS OF CORNELL UNIVERSITY,  *         
+*               (C) COPYRIGHT CORNELL UNIVERSITY 1990                 *         
+*                                                                     *         
+*-------------------------------------------------------------------- *         
+* Change log:                                                         *         
+* ------------------------------------------------------------------- *         
+* Convert floating point, IEEE 32-bit to IBM 32-bit (REAL in Fortran).*         
+*                                                                     *         
+*   Example: call cfi32s(ieee, ibm, n)                                *         
+*                                                                     *         
+*   input: ieee   Array of 32-bit IEEE floating point numbers,        *         
+*                 single  precision.                                  *         
+*          n      Number of elements in ieee  to convert, integer.    *         
+*  output: ibm    Array of IBM floating point numbers, REAL*4 values. *         
+*                                                                     *         
+* Format (bits, left to right):            |    Exponent bias:        *         
+*              sign   exponent   mantissa  |                          *         
+*  IBM           1      7           24     |     64 hex               *         
+*  IEEE          1      8           23     |     127                  *         
+*                                          |                          *         
+* Usage notes:                                                        *         
+* 1. Data could be converted "inplace".                               *         
+* 2. Infinite IEEE values are converted to the largest IBM values     *         
+*    which are x'7FFFFFFF' and x'FFFFFFFF' for positive and negative  *         
+*    respectively.                                                    *         
+* 3. Like infinite values, NaN (Not a Number) values are converted to *         
+*    the largest values.                                              *         
+* 4. Precision in the mantissa could be lost by rounding off the      *         
+*    least significant bits.         0 <= |error| <= 0.24E-6          *         
+*    (From 0 to 3 least significant bits out of 24 mantissa bits      *         
+*    could be rounded.)                                               *         
+* =================================================================== *         
+CFI32S RMODE      ANY                                                           
+CFI32S AMODE      ANY                                                           
+CFI32S BEGIN      DATE=/6-01-89/version#1.7/                                    
+       LM         R2,R4,00(R1)                                                  
+       L          R11,00(,R4)          numb of elem                             
+       LTR        R11,R11                                                       
+       BZ         EXIT                                                          
+NEXT   DS         0H                                                            
+       L          R9,00(,R2)           next element                             
+       LR         R8,R9                sign                                     
+       LR         R5,R9                exponent                                 
+       LR         R6,R9                mantissa                                 
+SIGN   N          R8,=X'80000000'      .and. sign                               
+EXPON  SRL        R5,23                                                         
+       N          R5,=F'255'            see exponent                            
+       LTR        R5,R5                is it zero?                              
+       BZ         DONE                 if so, keep intact                       
+       C          R5,=F'255'                                                    
+       BNE        EXPORD                                                        
+       L          R5,=X'7FFFFFFF'      the biggest in IBM                       
+       B          STORE                                                         
+EXPORD DS         0H                   it's ordinary exponent                   
+       LA         R5,130(R5)           add 130 to it                            
+       LR         R7,R5                                                         
+       N          R7,=F'3'                                                      
+       BZ         *+8                  avoid if mod(exp,4)=0                    
+       LA         R5,4(R5)             +1 to next to two last bits              
+       SRL        R5,2                 devide  by four                          
+       SLL        R5,24                exponent on the place                    
+TISSA  DS         0H                                                            
+       N          R6,=X'007FFFFF'                                               
+       O          R6,=X'00800000'                                               
+       LTR        R7,R7                                                         
+       BZ         STORE                                                         
+       LA         R10,3                                                         
+       SR         R10,R7               shift right on (4-R7)                    
+       SRL        R6,00(R10)           logically                                
+       LA         R6,1(R6)             & round                                  
+       SRL        R6,1                 mantissa                                 
+STORE  DS         0H                                                            
+       SR         R9,R9                                                         
+       OR         R9,R8                                                         
+       OR         R9,R5                                                         
+       OR         R9,R6                                                         
+DONE   ST         R9,00(,R3)                                                    
+       LA         R2,4(R2)                                                      
+       LA         R3,4(R3)                                                      
+       BCT        R11,NEXT                                                      
+* -----------------------------------------------------------------             
+EXIT   L          R13,4(R13)                                                    
+       RETURN     (14,12),,RC=0      Reload caller's registers and ret.         
+* -----------------------------------------------------------------             
+       END        CFI32S                                                        

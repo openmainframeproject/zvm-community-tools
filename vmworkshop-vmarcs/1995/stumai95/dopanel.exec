@@ -1,0 +1,74 @@
+/*                                                                   */
+/* DOPANEL EXEC                                                      */
+/*                                                                   */
+/* Usage:  DOPANEL panelname                                         */
+/*                                                                   */
+/* DOPANEL is the frontend for selected panels designed to execute   */
+/* in the student account environment.  Although this frontend was   */
+/* intended only for student account usage, this frontend may be     */
+/* used in other capacities if so desired.                           */
+/*                                                                   */
+/* Exit Code Definitions:                                            */
+/*   Not applicable.                                                 */
+/*                                                                   */
+/* Mod Date  Init  Description                                       */
+/* --------  ----  ------------------------------------------------- */
+/* 06271994  PDL   Initial development.                              */
+/* 07141994  PDL   Changed named of temporary file for XEDIT entry   */
+/*                 from $$DUMMY$$ $$FILE$$ to $$TEMP$$ $$FILE$$.     */
+/*                                                                   */
+ 
+/* Get which panel to activate */
+parse upper arg panel .
+ 
+overallrc=0
+ 
+/* If no panel name was supplied, say so and set overallrc to exit out */
+if panel = "" then do
+    say "A panel name must be supplied."
+    overallrc=1
+end
+ 
+/* If we haven't encountered an error yet, then let us check to make   */
+/* sure that the XEDIT file for the panel exists.  If the panel        */
+/* processing file does not exist, then set the overallrc to exist out */
+if (overallrc = 0) then
+    "PIPE CMS STATE" panel "XEDIT * | HOLE"
+if (RC = 28) & (overallrc = 0) then do
+    overallrc=1
+    say "Unable to invoke requested input panel ("panel")."
+    say ""
+    say "Please contact the HelpDesk (7997) for further assistance."
+    say "You may be asked to explain to HelpDesk personnel what action"
+    say "you were trying to perform."
+    say ""
+    say "CAUSE OF FAILURE:  The file named" panel "XEDIT could not be"
+    say "                   located on any accessed disks or direc-"
+    say "                   tories.  This file contains the instructions"
+    say "                   to perform all input panel processing."
+end
+ 
+/* If we haven't encountered an error yet, then let us check to see if */
+/* the HELPCMS help file exists for the desired panel.  If it does     */
+/* then continue, otherwise issue a warning to the customer and        */
+/* continue processing.                                                */
+if (overallrc = 0) then
+    "PIPE CMS STATE" panel "HELPCMS * | HOLE"
+if (RC = 28) & (overallrc = 0) then do
+    say "Warning!  Help for the input panel you are accessing will not"
+    say "          be available.  Please contact the HelpDesk (7997)"
+    say "          and report this message and what action you are"
+    say "          trying to perform to support personnel.  Your help"
+    say "          will assist support personnel in solving the problem"
+    say "          and will benefit other customers.  Thank you."
+    say ""
+    say "Please press ENTER to continue..."
+    pull nothing
+end
+ 
+/* If the overallrc was not set to exit, then let us enter the XEDIT   */
+/* environment and perform the input processing for the desired panel. */
+if (overallrc = 0) then
+        push "XEDIT $$TEMP$$ $$FILE$$ * (PROFILE" panel")"
+ 
+exit

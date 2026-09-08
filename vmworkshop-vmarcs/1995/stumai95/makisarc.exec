@@ -1,0 +1,205 @@
+/* MAKISARC EXEC - Prepare ISARC for public access/execution */
+/* 09011994 PDL Modified for code move to VMSERV01           */
+ 
+trace off
+ 
+say "Checking for memory requirements..."
+"PIPE CP QUERY VIRTUAL STORAGE",
+"|    SPLIT AT BLANK",
+"|    DROP FIRST 2",
+"|    STRIP BOTH BLANK",
+"|    VAR VSAVAIL",
+"|    HOLE"
+vsamount=left(vsavail,length(vsavail)-1)
+if right(vsavail,1) = "M" then do
+  if vsamount < 5 then do
+    say ""
+    say "***** To make ISARC, at least 5M of virtual storage is needed."
+    say ""
+    exit
+  end
+end
+else do
+  if vsamount < 5120 then do
+    say ""
+    say "***** To make ISARC, at least 5120K of virtual storage",
+        "is needed."
+    say ""
+    exit
+  end
+end
+ 
+say "Verifying VMSYS:VMSERV01.ISARC is at filemode C (R/W)..."
+"PIPE CMS QUERY ACCESSED C | DROP FIRST | VAR fmc_definition"
+parse var fmc_definition . fmc_state . . fmc_dir
+if (fmc_state ^= "R/W") & (fmc_dir ^= "VMSYS:VMSERV01.ISARC") then do
+  say ""
+  say "***** Make of ISARC did not take place.  Filemode C should be"
+  say "***** accessed as VMSYS:VMSERV01.ISARC in the R/W state."
+  say ""
+  exit
+end
+ 
+say "Accessing VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS at filemode D",
+    "(R/W)..."
+"PIPE CMS ACCESS VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS D (FORCERW | HOLE"
+if RC ^= 0 then do
+  say ""
+  say "***** Unable to gain access to VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS"
+  say "***** in R/W mode.  Please make sure the proper authorization"
+  say "***** exists for access to the directory."
+  say ""
+  exit
+end
+ 
+say "Code compilation begins..."
+problems="FALSE"
+ 
+"REXXC ISARC    EXEC  C"
+if (RC ^= 0) & (RC ^= 4) then do
+  say ""
+  say "***** PROBLEMS WITH COMPILATION OF ISARC    (RC="RC")"
+  say ""
+  problems="TRUE"
+end
+else
+  say "ISARC    compilation completed."
+ 
+"REXXC ISARCINS XEDIT C"
+if (RC ^= 0) & (RC ^= 4) then do
+  say ""
+  say "***** PROBLEMS WITH COMPILATION OF ISARCINS (RC="RC")"
+  say ""
+  problems="TRUE"
+end
+else
+  say "ISARCINS compilation completed."
+ 
+"REXXC ISARCQST XEDIT C"
+if (RC ^= 0) & (RC ^= 4) then do
+  say ""
+  say "***** PROBLEMS WITH COMPILATION OF ISARCQST (RC="RC")"
+  say ""
+  problems="TRUE"
+end
+else
+  say "ISARCQST compilation completed."
+ 
+"REXXC ISARCINF XEDIT C"
+if (RC ^= 0) & (RC ^= 4) then do
+  say ""
+  say "***** PROBLEMS WITH COMPILATION OF ISARCINF (RC="RC")"
+  say ""
+  problems="TRUE"
+end
+else
+  say "ISARCINF compilation completed."
+ 
+"REXXC ISARCMNU XEDIT C"
+if (RC ^= 0) & (RC ^= 4) then do
+  say ""
+  say "***** PROBLEMS WITH COMPILATION OF ISARCMNU (RC="RC")"
+  say ""
+  problems="TRUE"
+end
+else
+  say "ISARCMNU compilation completed."
+ 
+"REXXC ISARCQRY XEDIT C"
+if (RC ^= 0) & (RC ^= 4) then do
+  say ""
+  say "***** PROBLEMS WITH COMPILATION OF ISARCQRY (RC="RC")"
+  say ""
+  problems="TRUE"
+end
+else
+  say "ISARCQRY compilation completed."
+ 
+"REXXC ISARCREQ XEDIT C"
+if (RC ^= 0) & (RC ^= 4) then do
+  say ""
+  say "***** PROBLEMS WITH COMPILATION OF ISARCREQ (RC="RC")"
+  say ""
+  problems="TRUE"
+end
+else
+  say "ISARCREQ compilation completed."
+ 
+"REXXC ISARCRST XEDIT C"
+if (RC ^= 0) & (RC ^= 4) then do
+  say ""
+  say "***** PROBLEMS WITH COMPILATION OF ISARCRST (RC="RC")"
+  say ""
+  problems="TRUE"
+end
+else
+  say "ISARCRST compilation completed."
+ 
+"REXXC ISARCHLP XEDIT C"
+if (RC ^= 0) & (RC ^= 4) then do
+  say ""
+  say "***** PROBLEMS WITH COMPILATION OF ISARCHLP (RC="RC")"
+  say ""
+  problems="TRUE"
+end
+else
+  say "ISARCHLP compilation completed."
+ 
+if (problems="TRUE") then do
+  say ""
+  say "***** Aborted due to compilation problems."
+  say ""
+  exit
+end
+else
+  say "Code compilation completed."
+ 
+say "Erasing compiler LISTING files..."
+"ERASE ISARC    LISTING C"
+"ERASE ISARCHLP LISTING C"
+"ERASE ISARCQST LISTING C"
+"ERASE ISARCINF LISTING C"
+"ERASE ISARCREQ LISTING C"
+"ERASE ISARCRST LISTING C"
+"ERASE ISARCQRY LISTING C"
+"ERASE ISARCINS LISTING C"
+"ERASE ISARCMNU LISTING C"
+ 
+say "Erasing contents of PUBLIC_ACCESS..."
+"ERASE ISARC    EXEC     D"
+"ERASE *        XEDIT    D"
+"ERASE *        ISARCHLP D"
+"ERASE *        ISARCTXT D"
+"ERASE $$TEMP$$ $$FILE$$ D"
+ 
+say "Copying new code to PUBLIC_ACCESS..."
+"COPY ISARC    CEXEC  C =  EXEC D"
+"COPY ISARCHLP CXEDIT C = XEDIT D"
+"COPY ISARCQST CXEDIT C = XEDIT D"
+"COPY ISARCINF CXEDIT C = XEDIT D"
+"COPY ISARCREQ CXEDIT C = XEDIT D"
+"COPY ISARCRST CXEDIT C = XEDIT D"
+"COPY ISARCQRY CXEDIT C = XEDIT D"
+"COPY ISARCINS CXEDIT C = XEDIT D"
+"COPY ISARCMNU CXEDIT C = XEDIT D"
+ 
+say "Copying auxiliary files to PUBLIC_ACCESS..."
+"COPY *        ISARCTXT C = = D"
+"COPY $$TEMP$$ $$FILE$$ C = = D"
+"COPY *        ISARCHLP C = = D"
+ 
+say "Erasing compiler results..."
+"ERASE ISARC    CEXEC  C"
+"ERASE ISARCHLP CXEDIT C"
+"ERASE ISARCQST CXEDIT C"
+"ERASE ISARCINF CXEDIT C"
+"ERASE ISARCREQ CXEDIT C"
+"ERASE ISARCRST CXEDIT C"
+"ERASE ISARCQRY CXEDIT C"
+"ERASE ISARCINS CXEDIT C"
+"ERASE ISARCMNU CXEDIT C"
+ 
+say "Releasing filemode D (VMSYS:VMSERV01.ISARC.PUBLIC_ACCESS)..."
+"RELEASE D"
+ 
+say "Make of ISARC complete."

@@ -1,0 +1,98 @@
+/* Mark an undone item as done.                                       */
+/* Written by: Nick Laflamme                                          */
+/*             University of Notre Dame                               */
+/*             Dominique.P.Laflamme.1@nd.edu                          */
+/* Last changed: July 13, 1993 DPL                                    */
+signal prologue                         /* skip to start of code      */
+ 
+/* SYNTAX: and NOVALUE: come first so REXX can always find them       */
+ 
+syntax:                                 /* in case of syntax error    */
+erc = rc                                /* preserve error code        */
+$error='REXX error' erc 'in line' sigl':' errortext(erc)
+say $error                              /* get excited                */
+say "Line" sigl':' sourceline(sigl)     /* show offending line        */
+exit erc
+ 
+novalue:
+$error='Novalue error in line' sigl
+say $error                              /* get excited                */
+say sourceline(sigl)                    /* show offending line        */
+exit 100
+ 
+prologue:                               /* start of real code         */
+signal on novalue             /* complain about missing vairables     */
+signal on syntax              /* semi-graceful exit for syntax errors */
+parse source . invocation progfn progft progfm calledas addressee
+ 
+parse arg wanthelp .          /* check first argument                 */
+select
+    when wanthelp='?' then
+       signal somehelp        /* break to explanation                 */
+    when wanthelp='??' then
+       signal morehelp        /* break to long explanation            */
+    otherwise
+       nop                    /* on with life                         */
+    end   /* of select on wanthelp      */
+ 
+parse arg donenum donedate stuff
+if stuff /= '' then
+say "Extra options ignored:" stuff
+ 
+if donenum = '' then
+do
+say "What task number are you marking complete?"
+parse pull donenum stuff
+if stuff /= '' then
+say "Extra input ignored:" stuff
+end
+ 
+if donenum = '' then
+do
+say 'None, apparently.'
+exit
+end
+if donedate = '' then
+donedate = '19'||translate(date('O'),'-','/')
+ 
+/* now firststage will load the pipe properly                        */
+ 
+/* "PIPE Q VERSION | specs w5 1 | var pipever"
+if pipever /= "1.0107" then         /* PRPQ version 1.0.7 from Piper */
+do
+say "Wrong version of Pipelines active."
+exit 100
+end */
+"PIPE SQL NOIND SELECT TASK,PRIO,LENGTH,ASSIGNED,DUE,FORWHOM,TASKNUM",
+"FROM VMTODO WHERE TASKNUM =" donenum,
+"| spec 1.32 c2v 1 33.4 c2d 32.3 r 37.4 c2d 36.3 r 41.10 nw 51.10 nw ",
+"  63.8 nw 71.4 c2d nw.3 r", /* translate to human readable form */
+"| cons"
+if rc /= 0 then
+do
+say "Problem with verifying task to mark done."
+exit rc
+end
+ 
+say 'This one? (Yn)'
+parse upper pull answer 2 .  /* take one character */
+if (answer /= '') & (answer /= 'Y') then
+exit
+ 
+/* go ahead and update the record */
+"PIPE",
+"sql EXECUTE UPDATE VMTODO SET DONE = '"||donedate||"'",
+"WHERE tasknum =" donenum,
+"| cons" 
+ 
+exit rc                   /* get out of here; all done           */
+somehelp:
+ 
+say 'This marks items done in an SQL table called VMTODO.'
+exit 100                      /* non-zero RC for explanation mode     */
+ 
+morehelp:
+say 'This marks items done in an SQL table called VMTODO.'
+say 'You can specify the task number and the date completed.'
+say 'Syntax:' progfn '{nnn {yyyy-mm-dd} | ? | ?? }'
+exit 100

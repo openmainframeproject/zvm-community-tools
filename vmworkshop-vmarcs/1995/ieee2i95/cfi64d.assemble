@@ -1,0 +1,109 @@
+       TITLE ' Convert Floating point IEEE, 64 bit length, to Double'           
+* --------------------------------------------------------------------*         
+*      subroutine cfi64d(ieee, ibm, n)                                *         
+*      integer    n, ieee(2*n), ibm(2*n)                              *         
+* ------------------------------------------------------------------- *         
+* PROCESSOR    - ASSEBMLER H, VERSION 2, RELEASE 1   VM/CMS           *         
+*                                                                     *         
+* DEPENDENCES  - NONE                                                 *         
+*                                                                     *         
+* ATTRIBUTES   - SERIALLY REUSABLE                                    *         
+*                                                                     *         
+* ENTRY POINT  - CFI64D                                               *         
+*                                                                     *         
+* STATUS       - NEW:           16 June 1989                          *         
+*                LAST REVISION: 05 May  1990                          *         
+*                                                                     *         
+*                            Val I. Garger, Technology Integration    *         
+*                            Group, CNSF, Cornell University          *         
+*                                                                     *         
+*                               vig@cornellf.tn.cornell.edu           *         
+*                               vig@eagle.cnsf.cornell.edu            *         
+*                               vig@cornellf.bitnet                   *         
+*-------------------------------------------------------------------- *         
+*                                                                     *         
+*  COPYRIGHT -  VAL GARGER, CORNELL NATIONAL SUPERCOMPUTER FACILITY,  *         
+*               (JUNE 1990) CORNELL UNIVERSITY, ITHACA, NY.           *         
+*               CONTAINS RESTRICTED MATERIALS OF CORNELL UNIVERSITY,  *         
+*               (C) COPYRIGHT CORNELL UNIVERSITY 1990                 *         
+*                                                                     *         
+* ------------------------------------------------------------------- *         
+* Change log:                                                         *         
+* ------------------------------------------------------------------- *         
+* Convert floating point, IEEE 64-bit to IBM 64-bit (Fortran REAL*8). *         
+*                                                                     *         
+*   Example: call cfi64d(ieee, ibm, n)                                *         
+*                                                                     *         
+*    input: ieee  Array of 64-bit IEEE floating point numbers,        *         
+*                 double  precision.                                  *         
+*           n     Number of elements in ieee  to convert, integer.    *         
+*   output: ibm   Array of IBM floating point numbers, REAL*8 values. *         
+*                                                                     *         
+* Format (bits, left to right):           |    Exponent bias:         *         
+*             sign   exponent   mantissa  |                           *         
+* IBM           1      7           56     |     64 hex                *         
+* IEEE          1     11           52     |     1023                  *         
+*                                         |                           *         
+* Usage notes:                                                        *         
+* 1. Data could be converted "inplace".                               *         
+* 2. The infinite numbers and NaN (Not a Number) values are converted *         
+*    to the largest IBM values.                                       *         
+* 3. IEEE values that do not fit to IBM standard are converted to     *         
+*    either the biggest IBM values (positive or negative) or to zero. *         
+* 4. Conversion does not incur the loss of mantissa accuracy.         *         
+* =================================================================== *         
+CFI64D RMODE      ANY                                                           
+CFI64D AMODE      ANY                                                           
+CFI64D BEGIN      DATE=/6-09-89/version#1.8/ prologe                            
+       LM         R2,R4,00(R1)                                                  
+       L          R11,00(,R4)          n                                        
+       LTR        R11,R11                                                       
+       BZ         EXIT                                                          
+NEXT   DS         0H                                                            
+       LM         R8,R9,00(R2)         ie(j)                                    
+       LR         R6,R8                                                         
+       N          R6,=X'80000000'      sign                                     
+       LR         R7,R8                                                         
+       N          R7,=X'7FF00000'      exponent                                 
+       BZ         DONE                 if so, keep intact                       
+       N          R8,=X'000FFFFF'      tiss(1)                                  
+EXPON  DS         0H                                                            
+       S          R7,=X'2FE00000'      exp = exp - 1023 + 256 + 1               
+       LR         R5,R7                                                         
+       N          R5,=X'00300000'      .and. last two bits                      
+       BZ         *+8                  avoid if mod(exp,4)=0                    
+       A          R7,=X'00400000'      +1 to next to two last bits              
+       N          R7,=X'FFC00000'      see whole new exponent                   
+       LTR        R7,R7                                                         
+       BNM        EXPOS                to exponet is positive                   
+       SR         R8,R8                                                         
+       SR         R9,R9                                                         
+       B          STRSGN               store zero w/sign                        
+EXPOS  DS         0H                   exp is pos                               
+       C          R7,=X'1FC00000'      ='127'                                   
+       BNP        EXPRNG               to exponent in a range                   
+       L          R8,=X'7FFFFFFF'                                               
+       L          R9,=X'FFFFFFFF'                                               
+       B          STRSGN                                                        
+EXPRNG DS         0H                                                            
+       SLL        R7,2                 exponent on the place                    
+TISSA  DS         0H                                                            
+       O          R8,=X'00100000'                                               
+       SRA        R5,20                                                         
+       BNZ        *+8                                                           
+       LA         R5,4                                                          
+       S          R5,=F'1'                                                      
+       BZ         *+8                                                           
+       SLDL       R8,00(5)             logically double                         
+STORE  DS         0H                                                            
+       OR         R8,R7                                                         
+STRSGN OR         R8,R6                                                         
+DONE   STM        R8,R9,00(R3)                                                  
+       LA         R2,8(R2)                                                      
+       LA         R3,8(R3)                                                      
+       BCT        R11,NEXT                                                      
+* -----------------------------------------------------------------             
+EXIT   L          R13,4(R13)                                                    
+       RETURN     (14,12),,RC=0      Epiloge                                    
+* -----------------------------------------------------------------             
+       END        CFI64D                                                        

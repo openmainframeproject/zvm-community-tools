@@ -1,0 +1,238 @@
+This mod will add a new command to VM/ESA called ADDR. This command will        
+display information about a "terminal", including its address, devicetype       
+and other info depending on what kind of device it is.  It can be used on all   
+types of workstations, including SNA devices and logical devices.  In the       
+case of an SNA device, the LU name will be displayed.  If it is run on a        
+logical device, the owner of the device will be displayed.                      
+                                                                                
+The mod consists of a new module, HCPADR and minor changes to HCPCOM, HCPMDLAT  
+COPY and HCPLDL.  The change to HCPCOM to define the new command, ADDR.  The    
+changes to HCPMDLAT COPY and HCPLDL are to add the new module to the system.    
+                                                                                
+This mod was developed on a VM/XA system, and later ported to VM/ESA.  The      
+current version should run on all levels of VM/ESA ESA feature from 1.1.0       
+through 1.2.1.  However, future levels shouldn't be a problem either.           
+                                                                                
+Questions or problems with this mod should be directed to Martha McConaghy,     
+Marist College, URMM@VM.MARIST.EDU (914) 575-3252.                              
+                                                                                
+FILE: HCPCOM   ADDRCMD  E1                                                      
+                                                                                
+./ I 02530001          $ 2530100 100                  10/31/89 18:31:26         
+************************************************************** ADDRCMD         1
+*                                                            * ADDRCMD         0
+*  ADDR COMMAND                                              * ADDRCMD         9
+*                                                            * ADDRCMD         8
+************************************************************** ADDRCMD         7
+                                                       SPACE , ADDRCMD         6
+ADDR     DS    0F                                              ADDRCMD         5
+         COMMD COMMAND=(ADDR,4),FL=CMDALOG+CMDONLY,                    *       0
+               CLASS=*,EP=HCPADRES                             ADDRCMD         3
+                                                       SPACE , ADDRCMD         2
+                                                                                
+                                                                                
+FILE: HCPMDLAT ADDRCMD  E1                                                      
+                                                                                
+./ I 50930001          $ 50930100 100                 10/30/89 10:51:36         
+         AIF   ('&NAME'(1,6)     NE  'HCPADR'  AND   (NOT &HCPLLST)   )*       0
+               .EHCPADR                                        ADDRCMD         0
+         HCPATTRB HCPADR,MODATTR=(PAG,MP,DYN),                         *       0
+               EP=((HCPADRES,DYN))                             ADDRCMD         0
+         AIF   ('&HCPATTRC' EQ '0').MDLATEX     IF FOUND, EXIT ADDRCMD         0
+.EHCPADR ANOP  ,                                               ADDRCMD         0
+.**************************************************************ADDRCMD         0
+                                                                                
+                                                                                
+                                                                                
+FILE: HCPLDL   ADDRCMD  E1                                                      
+                                                                                
+./ * CO-REQ: HCPADR                                                             
+./ * IF-REQ: NONE                                                               
+./ * FORCE REASSEMBLY FOR HCPADR MOD FOR HCPMDLAT MACRO                         
+                                                                                
+                                                                                
+                                                                                
+FILE: HCPADR  ASSEMBLE E1                                                       
+                                                                                
+ADR      TITLE 'HCPADR     (CP)        VM/ESA R 1.0'                    00000100
+         ISEQ  73,80          VALIDATE SEQUENCING OF INPUT              00000200
+         COPY  HCPOPTNS                                                 00000300
+HCPADR   HCPPROLG ATTR=(PAGEABLE,REENTERABLE),BASE=(R12)                00000400
+*                                                                       00000500
+* MODULE NAME - HCPADR                                                  00000600
+*                                                                       00000700
+* DESCRIPTIVE NAME - ADDR COMMAND                                       00000800
+*                                                                       00000900
+* STATUS - VM/ESA 1.0 ESA                                               00001000
+*                                                                       00001100
+* FUNCTION - To process the ADDR command.                               00001200
+*                                                                       00001300
+* NOTES -                                                               00001400
+*                                                                       00001500
+*    DEPENDENCIES - THIS MODULE REQUIRES THE USE OF THE IBM SYS         00001600
+*                   370 - XA SERIES OF PROCESSORS RUNNING IN 370        00001700
+*                   MODE.                                               00001800
+*                                                                       00001900
+*    REGISTER CONVENTIONS - SYMBOLIC REFERENCES TO REGISTERS AR         00002000
+*                           THE FORM "RX" WHERE X IS A NUMBER R         00002100
+*                           FROM 0 TO 15.                               00002200
+*                                                                       00002300
+* MODULE TYPE - PROCEDURE                                               00002400
+*                                                                       00002500
+*   PROCESSOR - ASSEMBLER H, VERSION 2 R1                               00002600
+*                                                                       00002700
+*   ATTRIBUTES - REENTRANT, PAGEABLE                                    00002800
+*                                                                       00002900
+* ENTRY POINT -                                                         00003000
+*                                                                       00003100
+*               HCPADRES - PROCESS THE ADDR COMMAND                     00003200
+*                                                                       00003300
+* EXTERNAL REFERENCES -                                                 00003400
+*                                                                       00003500
+*   ROUTINES -                                                          00003600
+*                                                                       00003700
+*        HCPCVTBH - To convert binary to hex                            00003800
+*        HCPLDAFE - Fetch the LDD for a logical device         LDEV     00003830
+*        HCPLDARE - Return LDD to system                       LDEV     00003860
+*        HCPLSOTR - Translate the device number into hex                00003900
+*                                                                       00004100
+*   DATA AREAS -                                                        00004200
+*                ADRMSG   - Message response DSECT                      00004300
+*                                                                       00004400
+*   CONTROL BLOCKS -                                                    00004500
+*                HCPCSLPL - REQUIRED FOR HCPCONSL MACRO                 00004550
+*                HCPEQUAT - SYSTEM EQUATES                              00004600
+*                HCPPFXPG - PREFIX AREA PAGE                            00004700
+*                HCPRDCBK - REAL DEVICE CHARACTERISTIC BLOCK            00004800
+*                HCPRDEV  - REAL DEVICE BLOCK                           00004900
+*                HCPSAVBK - SAVE AREA                                   00005000
+*                HCPSYSCM - SYSTEM COMMON AREA                          00005100
+*                HCPVMDBK - INVOKER'S VMDBK                             00005200
+*                                                                       00005300
+* MACROS -                                                              00005400
+*          HCPCALL  - STANDARD SYSTEM CALLING LINKAGE                   00005500
+*          HCPCONSL - Write results to the user's console      ADCONSL  00005550
+*          HCPDROP  - RELEASE ADDRESSABILITY                            00005600
+*          HCPENTER - DEFINITION OF EXECUTABLE ENTRY POINT              00005700
+*          HCPEPILG - GENERATE MODULE EPILOG                            00005800
+*          HCPEXIT  - RETURN TO CALLER                                  00005900
+*          HCPGETST - GET FREE STORAGE                                  00006000
+*          HCPRELST - RELEASE FREE STORAGE                              00006100
+*          HCPUSING - ESTABLISH ADDRESSABILITY                          00006200
+*                                                                       00006300
+* ABEND CODES -  NONE                                                   00006400
+*                                                                       00006500
+* RESPONSE -                                                            00006600
+*            DEVICE XXXXX ON SYSTEM VVVVVVVV TYPE TTTTTTTT              00006700
+*                 or                                           LDEV     00006860
+*     Device XXXXX on System VVVVVVVV Type TTTTTTTT Owner OOOOOLDEV     00006920
+*            for logical devices                               LDEV     00006980
+*                                                                       00007100
+*                                                                       00007200
+         SPACE 3                                                        00007300
+         EXTRN HCPLDAFE      Fetch LDD for logical devs        LDEV     00007450
+         EXTRN HCPLDARE      Return LDD for logical devs       LDEV     00007500
+         EXTRN HCPLSOTR      Translate raddr for printing      LDEV     00007550
+         EXTRN HCPCVTBH      Convert binary to ebcdic          LDEV     00007600
+*                                                                       00007700
+         COPY  HCPCSLPL      Console parameter list            LDEV     00007820
+         COPY  HCPPFXPG      Prefix page                       LDEV     00007890
+         COPY  HCPSYSCM      System common block               LDEV     00007960
+         COPY  HCPSAVBK      Save area                         LDEV     00008030
+         COPY  HCPEQUAT      Common equates                    LDEV     00008100
+         COPY  HCPVMDBK      VMDBK                             LDEV     00008170
+         COPY  HCPRDEV       Real Device block                 LDEV     00008240
+         COPY  HCPSNABK      SNA device block                  LDEV     00008310
+         COPY  HCPRDCBK      Real dev characteristics block    LDEV     00008380
+         EJECT                                                          00008600
+         HCPUSING PFXPG,0                                               00008700
+         HCPUSING VMDBK,R11                                             00008800
+         HCPUSING SAVBK,R13                                             00008900
+*                                                                       00009000
+HCPADRES HCPENTER CALL,SAVE=DYNAMIC                                     00009100
+*                                                                       00009200
+*  Get storage for response buffer and set up text.            LDEV     00009250
+         LA    R0,ADRMSGDL        GET SIZE OF RESPONSE                  00009300
+         HCPGETST LEN=(R0)        GET STORAGE BLOCK                     00009400
+         LR    R3,R1              Save address of block        LDEV     00009540
+         HCPUSING ADRMSG,R3                                             00009600
+         MVI   ADRMSG,C' '        CLEAR OUT RESPONSE BUFF               00009700
+         MVC   ADRMSG1(ADRMSGDL*8-1),ADRMSG                             00009800
+         MVC   TXT1,=C'Device '   Insert text into message     LDEV     00009940
+         MVC   TXT2,=C' on system  '                                    00010000
+         MVC   TXT3,=C'  type  '                                        00010100
+*                                                                       00010200
+* Now, find the RDEV block and determine if it is a SNA device.LDEV     00010250
+         L     R8,VMDRTERM        GET ADDRESS OF RDEVBLOK               00010300
+         HCPUSING RDEV,R8                                               00010400
+         ICM   R1,B'1111',RDEVSNA  IS THERE A SNABK BLOCK?              00010500
+         BNZ   SNADEV              Yes then get SNA info                00010600
+*                                                              LDEV     00010710
+* For non-SNA devices, get raddr and device type.              LDEV     00010720
+         LA    R1,RADDR            Set location of buffer      LDEV     00010730
+         HCPCALL HCPLSOTR          GET ADDRESS OF TERMINAL              00010800
+         L     R7,RDEVRDCA         GET DEVICE CHAR BLOCK                00010900
+         HCPUSING RDCBK,R7                                              00011000
+         SR    R1,R1               CLEAR OUT REG                        00011100
+         MVC   DEVTYP(2),RDCDVID   Get device type             LDEV     00011240
+         LH    R1,DEVTYP                                                00011300
+         HCPCALL HCPCVTBH          Convert it to EBCDIC        LDEV     00011410
+         STM   R0,R1,DEVTYP        Put back in buffer          LDEV     00011420
+*                                                              LDEV     00011430
+* Determine if we are on a logical device.  If so, then        LDEV     00011440
+*   get the owner of the device too.                           LDEV     00011450
+         L     R1,RDEVLSOP         Get pointer to LSOBJ        LDEV     00011460
+         LTR   R1,R1               Are we on a LDEV?           LDEV     00011470
+         BZ    SYSTEMID            NO, then finish up          LDEV     00011480
+         LH    R1,RDEVDEV          Get LDEV number             LDEV     00011490
+*  The call to HCPLDAFE locks the LDDBK for the logical device.LDEV     00011500
+*  It must be released before leaving the module.              LDEV     00011510
+         HCPCALL HCPLDAFE          Fetch LDDBK for device      LDEV     00011520
+         LTR   R15,R15             Did we find one?            LDEV     00011530
+         BNZ   SYSTEMID            NO, something's wrong       LDEV     00011540
+         LR    R4,R2               Save VMDBK addr for owner   LDEV     00011550
+         HCPCALL HCPLDARE          Release lock on LDDBK       LDEV     00011560
+         MVC   LOWNER,VMDUSER-VMDBK(R4) Get owner's ID         LDEV     00011570
+         MVC   TXT4,=C' Owner  '                               LDEV     00011580
+         B     SYSTEMID                                                 00011600
+*                                                                       00011700
+* If user is on a SNA device, set the device type to SNA       LDEV     00011730
+*  and set address to LU name.                                 LDEV     00011760
+SNADEV   L     R1,RDEVSNA          Get address of SNABK                 00011800
+         HCPUSING SNABK,R1                                              00011900
+         MVC   RADDR,SNALUN        Move in the LU name                  00012000
+         MVC   DEVTYP,=C' SNA    '                                      00012100
+         HCPDROP R1                                                     00012200
+*                                                                       00012300
+*  Finish up by setting the system ID field.                   LDEV     00012350
+SYSTEMID L     R1,PFXSYS                                                00012400
+         HCPUSING SYSCM,R1                                              00012500
+         MVC   SYSID,SYSTMID       Get system id from SYSCM    LDEV     00012640
+         HCPDROP R1                                                     00012700
+*                                                                       00012800
+*  Write the message to the user's console and release the     LDEV     00012860
+*  storage.                                                    LDEV     00012920
+PRTMSG   DS    0H                                              ADCONSL  00012990
+         HCPCONSL WRITE,DATA=((R3),ADRMSGL)                    ADCONSL  00013080
+         HCPRELST BLOCK=(R3)                                   ADCONSL  00013170
+         HCPEXIT  EP=(HCPADRES),SETCC=NO                                00013400
+         EJECT                                                          00013500
+*                                                              LDEV     00013530
+*  Define block for resulting message.                         LDEV     00013560
+ADRMSG   DSECT                                                          00013600
+TXT1     DS    CL8                "DEVICE "                    LDEV     00013740
+RADDR    DS    CL8                                                      00013800
+TXT2     DS    CL12               " ON SYSTEM "                         00013900
+SYSID    DS    CL8                                                      00014000
+TXT3     DS    CL8                " TYPE "                              00014100
+DEVTYP   DS    CL8                                                      00014300
+TXT4     DS    CL8                " OWNER  "                   LDEV     00014330
+LOWNER   DS    CL8                                             LDEV     00014360
+ADRMSGL  EQU   (*-ADRMSG)         LENGTH OF RESPONSE                    00014400
+ADRMSGDL EQU   (*-ADRMSG+7)/8     LENGTH OF RES IN DW                   00014500
+ADRMSG1  EQU   ADRMSG+1                                                 00014600
+         EJECT                                                          00014700
+HCPADR   CSECT                                                          00014800
+         LTORG                                                          00014900
+         HCPDROP R3,R7,R8,R11,R13                                       00015000
+         HCPEPILG                                                       00015100

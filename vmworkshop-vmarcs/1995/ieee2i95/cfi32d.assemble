@@ -1,0 +1,114 @@
+       TITLE ' Convert Floating point IEEE, 32 bit length, to Double'           
+* --------------------------------------------------------------------*         
+*      subroutine cfi32d(ieee, ibm, n)                                *         
+*      integer    n, ieee(n), ibm(2*n)                                *         
+* ------------------------------------------------------------------- *         
+* PROCESSOR    - ASSEMBLER H, VERSION 2, RELEASE 1                    *         
+*                                                                     *         
+* DEPENDENCES  - NONE                                                 *         
+*                                                                     *         
+* ATTRIBUTES   - SERIALLY REUSABLE                                    *         
+*                                                                     *         
+* ENTRY POINT  - CFI32D                                               *         
+*                                                                     *         
+* STATUS       - NEW:           16 JUNE  1989                         *         
+*                LAST REVISION: 05 MAY   1990                         *         
+*                                                                     *         
+*                            Val I. Garger, Technology Integration    *         
+*                            Group, CNSF, Cornell University          *         
+*                                                                     *         
+*                               vig@cornellf.tn.cornell.edu           *         
+*                               vig@eagle.cnsf.cornell.edu            *         
+*                               vig@cornellf.bitnet                   *         
+*-------------------------------------------------------------------- *         
+*                                                                     *         
+*  COPYRIGHT -  VAL GARGER, CORNELL NATIONAL SUPERCOMPUTER FACILITY,  *         
+*               (JUNE 1990) CORNELL UNIVERSITY, ITHACA, NY.           *         
+*               CONTAINS RESTRICTED MATERIALS OF CORNELL UNIVERSITY,  *         
+*               (C) COPYRIGHT CORNELL UNIVERSITY 1990                 *         
+*                                                                     *         
+* ------------------------------------------------------------------- *         
+* Change log:                                                         *         
+*                             Small fixes                             *         
+*                                05/02/90               Val Garger    *         
+* ------------------------------------------------------------------- *         
+* Convert floating point, IEEE 32-bit to IBM 64-bit (Fortran REAL*8). *         
+*                                                                     *         
+*   Example: call cfi32d(ieee, ibm, n)                                *         
+*                                                                     *         
+*    input: ieee  Array of 32-bit IEEE floating point numbers,        *         
+*                 single  precision.                                  *         
+*           n     Number of elements in ieee to convert, integer.     *         
+*   output: ibm   Array of IBM floating point numbers, REAL*8 values. *         
+*                                                                     *         
+* Format (bits, left to right):           |    Exponent bias:         *         
+*             sign   exponent   mantissa  |                           *         
+* IBM           1      7           56     |     64 hex                *         
+* IEEE          1      8           23     |     127                   *         
+*                                         |                           *         
+* Usage notes:                                                        *         
+* 1. Data could be converted "inplace" in which case an ieee array    *         
+*    must occupy the first half of ibm data space.                    *         
+* 2. Infinite IEEE values are converted to the largest IBM values     *         
+*    which are x'7FFFFFFF' and x'FFFFFFFF' for positive and negative  *         
+*    respectively.                                                    *         
+* 3. Like infinite values, NaN (Not a Number) values are converted to *         
+*    the largest values.                                              *         
+* 4. Conversion does not incur the loss of mantissa accuracy.         *         
+* =================================================================== *         
+CFI32D RMODE      ANY                                                           
+CFI32D AMODE      ANY                                                           
+CFI32D BEGIN      DATE=/5-02-90/version#1.9/ prologe                            
+       LM         R2,R4,00(R1)                                                  
+       L          R11,00(,R4)          n                                        
+       LTR        R10,R11                                                       
+       BZ         EXIT                                                          
+       BCT        R10,*+4                                                       
+       SLL        R10,2                                                         
+       AR         R2,R10                                                        
+       SLL        R10,1                                                         
+       AR         R3,R10                                                        
+*                                                                               
+NEXT   DS         0H                                                            
+       L          R8,00(,R2)           ie(1)                                    
+       LA         R9,0                 tiss(2) = 0                              
+       LR         R6,R8                                                         
+       N          R6,=X'80000000'      sign                                     
+       LR         R7,R8                                                         
+       N          R7,=X'7F800000'      exponent                                 
+       BZ         DONE                 if so, keep intact                       
+       N          R8,=X'007FFFFF'      tiss(1)                                  
+EXPON  DS         0H                                                            
+       C          R7,=X'7F800000'      is it infinite/Nan ?                     
+       BNE        EXPINR               to EXPonent IN Range if not.             
+       L          R8,=X'7FFFFFFF'                                               
+       L          R9,=X'FFFFFFFF'                                               
+       B          STORE                                                         
+EXPINR DS         0H                                                            
+       SRL        R7,1                                                          
+       A          R7,=X'20800000'      exp = exp - 127 + 256 + 1                
+       LR         R5,R7                                                         
+       N          R5,=X'00C00000'      .and. last two bits                      
+       BZ         *+8                  avoid if mod(exp,4)=0                    
+       A          R7,=X'01000000'      +1 to next to two last bits              
+       N          R7,=X'7F000000'                                               
+TISSA  DS         0H                                                            
+       O          R8,=X'00800000'                                               
+       SRL        R5,22                                                         
+       LTR        R5,R5                                                         
+       BZ         STORE                                                         
+       LA         R10,4                                                         
+       SR         R10,R5                                                        
+       SRDL       R8,00(10)            logically right double                   
+STORE  DS         0H                                                            
+       OR         R8,R7                                                         
+STRSGN OR         R8,R6                                                         
+DONE   STM        R8,R9,00(R3)                                                  
+       SL         R2,=F'4'                                                      
+       SL         R3,=F'8'                                                      
+       BCT        R11,NEXT                                                      
+* -----------------------------------------------------------------             
+EXIT   L          R13,4(R13)                                                    
+       RETURN     (14,12),,RC=0      Epiloge                                    
+* -----------------------------------------------------------------             
+       END        CFI32D                                                        

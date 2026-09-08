@@ -1,0 +1,63 @@
+      subroutine cfv32d(vax, ibm, n)                                            
+      integer   vax(*), ibm(*), n                                               
+* ------------------------------------------------------------------- *         
+*             author: Federico Carminati, CERN, Geneva                *         
+*             restructured by Valery Garger, CNSF, Cornell University *         
+*                                                                     *         
+*             this is a subroutine to convert from vax floating       *         
+*             point format (32 bits) to ibm double precision floating *         
+*             format (64 bits).                                       *         
+*                                                                     *         
+*          ex: call cfv32d(vax, ibm, n)                               *         
+*                                                                     *         
+*             vax   an area of storage 64*n bits long in which are    *         
+*                       stored n 32 bits vax floating point numbers   *         
+*                                                                     *         
+*             ibm    an area of storage 64*n bits long which          *         
+*                       on output contains n 64 bits ibm              *         
+*                       floating point numbers                        *         
+*                                                                     *         
+*                   ibm and vax could be located at the same space    *         
+*                   in which case vax must occupy first half of       *         
+*                   the space.                                        *         
+*                                                                     *         
+*             n    number of floating point numbers to convert        *         
+*                                                                     *         
+* =================================================================== *         
+      logical btest                                                             
+*                                                                               
+      j = n                                                                     
+      do while (j .ge. 1)                                                       
+c                                                                               
+c            check for exact 0                                                  
+c                                                                               
+        if(vax(j) .eq. 0) then                                                  
+          ibm(2*j-1) = 0                                                        
+          ibm(2*j)   = 0                                                        
+        else                                                                    
+c                                                                               
+c            get exponent                                                       
+c                                                                               
+          iexp = ishft(ishft(vax(j),17),-24)                                    
+c                vax exp + vax bias + ibm bias                                  
+c         iexp = iexp   -    128   +   260                                      
+          iexp = iexp + 132                                                     
+          iex16 = iexp/4                                                        
+          left = 4 - mod(iexp,4)                                                
+          if (left .eq. 4) then                                                 
+            left = 0                                                            
+            iex16 = iex16 - 1                                                   
+          endif                                                                 
+          ibt = ishft(ishft(vax(j),25),-9)                                      
+          ibt = ibset(ibt,23)                                                   
+          ibt = ior(ibt,ishft(vax(j),-16))                                      
+          it = ishft(ibt,32-left)                                               
+          ibt = ishft(ibt,-left)                                                
+          ibt = ior(ibt,ishft(iex16,24))                                        
+          if(btest(vax(j),15)) ibt = ibset(ibt,31)                              
+          ibm(2*j-1) = ibt                                                      
+          ibm(2*j  ) = it                                                       
+        endif                                                                   
+      j = j - 1                                                                 
+      enddo                                                                     
+      end                                                                       

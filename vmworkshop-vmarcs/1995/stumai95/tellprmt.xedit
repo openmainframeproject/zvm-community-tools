@@ -1,0 +1,391 @@
+/*                                                                   */
+/* TELLPRMT XEDIT                                                    */
+/*                                                                   */
+/* Usage:  This file is to be used by either invoking the DOPANEL    */
+/*         command and supplying the command with the name of this   */
+/*         panel or invoking a XEDIT session on a file with this     */
+/*         file specified as the PROFILE to be used.                 */
+/*                                                                   */
+/* TELLPRMT is a XEDIT file containing various XEDIT and REXX        */
+/* instructions combined to construct an input panel and the         */
+/* instructions necessary to process the input gathered from the     */
+/* customer.  See the USAGE statement above for information on how   */
+/* to invoke the TELLPRMT panel.                                     */
+/*                                                                   */
+/* Exit Code Definitions:                                            */
+/*   Not applicable.                                                 */
+/*                                                                   */
+/* Mod Date  Init  Description                                       */
+/* --------  ----  ------------------------------------------------- */
+/* 06291994  PDL   Initial development.                              */
+/* 07071994  PDL   Combined Nickname/UserID Fields.                  */
+/* 07211994  PDL   Added message handler                             */
+/* 07211994  PDL   Added code to un-RESERVE XEDIT lines.             */
+/* 07211994  PDL   Combined the Nickname/UserID (previously          */
+/*                 combined) and the Node field.  For all three items*/
+/*                 there now exists only one field.  The one field   */
+/*                 will be named "Nickname or UserID" and will be    */
+/*                 expanded to allow 20 characters (to accomodate    */
+/*                 "idornick at nodeidxx").                          */
+/* 07211994  PDL   Added code to allow the word "AT" to be the first */
+/*                 word of a message.  Added because of a TELL       */
+/*                 command restriction.                              */
+/* 07221994  PDL   Also added code to not allow "AT" or "CC:" to be  */
+/*                 used as a userid.  Added because of a TELL        */
+/*                 command restriction.                              */
+/* 07221994  PDL   Removed BETA descriptor from panel.  Code level   */
+/*                 107 is intended for first public release.         */
+/*                                                                   */
+ 
+level="107"
+ 
+/* Define the control characters for panel definition */
+address xedit
+"SET CTLCHAR  % ESCAPE"
+"SET CTLCHAR  @ PROTECT   HIGH"
+"SET CTLCHAR  ! PROTECT   NOHIGH"
+"SET CTLCHAR  $ NOPROTECT HIGH"
+ 
+/* Set up the XEDIT environment for panel definition */
+"SET CASE     MIXED"
+"SET LINEND   OFF"
+"SET TOFEOF   OFF"
+"SET PREFIX   OFF"
+"SET SCALE    OFF"
+"SET MSGLINE  ON 21 2"
+"SET CMDLINE  OFF"
+"SET MSGMODE  ON"
+"VERIFY OFF 1 80"
+ 
+/* Ensure the PF keys are defined as we need them so */
+/* that we can avoid the problem with a key defined  */
+/* as TABKEY, COPYKEY, NULLKEY, or CP BRKKEY (which  */
+/* will cause a XEDIT READ to -NOT- terminate).  We  */
+/* cannot have this.                                 */
+do index=1 to 24
+    "SET PF"index "BEFORE EMSG INTERNAL FAILURE:  EXIT",
+    "IMMEDIATELY AND REPORT THIS TO THE HELPDESK (7997)"
+end
+ 
+/* Make sure that we set the appropriate PF */
+/* keys with a QQUIT definition.  This is to*/
+/* make sure the customer can get out even  */
+/* though an internal failure has occurred. */
+"SET PF3  BEFORE QQUIT"
+"SET PF12 BEFORE QQUIT"
+"SET PF15 BEFORE QQUIT"
+"SET PF24 BEFORE QQUIT"
+ 
+/* "un-RESERVE" all of the XEDIT lines */
+/* that were reserved, if any.         */
+"EXTRACT /RESERVED */"
+do index=1 to RESERVED.0
+    parse var RESERVED.index linenum otherstuff
+    "SET RESERVED" linenum "OFF"
+end
+ 
+address command
+ 
+/* Request that the panel be constructed, and place the cursor */
+/* at the first input field.                                   */
+call BuildDisplay
+address xedit "CURSOR SCREEN 10 12"
+ 
+/* Initialize all input variables */
+nickname=""
+/* CODE PRIOR TO 07071994 MODIFICATION */
+/* userid="" */
+/* CODE DISABLED -- 07211994 MODIFICATION */
+/* node="" */
+message1=""
+message2=""
+ 
+/* Begin processing of the panel.  The "status" variable         */
+/* indicates what mode we are in.                                */
+/*     Status=0    indicates that the customer has submitted the */
+/*                 panel for processing.  Syntax/Field checking  */
+/*                 is performed as required, and if no problem is*/
+/*                 found then the external command is            */
+/*                 constructed and executed.                     */
+/*     Status=1    indicates that reading of the panel is to     */
+/*                 continue until otherwise indicated.           */
+/*     Status=2    indicates that an exit from the panel has been*/
+/*                 requested.                                    */
+/*     Status=3    indicates that help has been requested.       */
+status=1
+do while (status = 1)
+ 
+    /* Request that the panel be rebuilt to reflect customer entries */
+    call BuildDisplay
+    /* Request that XEDIT read the panel and return the results  */
+    address xedit "READ NOCHANGE NUMBER TAG"
+ 
+    /* Process the results of the XEDIT READ until no more are left */
+    do queued()
+        parse pull tag line column data
+ 
+        /* If the result was from an input field, then process it */
+        if tag = "RES" then do
+            /* Remove all blanks and underscore characters from */
+            /* the input                                        */
+            data=strip(data,trailing,"_")
+            data=strip(data)
+            select
+                /* Line 10, Column 12 is the nickname/id/node field */
+                when (line = 10) & (column = 12) then do
+                    nickname=data
+                    upper nickname
+                end
+ 
+                /* CODE INACTIVATED PER 07071994 MODIFICATION */
+                /* Line 10, Column 40 is the userid field     */
+                /* when (line = 10) & (column = 40) then do   */
+                /*     userid=data                            */
+                /*     upper userid                           */
+                /* end                                        */
+ 
+                /* CODE DISABLED -- 07211994 MODIFICATION     */
+                /* Line 10, Column 31 is the node field       */
+                /* when (line = 10) & (column = 31) then do   */
+                /*     node=data                              */
+                /*     upper node                             */
+                /* end                                        */
+ 
+                /* Line 13 is the message field, line one */
+                when line = 13
+                     then message1=data
+                /* Line 15 is the message field, line two */
+                when line = 15
+                     then message2=data
+                otherwise nop
+            end
+ 
+        end
+ 
+        /* If the customer pressed a PF key, process it */
+        if tag = "PFK" then do
+ 
+            select
+                /* If the customer pressed PF1, PF13, PF9, or PF21 */
+                /* then help for the panel is requested.           */
+                when (line = 1)  | (line = 13) |,
+                     (line = 9)  | (line = 21) then status=3
+                /* If the customer pressed PF3, PF15, PF12, or PF24 */
+                /* then the customer wishes to exit.                */
+                when (line = 3)  | (line = 15) |,
+                     (line = 12) | (line = 24) then do
+                    "DESBUF"
+                    status=2
+                    leave
+                end
+                /* Otherwise, the PF key is not defined to us.      */
+                otherwise
+                    message="PFKey is not defined."
+                    call display_message
+            end
+ 
+        end
+ 
+        /* If the customer pressed the ENTER key, then set the */
+        /* status flag to "check/process input panel".         */
+        if tag = "ETK" then status=0
+ 
+    end
+ 
+    /* The customer requested assistance for the panel. */
+    if status = 3 then do
+        /* Resume panel input/processing */
+        address command "HELP TELLPRMT"
+        status=1
+    end
+ 
+    /* Was panel checking/processing requested? */
+    if status = 0 then do
+ 
+        /* Let us break up the towhom field into "userid at node" */
+        /* and then determine if there are any errors...          */
+        parse upper var nickname checkid splitter checknode
+ 
+        /* Check to see if we have any "error" conditions... */
+        select
+            /* Scenario 1:  The customer has not supplied any of the */
+            /*              fields with data.                        */
+            when (nickname = "") &,
+                 (message1 = "") & (message2 = "") then do
+                status=1
+                message="Please supply the fields above",
+                        "with the proper data, or press the QUIT",
+                        "PFKey to exit this screen."
+                call display_message
+                address xedit "CURSOR SCREEN 10 12"
+            end
+ 
+            /* Scenario 2:  The customer has specified a separator    */
+            /*              and node without a userid.                */
+            when (checkid = "AT") & (splitter ^= "") &,
+                 (splitter ^= "AT") then do
+                status=1
+                message="A userid must be specified.  Press PF1 for",
+                        "assistance on how to send a message to someone",
+                        "on another system."
+                call display_message
+                address xedit "CURSOR SCREEN 10 12"
+            end
+ 
+            /* Scenario 3:  The customer has specified a userid with  */
+            /*              a separator but without a node specified. */
+            when (checkid ^= "") & (splitter = "AT") &,
+                 (checknode = "") then do
+                status=1
+                message="A node must be specified.  Press PF1 for",
+                        "assistance on how to send a message to someone",
+                        "on another system."
+                call display_message
+                address xedit "CURSOR SCREEN 10 12"
+            end
+ 
+            /* Scenario 4:  The customer has specified a userid       */
+            /*              and a node without a separator.           */
+            when (checkid ^= "")  & (splitter ^= "AT") &,
+                 (splitter ^= "") & (checknode = "") then do
+                status=1
+                message="The userid and node must be separated by the",
+                        "text 'AT'.  Press PF1 for assistance on how",
+                        "to send a message to someone on another system."
+                call display_message
+                address xedit "CURSOR SCREEN 10 12"
+            end
+ 
+            /* SCENARIO 5 INACTIVE PER 07071994 MODIFICATION          */
+            /* Scenario 5:  The customer has supplied both a nickname */
+            /*              and a userid and node.  Only one is needed*/
+            /* when (nickname ^= "") &,                               */
+            /*      ((userid ^= "") | (node ^= "")) then do           */
+            /*     status=1                                           */
+            /*     message="Specify either a nickname or a",          */
+            /*             "userid and a node."                       */
+            /*     call display_message                               */
+            /*     address xedit "CURSOR SCREEN 10 12"                */
+            /* end                                                    */
+ 
+            /* Scenario 6:  The customer has specified "AT" or "CC:"  */
+            /*              as a userid.                              */
+            when (checkid = "AT") | (checkid = "CC:") then do
+                status=1
+                message="The words 'AT' and 'CC:' can not be used as",
+                        "a userid."
+                call display_message
+                address xedit "CURSOR SCREEN 10 12"
+            end
+ 
+            /* Scenario 7:  The customer has supplied a destination */
+            /*              but no message.                         */
+            when (message1 = "") & (message2 = "") then do
+                status=1
+                message="A message must be supplied."
+                call display_message
+                address xedit "CURSOR SCREEN 13 12"
+            end
+            /* Scenario 8:  The customer has supplied a message, but */
+            /*              has not given a nickname or userid/node. */
+            when ((message1 ^= "") | (message2 ^= "")) &,
+                 (nickname = "") then do
+                status=1
+                message="A nickname or userid",
+                        "must be supplied."
+                call display_message
+                address xedit "CURSOR SCREEN 10 12"
+            end
+            otherwise nop
+        end
+ 
+    end
+end
+ 
+/* If status is still zero then we have passed the panel checks.  */
+/* Now let us construct and perform the command for the customer. */
+if status = 0 then do
+    /* Form the message */
+    message=space(message1||" "||message2)
+ 
+    /* Now send the message */
+    /* First, if the customer did not use the full fledged    */
+    /* <userid at node> syntax to describe who to send the    */
+    /* message to, then we will expand it to that format to   */
+    /* prevent a problem with the TELL command restriction    */
+    /* where the first word of the message cannot be "AT"     */
+    /* unless the full fledged syntax is used.                */
+    if words(nickname) = 1 then
+      address cms "TELL" nickname "AT ULKYVM" message
+    else
+      address cms "TELL" nickname message
+end
+ 
+address xedit "QQUIT"
+exit
+ 
+/* Construct the input panel for the customer... */
+BuildDisplay:
+address xedit
+"SET RESERVED  1 N %!TELLPRMT                 %@SEND INTERACTIVE",
+                   "MESSAGE%!                  LEVEL"level
+"SET RESERVED  5 N %@To send an interactive message to someone, enter",
+                   "the nickname or userid and%!"
+"SET RESERVED  6 N %@node of that person and then enter the message",
+                   "that you want to send.%!"
+ 
+/* CODE PRIOR TO 07071994 MODIFICATION                                */
+/* "SET RESERVED 10 N %!Nickname %$"left(nickname,8,"_")"%!  ",       */
+/*                 " or     UserID %$"left(userid,8,"_")"%! at Node", */
+/*                 "%$"left(node,8,"_")"%!"                           */
+ 
+/* CODE PRIOR TO 07211994 MODIFICATION                                */
+/* "SET RESERVED  9 N %!Nickname%!"                                   */
+/* "SET RESERVED 10 N %!or UserID%$"left(nickname,8,"_")"%!",         */
+/*                    "at Node %$"left(node,8,"_")"%!"                */
+ 
+"SET RESERVED  9 N %!Nickname%!"
+"SET RESERVED 10 N %!or UserID%$"left(nickname,20,"_")"%!"
+"SET RESERVED 13 N %!Message  %$"left(message1,60,"_")"%!"
+"SET RESERVED 15 N %!         %$"left(message2,60,"_")"%!"
+"SET RESERVED -1 N %@PF1/PF9%! Help     %@PF3/PF12%! Quit"
+address command
+return
+ 
+display_message:
+ 
+if message ^= "" then do
+  /* Now format the message for proper display */
+  nextword=""
+  msglines.0=1
+  msgindex=msglines.0
+  do index=1 to 2
+    msglines.index=""
+  end
+  do index=1 to words(message)
+    msgindex=msglines.0
+    nextword=word(message,index)
+    /* If we can fit the next word into the line, then do so */
+    if (length(msglines.msgindex)+length(nextword)) <= 78 then
+      if length(msglines.msgindex) = 0 then
+        msglines.msgindex=nextword
+      else
+        msglines.msgindex=msglines.msgindex||" "||nextword
+    /* Otherwise, pad the rest of the current line, */
+    /* and start a new line.                        */
+    else do
+      msglines.msgindex=left(msglines.msgindex,79)
+      msglines.0=msglines.0+1
+      msgindex=msglines.0
+      msglines.msgindex=nextword
+    end
+  end
+  msgtodisplay=""
+  do index=1 to msglines.0
+    msgtodisplay=msgtodisplay||msglines.index
+  end
+  address xedit "EMSG" msgtodisplay
+  message=""
+end
+ 
+return

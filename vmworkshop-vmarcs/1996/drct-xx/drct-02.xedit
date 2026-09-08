@@ -1,0 +1,15 @@
+/**/
+OLD=""
+NEW=""
+"REFRESH"
+"EXTRACT /LIBNAME/"
+IF SPACE(LIBNAME.1)==NEW THEN "MSG Error: You are not allowed to FILE from the "NEW" MACLIB"
+                         ELSE DO
+   "EXTRACT /ALT/"
+   IF ALT.1>0 THEN "MSG Error: The member of the "OLD" MACLIB was ALTered"
+              ELSE DO
+      "QQUIT"
+      "SET SCREEN 1"
+      "FILE"
+   END
+END

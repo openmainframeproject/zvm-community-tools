@@ -1,0 +1,27 @@
+.cm This file was created by hand.
+.cm
+.cs 1 on
+ 
+¢|TARLIST EXEC¢%
+ 
+ Use the TARLIST command to browse a TAR file similar to FILELIST.
+ 
+.cs 1 off
+.cs 2 on
+ The format of the TARLIST command is:
+ +------------+-------------------------------------------------------------+
+ |            |                                                             |
+ |  TARLIST   |  tar-file                                                   |
+ |            |                                                             |
+ +------------+-------------------------------------------------------------+
+ 
+ Note:   TARLIST is *not* well developed.   The task of writing
+         a utility from scratch that functions like FILELIST
+         has been overwhelming.   PF9 and PF11 work as listed,
+         but don't expect anything else.
+ 
+.cs 2 off
+.cs 3 on
+.cs 3 off
+.cs 4 on
+.cs 4 off

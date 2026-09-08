@@ -1,0 +1,27 @@
+/*
+ *        Name: PRINT XEDIT
+ *              feed this file to your virtual printer via Pipes
+ *      Author: Rick Troth, Rice University, I/S VM Systems Support
+ *        Date: 1992-Jun-11, Jun-25
+ */
+ 
+Parse Arg args '(' opts
+ 
+If args ^= "" Then
+    'COMMAND CMS PIPE CMS PRINT' args '(' opts '| STEM EMSG.'
+ 
+Else Do
+    'COMMAND EXTRACT/LINE/FNAME/FTYPE/FMODE'
+    'COMMAND TOP'
+    'COMMAND CMS PIPE XEDIT' ,
+                   '| PRINT' fname.1 ftype.1 fmode.1 '(' opts ,
+                   '| STEM EMSG.'
+    'COMMAND :' || line.1
+    rc = 0
+    End  /*  Else  Do  */
+ 
+If rc = 0 Then Do i = 1 To emsg.0; 'COMMAND MSG' emsg.i; End
+          Else Do i = 1 To emsg.0; 'COMMAND EMSG' emsg.i; End
+ 
+Exit
+ 

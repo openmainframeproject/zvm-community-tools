@@ -1,0 +1,72 @@
+.cm ********************************************************************        
+.cm **                                                                **        
+.cm ** Help for TELLPRMT                                              **        
+.cm **                                                                **        
+.cm ** 08141994 PDL Initial Development.                              **        
+.cm ** 08151994 PDL Added proper .cs blocks                           **        
+.cm **                                                                **        
+.cm ********************************************************************        
+.cs 1 on                                                                        
+TELLPRMT                SEND INTERACTIVE MESSAGE                                
+                                                                                
+General Instructions                                                            
+--------------------                                                            
+                                                                                
+After filling in all of the fields on the screen, press ENTER to send           
+your message to the recipient.  The nickname or userid may be entered           
+in any case; it is case insensitive.  However, input your message               
+exactly as you want it to appear to the recipient.                              
+                                                                                
+.cs 1 off                                                                       
+.cs 2 on                                                                        
+Field Descriptions                                                              
+------------------                                                              
+                                                                                
+Nickname or    You may specify any valid nickname or userid.  If the            
+UserID         user you are trying to communicate with is at a different        
+               node (and that node is a BITNET node), you may also              
+               specify that user as "userid AT node".  Such userids with        
+               nodes may also be placed in your nickname file.  You may         
+               not specify Internet domains with this screen.  In               
+               addition, you also can not specify the words "AT" or             
+               "CC:" as valid userids.                                          
+                                                                                
+Message        type your message exactly as you want it to appear to            
+               the recipient.  You may use any wording you like up to           
+               the maximum number of characters.                                
+                                                                                
+Key Descriptions                                                                
+----------------                                                                
+                                                                                
+PF1/PF9    (Help)        Brings you to this help screen.                        
+                                                                                
+PF3/PF12   (Quit)        Exits without sending a message to a recipient.        
+                                                                                
+.cs 2 off                                                                       
+.cs 5 on                                                                        
+Usage Notes                                                                     
+-----------                                                                     
+                                                                                
+1.  After all of the fields have been filled in and you have pressed            
+    ENTER, you will be returned to the menus.  The message has been             
+    sent.  However, if the recipient you are sending the message to             
+    is not logged on to the system (or node specified), you will                
+    receive a message stating that the recipient is not logged on.              
+    Recipients must be logged on to receive interactive messages.               
+                                                                                
+2.  The "SEND INTERACTIVE MESSAGE" screen was designed to make it easier        
+    to send messages to recipients; however, you may also use the actual        
+    command to do this.  To send messages to someone, use the following         
+    command:                                                                    
+                                                                                
+         TELL userid messagetext                                                
+                                                                                
+         TELL userid AT node messagetext                                        
+                                                                                
+    where "userid" is the id of the recipient, "messagetext" is the             
+    message you want to send, and "node" is the node the person is              
+    logged on to.  You may use the first form of the TELL command if            
+    the recipient is logged on to the U of L system (ULKYVM).  The              
+    second form of the TELL command is to be used when the recipient            
+    is logged on to a distant node, such as the U of K system.                  
+.cs 5 off                                                                       
