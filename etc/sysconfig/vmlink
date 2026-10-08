@@ -1,6 +1,6 @@
 #
 #
-#         Name: /etc/sysconfig/vmlink
+#         Name: /etc/sysconfig/vmlink (sysconfig script, shell sourced)
 #
 
 # starting address for VMLINK automounter script
