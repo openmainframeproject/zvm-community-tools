@@ -21,6 +21,7 @@ The following tools for z/VM are in this repository:
     | HISTORY  EXEC    | Display list of commands previously run         |
     | MAN      EXEC    | Give help on CMS/CP/XEDIT commands              |
     | QA       EXEC    | Run QUERY ACCESSED                              |
+    | QCPUPOOL EXEC    | Report on CPU pools                             |
     | RFN      EXEC    | Rename file changing only file name             |
     | RFT      EXEC    | Rename file changing only file type             |
     | RM       EXEC    | Remove files allowing wildcards                 |
@@ -444,6 +445,9 @@ The ``MKVMARC EXEC`` creates the z/VM file ``ZVMTOOLS VMARC`` from all of these 
 
 ### QA EXEC
 The ``QA EXEC`` simply calls ``QUERY ACCESSED`` to save keystrokes. 
+
+### QCPUPOOL EXEC
+The ``QCPUPOOL EXEC`` reports on defined CPU pools and members thereof. 
 
 ### RFN EXEC
 The ``RFN EXEC`` renames a file only changing the file name. 

@@ -5,7 +5,7 @@
 /* Source: https://github.com/mike99mac/zvm-tools                    */
 /*-------------------------------------------------------------------*/
 execs = "CALC CALCDASD CALCOSA CFM CFN CFT COPYDISK CPFORMAT ",
-||"DIFF GREP HEAD HISTORY MAN MKVMARC QA RFN RFT RM ",
+||"DIFF GREP HEAD HISTORY MAN MKVMARC QA QCPUPOOLS RFN RFT RM ",
 ||"SPC SSICMD TAIL WC WCZVMTLS WHICH WHO"
 files = ""                           /* list of EXECs */
 do i = 1 to WORDS(execs)

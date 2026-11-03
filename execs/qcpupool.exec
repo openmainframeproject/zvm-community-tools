@@ -1,0 +1,21 @@
+/* QCPUPOOL EXEC - Query all CPU pools and their members */
+ 
+'PIPE CP QUERY USERID | SPEC W3 | VAR LPAR'
+say 'LPAR:' lpar
+say
+ 
+/* Capture QUERY CPUPOOL ALL output into the stack */
+'PIPE CP QUERY CPUPOOL ALL | STEM POOL.'
+say 'QUERY CPUPOOL ALL'
+do i = 1 to pool.0
+   say pool.i
+end
+say
+ 
+/* Skip heading lines and process each pool */
+do i = 1 to pool.0
+   line = strip(pool.i)
+   if line = '' then iterate      /* ignore blank lines and headers */
+   if word(line,1) = 'Pool' then iterate
+end
+ 
