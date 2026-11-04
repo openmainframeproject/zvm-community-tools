@@ -149,14 +149,6 @@ An open-source REST API and SDK for provisioning and managing z/VM guests, image
 
 Feilong integrates with cloud management platforms and infrastructure automation tools.
 
-#### ZLMA – z/VM and Linux Modern Administration
-
-- **Repository:** https://github.com/mike99mac/zlma
-
-Browser-oriented administration of Linux servers running under z/VM.
-
-Provides a modern interface for Linux guest administration and management.
-
 #### IBM zvm_ansible
 
 - **Repository:** https://github.com/IBM/zvm_ansible
@@ -186,10 +178,10 @@ Provides an infrastructure-as-code approach to managing z/VM resources.
 | Project | Description | Repository |
 |---|---|---|
 | VMLINK | CMS file and software linking automation | https://github.com/trothtech/vmlink |
-| ZNETBOOT | Network booting tools | https://github.com/trothr/znetboot |
+| ZNETBOOT | Network booting tools | https://github.com/trothtech/znetboot |
 | zPXE | PXE-like network boot functionality for z/VM guests | https://github.com/beaker-project/zpxe |
-| CMS Make | Make-like build automation for CMS | https://github.com/trothr/cmsmake |
-| CMS TAR | TAR archive utility for CMS | https://github.com/trothr/cmstar |
+| CMS Make | Make-like build automation for CMS | https://github.com/trothtech/cmsmake |
+| CMS TAR | TAR archive utility for CMS | https://github.com/trothtech/cmstar |
 | XMM | XMIT message management utility | https://github.com/trothtech/xmm |
 
 These projects are particularly interesting because they address the traditional CMS environment rather than just Linux guests.
@@ -928,15 +920,14 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | Scripts | Supporting automation and scripts | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/scripts |
 | AUTO.VMLINK | VMLINK-related automation | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools |
 | Feilong | Open-source REST API and SDK for provisioning and managing z/VM guests, images, networks, and volumes | Independent GitHub | https://github.com/openmainframeproject/feilong |
-| ZLMA | Browser-oriented administration of Linux servers running under z/VM | Independent GitHub | https://github.com/mike99mac/zlma |
 | IBM zvm_ansible | Ansible automation for z/VM using SMAPI and the Feilong ecosystem | Independent GitHub | https://github.com/IBM/zvm_ansible |
 | IBM zvm_ansible_collection | Ansible collection for z/VM automation | Independent GitHub | https://github.com/IBM/zvm_ansible_collection |
 | Terraform Provider for z/VM | Terraform integration with the z/VM SDK/Feilong ecosystem | Independent GitHub | https://github.com/mfcloud/terraform-provider-zvmsdk |
 | VMLINK | CMS file and software linking automation | Independent GitHub | https://github.com/trothtech/vmlink |
-| ZNETBOOT | Network booting tools | Independent GitHub | https://github.com/trothr/znetboot |
+| ZNETBOOT | Network booting tools | Independent GitHub | https://github.com/trothtech/znetboot |
 | zPXE | PXE-like network boot functionality for z/VM guests | Independent GitHub | https://github.com/beaker-project/zpxe |
-| CMS Make | Make-like build automation for CMS | Independent GitHub | https://github.com/trothr/cmsmake |
-| CMS TAR | TAR archive utility for CMS | Independent GitHub | https://github.com/trothr/cmstar |
+| CMS Make | Make-like build automation for CMS | Independent GitHub | https://github.com/trothtech/cmsmake |
+| CMS TAR | TAR archive utility for CMS | Independent GitHub | https://github.com/trothtech/cmstar |
 | XMM | XMIT message management utility | Independent GitHub | https://github.com/trothtech/xmm |
 | z/VM REXX language support | REXX syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-language-zvm-rexx |
 | z/VM assembler support | Assembler syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-languages-zvm |
