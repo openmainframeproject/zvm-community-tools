@@ -1,8 +1,9 @@
-![z/VM Community Tools Logo](https://raw.githubusercontent.com/openmainframeproject/artwork/5b27f85f886da75ddf53511eb5289c53c972415c/projects/zvm-community-tools/horizontal/color/zvm-community-tools-horizontal-color.svg)
+![zz/VM Community Tools/VM Community Tools Logo](https://raw.githubusercontent.com/openmainframeproject/artwork/5b27f85f886da75ddf53511eb5289c53c972415c/projects/zvm-community-tools/horizontal/color/zvm-community-tools-horizontal-color.svg)
 
 # z/VM Community Tools
 
-z/VM Community Tools
+This is the z/VM Community Tools github repository.  Its goal is to list all the Free and Open Source Software for IBM's z/VM operating system.
+If you'd like to help, email Mike Mac at mike99mac@gmail.com.
 
 ## Install
 
@@ -63,9 +64,7 @@ This section consolidates information scattered across IBM download libraries, G
 - **Repository:** https://github.com/openmainframeproject/zvm-community-tools
 - **Website:** https://www.zvmcommunitytools.org/
 
-The Open Mainframe Project's z/VM Community Tools repository is a collection of community-maintained tools and utilities for z/VM.
-
-Areas covered include:
+This describes the content on this Github repo:
 
 | Component | Description |
 |---|---|
