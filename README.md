@@ -16,14 +16,15 @@ Each subdirectory has its own install process:
 ## Build
 
 Each subdirectory has its own build process, if any:  
-- ``execs`` - Because REXX EXECs are interpreted, there is no build process necessary.
+- ``execs`` - Because REXX EXECs are interpreted, there is no build process necessary.  There is a VMARC file that can be copied and expanded to put all EXECs onto one minidisk.
 
-- ``zlma`` - There is an install script ``instzlma`` that will be described in detail...
+- ``zlma`` - There is an install script ``instzlma`` that is described in detail.
 
 ## Discussion
 
 You can connect with the community in a variety of ways...
 
+- [IBMVM Mailing list](http://listserv.uark.edu/cgi-bin/wa?A0=IBMVM)
 - [z/VM Community Tools channel on Open Mainframe Project Slack](https://openmainframeproject.slack.com/archives/C035HAMNUU9)
 - [z/VM Community Tools category on Open Mainframe Project Community Forums](https://community.openmainframeproject.org/)
 
@@ -53,7 +54,6 @@ This section consolidates information scattered across IBM download libraries, G
 - [6. Other Information Sources](#6-other-information-sources)
 - [7. Historical VM Community Resources](#7-historical-vm-community-resources)
 - [8. Functional Categories](#8-functional-categories)
-- [9. Catalog Metadata and Classification](#9-catalog-metadata-and-classification)
 
 ---
 
@@ -328,27 +328,6 @@ For a comprehensive catalog, software should be organized by function rather tha
 | Installation and Maintenance | Installation, service, APAR, and migration tools |
 
 ---
-
-## 9. Catalog Metadata and Classification
-
-Each catalog entry should include as much of the following information as possible:
-
-| Field | Description |
-|---|---|
-| Name | Tool or project name |
-| Description | What the tool does |
-| Category | Functional classification |
-| Repository | Source-code location |
-| Download | Binary or package download location |
-| Author / Maintainer | Original developer or current maintainer |
-| License | Actual software license |
-| Source Available | Whether source code is available |
-| Open Source | Whether it meets an open-source license definition |
-| Execution Environment | CP, CMS, Linux guest, or external management server |
-| Supported Releases | Supported z/VM versions |
-| Last Updated | Last known release or source update |
-| Documentation | Installation and usage instructions |
-| Presentations | Relevant VM Workshop or other presentations |
 
 ### Suggested Classification
 
