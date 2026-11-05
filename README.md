@@ -53,7 +53,6 @@ This section consolidates information scattered across IBM download libraries, G
 - [5. VM Workshop](#5-vm-workshop)
 - [6. Other Information Sources](#6-other-information-sources)
 - [7. Historical VM Community Resources](#7-historical-vm-community-resources)
-- [8. Functional Categories](#8-functional-categories)
 
 ---
 
@@ -196,27 +195,6 @@ It brings together VM customers, independent software vendors, business partners
 
 Its archives contain presentations, technical papers, demonstrations, and links to software that may not be available through IBM's download library or GitHub.
 
-### Topics of Interest
-
-Examples of subjects covered in recent presentations include:
-
-| Topic | Area |
-|---|---|
-| CMS Pipelines Basics | CMS automation |
-| Introduction to XEDIT | Editor extensions and productivity |
-| Setting up z/VM Performance Monitoring | Performance monitoring |
-| Operational Monitoring and Automation of Multiple z/VM LPARs | Systems management |
-| Git for VMers | Source control |
-| ZTRUST | Security and trust |
-| VFILE | CMS file management |
-| Python, a GUI, OpenSSH, and an SSH Server for CMS | CMS development |
-| Express Linux Automation and Networking | Ansible and networking |
-| IBM z/VM Express System Install | Installation automation |
-
-The presentation archives are especially valuable for discovering software that was demonstrated but never formally published in a central repository.
-
-Presentations may be copyrighted by their authors or organizations; reference and link to them rather than assuming they can be redistributed.
-
 ---
 
 ## 6. Other Information Sources
@@ -265,26 +243,6 @@ Relevant mailing lists include:
 Mailing list archives can reveal software announcements, shared code, technical discussions, and solutions that are difficult to find through conventional searches.
 
 The IBMVM archive dates back to January 1994.
-
----
-
-## 8. Functional Categories
-
-For a comprehensive catalog, software should be organized by function rather than by its original distribution location.
-
-| Category | Examples |
-|---|---|
-| CP and Systems Management | CP utilities, SSI, relocation domains |
-| CMS Utilities | EXECs, REXX, XEDIT macros |
-| Directory Management | DIRMAINT, RACF, directory migration |
-| Performance and Monitoring | MONWRITE, CPUMF, performance reporting |
-| Networking | TCP/IP, VMLINK, ZNETBOOT, zPXE |
-| Storage and Filesystems | BFS, SFS, CMSFS, disk backup |
-| Automation and Provisioning | Feilong, Ansible, Terraform |
-| Security | ZTRUST, signing, encryption, access management |
-| Development Tools | CMS Make, CMS TAR, XMM, Git |
-| Linux Guest Utilities | s390-tools, hyptop, cmsfs-fuse |
-| Installation and Maintenance | Installation, service, APAR, and migration tools |
 
 ---
 
