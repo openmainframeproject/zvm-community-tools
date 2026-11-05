@@ -364,9 +364,12 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **HELP** | Improvements to HELP: help with wildcards, more colors, better RRT V1.5 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=HELP |
 | **HELPDESK** | Database of OV/VM Q&A's for help desk personnel, can add your own Q&A, too. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=HELPDESK |
 | **HEXDUMP** | Browse data from any source in hexadecimal. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=HEXDUMP |
+| **HENSLER** | Fran Hensler's z/VM and VSE download page - many different packages | VM Workshop | https://vmworkshop.org/HENSLER/ |
 | **HISTORY** | The HISTORY command displays the contents of the CMS command history fil | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=HISTORY |
 | **HOMUNC** | Platform for a self-aware operating system. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=HOMUNC |
 | **HPALIAS** | Formatter for D6 R28 HyperPAV Alias Records | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=HPALIAS |
+| **IBM zvm_ansible** | Ansible automation for z/VM using SMAPI and the Feilong ecosystem | GitHub | https://github.com/IBM/zvm_ansible |
+| **IBM zvm_ansible_collection** | Ansible collection for z/VM automation | GitHub | https://github.com/IBM/zvm_ansible_collection |
 | **IMAP** | Internet Message Access Protocol server for TCP/IP | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=IMAP |
 | **INSTPROD** | Automated install of IBM products for z/VM including Operations Manager, Backup and Restore Manager, Tape Manager, zSecure, and OMEGAMON XE. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=INSTPROD |
 | **IOS3270** | Runtime files for IOS3270 (Display I/O facility) | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=IOS3270 |
