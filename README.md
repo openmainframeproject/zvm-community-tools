@@ -16,7 +16,7 @@ If you'd like to help, email Mike Mac at mike99mac@gmail.com.
 - [7. Other Information Sources](#7-other-information-sources)
 - [8. Historical VM Community Resources](#8-historical-vm-community-resources)
 
-1. Overview
+# 1. Overview
 
 ## Install
 
@@ -54,8 +54,6 @@ This section consolidates information scattered across IBM download libraries, G
 **Important:** Not every freely downloadable utility is open source. Each entry should be classified according to its actual source availability and license.
 
 ---
-
-## 1. Open Mainframe Project
 
 ### z/VM Community Tools
 
