@@ -5,6 +5,19 @@
 This is the z/VM Community Tools github repository.  Its goal is to list all the Free and Open Source Software for IBM's z/VM operating system.
 If you'd like to help, email Mike Mac at mike99mac@gmail.com.
 
+## Table of Contents
+
+- [1. Overview](#1-overview)
+- [2. Open Mainframe Project](#2-open-mainframe-project)
+- [3. IBM z/VM Download Library](#3-ibm-zvm-download-library)
+- [4. Independent GitHub Projects](#4-independent-github-projects)
+- [5. Linux-on-Z Tools](#5-linux-on-z-tools)
+- [6. VM Workshop](#6-vm-workshop)
+- [7. Other Information Sources](#7-other-information-sources)
+- [8. Historical VM Community Resources](#8-historical-vm-community-resources)
+
+1. Overview
+
 ## Install
 
 Each subdirectory has its own install process:  
@@ -34,25 +47,11 @@ Anyone can contribute to the z/VM Community Tools project - learn more at [CONTR
 ## Governance
 z/VM Community Tools is a project hosted by the [Open Mainframe Project](https://openmainframeproject.org). This project has established it's own processes for managing day-to-day processes in the project at [GOVERNANCE.md](GOVERNANCE.md).
 
-
-## Reporting Issues
-To report a problem, you can open an [issue](https://github.com/openmainframeproject/z/VM Community Tools/issues) in repository against a specific workflow. If the issue is sensitive in nature or a security related issue, please do not report in the issue tracker but instead email z/VM Community Tools-private@lists.openmainframeproject.org.
-
 # Other Sources of Community Tools
 
 This section consolidates information scattered across IBM download libraries, GitHub repositories, VM Workshop presentations, independent developer projects, and historical VM community archives.
 
 **Important:** Not every freely downloadable utility is open source. Each entry should be classified according to its actual source availability and license.
-
-## Table of Contents
-
-- [1. Open Mainframe Project](#1-open-mainframe-project)
-- [2. IBM z/VM Download Library](#2-ibm-zvm-download-library)
-- [3. Independent GitHub Projects](#3-independent-github-projects)
-- [4. Linux-on-Z Tools](#4-linux-on-z-tools)
-- [5. VM Workshop](#5-vm-workshop)
-- [6. Other Information Sources](#6-other-information-sources)
-- [7. Historical VM Community Resources](#7-historical-vm-community-resources)
 
 ---
 
