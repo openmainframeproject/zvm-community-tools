@@ -6,7 +6,7 @@ This is the z/VM Community Tools github repository.  Its goal is to:
 1.  Store and maintain a set of z/VM Free and Open Source Software
 1.  List **all** z/VM Free and Open Source Software 
 
-If you'd like to help, email Mike Mac at mike99mac@gmail.com.
+If you'd like to help, email Mike MacIsaac at mike99mac@gmail.com
 
 ## Table of Contents
 
@@ -20,33 +20,36 @@ If you'd like to help, email Mike Mac at mike99mac@gmail.com.
 - [8. Historical VM Community Resources](#8-historical-vm-community-resources)
 
 # 1. Overview
+This section is an overview of this git repository.
 
 ## Install
 
 Each subdirectory has its own install process:  
-- ``execs/`` - Download the ``https://github.com/openmainframeproject/zvm-community-tools/blob/main/execs/zvmtools.vmarc`` file and copy it to z/VM in binary, and unpack it.
+- ``execs/`` - Download the ``https://github.com/openmainframeproject/zvm-community-tools/blob/main/execs/zvmtools.vmarc`` file, copy it to z/VM in binary, and unpack it with the ``VMARC UNPK`` command.
 - ``dmscmd/`` - Follow the instructions here: https://github.com/openmainframeproject/zvm-community-tools/tree/main/dmscmd#building-dmscmd 
-- ``zlma`` - Use the ``instzlma`` bash script 
+- ``zlma`` - There is an install script ``instzlma`` that is described in detail.
 
 ## Build
 
 Each subdirectory has its own build process, if any:  
 - ``execs`` - Because REXX EXECs are interpreted, there is no build process necessary.  There is a VMARC file that can be copied and expanded to put all EXECs onto one minidisk.
 
-- ``zlma`` - There is an install script ``instzlma`` that is described in detail.
+TODO: describe other packages with build steps 
 
 ## Discussion
 
-You can connect with the community in a variety of ways...
+You can connect with the community in a variety of ways. Here are some discussion forums: 
 
 - [IBMVM Mailing list](http://listserv.uark.edu/cgi-bin/wa?A0=IBMVM)
 - [z/VM Community Tools channel on Open Mainframe Project Slack](https://openmainframeproject.slack.com/archives/C035HAMNUU9)
 - [z/VM Community Tools category on Open Mainframe Project Community Forums](https://community.openmainframeproject.org/)
 
 ## Contributing
-Anyone can contribute to the z/VM Community Tools project - learn more at [CONTRIBUTING.md](CONTRIBUTING.md)
+
+Anyone can contribute to the z/VM Community Tools project - see: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Governance
+
 z/VM Community Tools is a project hosted by the [Open Mainframe Project](https://openmainframeproject.org). This project has established it's own processes for managing day-to-day processes in the project at [GOVERNANCE.md](GOVERNANCE.md).
 
 ### Open Mainframe Project Landscape
@@ -371,6 +374,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **LCLQRY** | Local CP-exits providing queries to display your AUTOLOGGER or ALTUSER st | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=LCLQRY |
 | **LEXX** | LEXX, The Live Parsing Editor | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=LEXX |
 | **LEXXPLXX** | LEXXPLXX, LEXX Parsers for PL/I, PL/X, Modula-2 and Pascal | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=LEXXPLXX |
+| **LIBICA** | Crypto library for s390x | Github | https://github.com/opencryptoki/libica |
 | **LIBRCMS** | VSE/ESA Librarian Server for CMS users | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=LIBRCMS |
 | **LINMON** | MONWRITE Collector | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=LINMON |
 | **LISTSG** | A series of FILELIST-like tools V1.8 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=LISTSG |
@@ -406,6 +410,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **PUTFILES** | PUTFILES is the converse of GETFILES Pipelines stage V2.2 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=PUTFILES |
 | **PWCHECK** | HTTP Basic Authentication Exit for ISFC Collection | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=PWCHECK |
 | **Q_SMAPI** | SMAPI - Query Dir. Manager Level & Query API Func. Level API clients | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=Q_SMAPI |
+| **qclib** | a C API for extraction of system information for Linux on z Systems | Github | https://github.com/ibm-s390-linux/qclib |
 | **QDASD** | Display information about DASD devices in table form. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=QDASD |
 | **QDEVS** | QDEVS displays devices owned by the system or a virtual machine. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=QDEVS |
 | **QDIR** | Make your interactions with DIRMAINT much quicker and easier. Instantly review a USER/IDENTITY/PROFILE by displaying it on screen. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=QDIR |
@@ -442,6 +447,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **SHUTTRAP** | CMS program to detect and react to CP SHUTDOWN signals | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=SHUTTRAP |
 | **SMAPIREX** | Rexx routine to simplify the invocation of smapi | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=SMAPIREX |
 | **SMARTX** | An XEDIT-based front-end for RTM/ESA and VM/RTM (known as SMART) V6.3.f | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=SMARTX |
+| **smc-tools** | Utilities for use with AF_SMC sockets. | Github | https://github.com/ibm-s390-linux/smc-tools |
 | **SMTMET** | Extract SMT Metrics from Domain 0, Record 2. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=SMTMET |
 | **SPFPACK** | SPFPACK determines which spool files have data on a particular spool pack. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=SPFPACK |
 | **SPOOLAID** | Full-screen browser for spool file internals | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=SPOOLAID |
@@ -456,6 +462,8 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **TAB2GC** | Draw charts entirely on CMS | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=TAB2GC |
 | **TCVM1** | Advanced REXX Telecourse (an HTML selfstudy course) V1.3 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=TCVM1 |
 | **TCVM2** | CMS Pipelines Telecourse (an HTML selfstudy course) V1.3 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=TCVM2 |
+| **tela** | framework for running tests that are controlled by a Makefile. | Github | https://github.com/ibm-s390-linux/tela |
+| **libzfcphbaapi** | Shared library providing zfcp-specific parts for an implementation of FC-HBA | Github | https://github.com/ibm-s390-linux/libzfcphbaapi |
 | **TIMEBOMB** | Set, snooze or cancel the CP timebomb (diagnose 288) feature from CMS. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=TIMEBOMB |
 | **TIMESERV** | VM/TimeServ - An SNTP Version 4 Time Server for VM/ESA and z/VM | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=TIMESERV |
 | **TLD** | TCP/IP line driver for CMS distributed queues. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=TLD |
