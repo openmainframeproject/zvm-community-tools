@@ -2,7 +2,10 @@
 
 # z/VM Community Tools
 
-This is the z/VM Community Tools github repository.  Its goal is to list all the Free and Open Source Software for IBM's z/VM operating system.
+This is the z/VM Community Tools github repository.  Its goal is to:
+1.  Store and maintain a set of z/VM Free and Open Source Software
+1.  List **all** z/VM Free and Open Source Software 
+
 If you'd like to help, email Mike Mac at mike99mac@gmail.com.
 
 ## Table of Contents
@@ -24,7 +27,6 @@ Each subdirectory has its own install process:
 - ``execs/`` - Download the ``https://github.com/openmainframeproject/zvm-community-tools/blob/main/execs/zvmtools.vmarc`` file and copy it to z/VM in binary, and unpack it.
 - ``dmscmd/`` - Follow the instructions here: https://github.com/openmainframeproject/zvm-community-tools/tree/main/dmscmd#building-dmscmd 
 - ``zlma`` - Use the ``instzlma`` bash script 
-- ``ztrust/`` - Follow the instructions here: https://github.com/openmainframeproject/zvm-community-tools/tree/main/ztrust
 
 ## Build
 
@@ -47,15 +49,16 @@ Anyone can contribute to the z/VM Community Tools project - learn more at [CONTR
 ## Governance
 z/VM Community Tools is a project hosted by the [Open Mainframe Project](https://openmainframeproject.org). This project has established it's own processes for managing day-to-day processes in the project at [GOVERNANCE.md](GOVERNANCE.md).
 
-# Other Sources of Community Tools
+### Open Mainframe Project Landscape
 
-This section consolidates information scattered across IBM download libraries, GitHub repositories, VM Workshop presentations, independent developer projects, and historical VM community archives.
+- **Repository:** https://github.com/openmainframeproject/omp-landscape
+- **Landscape source:** https://github.com/openmainframeproject/omp-landscape/blob/main/landscape.yml
 
-**Important:** Not every freely downloadable utility is open source. Each entry should be classified according to its actual source availability and license.
+The Open Mainframe Project Landscape provides a structured inventory of projects in the mainframe ecosystem, including Linux on IBM Z and z/VM-related projects.
 
----
+It is a useful discovery mechanism for identifying projects that may not be listed in the z/VM Community Tools repository.
 
-### z/VM Community Tools
+## z/VM Community Tools
 
 - **Repository:** https://github.com/openmainframeproject/zvm-community-tools
 - **Website:** https://www.zvmcommunitytools.org/
@@ -75,17 +78,6 @@ This describes the content on this Github repo:
 | AUTO.VMLINK | VMLINK-related automation |
 
 See the repository README for current components, installation procedures, and documentation.
-
-### Open Mainframe Project Landscape
-
-- **Repository:** https://github.com/openmainframeproject/omp-landscape
-- **Landscape source:** https://github.com/openmainframeproject/omp-landscape/blob/main/landscape.yml
-
-The Open Mainframe Project Landscape provides a structured inventory of projects in the mainframe ecosystem, including Linux on IBM Z and z/VM-related projects.
-
-It is a useful discovery mechanism for identifying projects that may not be listed in the z/VM Community Tools repository.
-
----
 
 ## 2. IBM z/VM Download Library
 
@@ -502,8 +494,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | EXECs | CMS REXX EXEC utilities, including WHICH and MAN | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/execs |
 | DMSCMD | Additional commands and history functionality for Directory Maintenance | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/dmscmd |
 | ZLMA | z/VM and Linux Modern Administration | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/zlma |
-| ZTRUST | PGP keys and trust-related facilities | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/ztrust |
-| CPHOST | CP host-related utilities | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/cphost |
+| CPHOST | CP host-related utilities | z/VM Community Tools | https//github.com/openmainframeproject/zvm-community-tools/tree/main/cphost |
 | TSC | Additional community tooling | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/tsc |
 | Scripts | Supporting automation and scripts | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/scripts |
 | AUTO.VMLINK | VMLINK-related automation | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools |
