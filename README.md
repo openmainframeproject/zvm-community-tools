@@ -18,6 +18,7 @@ If you'd like to help, email Mike MacIsaac at mike99mac@gmail.com
 - [VM Workshop](#vm-workshop-section)
 - [Other Information Sources](#other-information-sources-section)
 - [Historical VM Community Resources](#historical-vm-community-resources-section)
+- [Complete table of z/VM Open Source pacakges](#complete-table-section)
 
 ---
 
@@ -89,7 +90,7 @@ It includes utilities developed by IBM employees, customers, independent develop
 
 ---
 
-- [3. Independent GitHub Projects](#independent-github-projects-section)
+# <a id="independent-github-projects-section">4. Independent GitHub Projects</a>
 
 Many useful z/VM tools are maintained independently of the Open Mainframe Project and IBM download library.
 
@@ -151,7 +152,7 @@ A separate category includes tools that run inside Linux guests or Linux managem
 
 - **Repository:** https://github.com/ibm-s390-linux/s390-tools
 
-A collection of Linux utilities for IBM Z and LinuxONE.
+A collection of Linux utilities for IBM Z and LinuxONE. It is usually incorporated into zLinux distributions, so installing it separately is not needed.
 
 Relevant utilities include:
 
@@ -162,10 +163,6 @@ Relevant utilities include:
 | hmcdrvfs | Access files on HMC-attached media |
 | qethqoat | Inspect OSA address information |
 
-These are open-source Linux tools, not CMS EXECs or CP extensions.
-
-They are nevertheless valuable components of a broader z/VM ecosystem catalog.
-
 ---
 
 # <a id="vm-workshop-section">6. VM Workshop</a>
@@ -173,10 +170,10 @@ Resources, presentations, and code shared during annual VM Workshop events.
 
 - **Website:** https://www.vmworkshop.org/
 - **Tools page:** https://www.vmworkshop.org/tools.shtml
+- **Past tapes:** https://www.vmworkshop.org/pastTape.shtml
 - **2026 presentations:** https://www.vmworkshop.org/2026pres.shtml
 
 VM Workshop is an important resource for the z/VM community.
-
 It brings together VM customers, independent software vendors, business partners, and IBM developers.
 
 Its archives contain presentations, technical papers, demonstrations, and links to software that may not be available through IBM's download library or GitHub.
@@ -199,6 +196,7 @@ The following resources provide additional opportunities to discover z/VM softwa
 ---
 
 # <a id="historical-vm-community-resources-section">8. Historical VM Community Resources</a>
+complete-table-section
 Archives and legacy code from historical VM community repositories. Most of these tools have probably not been maintained for years, but they still may be useful
 
 | Name | Source | Description |
@@ -246,32 +244,9 @@ It is also important to distinguish where software runs:
 
 ---
 
-## 10. Future Expansion
-
-This catalog should be maintained as a community resource rather than a static list.
-
-Potential future additions include:
-
-- Automated discovery of GitHub repositories.
-- Importing the IBM z/VM download package index.
-- Reviewing VM Workshop presentation archives.
-- Extracting software references from historical mailing lists.
-- Identifying duplicate utilities distributed through multiple locations.
-- Recording supported z/VM releases and maintenance status.
-- Verifying software licenses and source availability.
-- Identifying abandoned projects that may benefit from community maintenance.
-
-The ultimate objective is to provide a single, searchable directory of software and technical resources available to the z/VM community, including both modern open-source projects and valuable historical contributions.
-
-# z/VM Community Tools Catalog
+# <a id="complete-table-section">9. Complete table of all z/VM Open Source packages</a>
 
 This catalog combines the package entries from the IBM z/VM Download Packages page supplied as HTML with the community and independent projects listed in the `Other Sources of Community Tools` section of the Open Mainframe Project README.
-
-- **IBM package entries extracted:** 504
-- **IBM page last updated:** 26 October 2026 (as shown in the supplied HTML)
-- **Additional community/project entries:** 28
-- IBM URLs use the package index's `#search=` filter so each link opens the catalog filtered to that package.
-- IBM descriptions are copied from the page's Abstract column; no descriptions have been invented.
 
 ## IBM z/VM Download Packages
 
@@ -504,10 +479,6 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | z/VM assembler support | Assembler syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-languages-zvm |
 | CMS NAMES support | CMS NAMES syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-language-zvm-names |
 | SCRIPT/BookMaster support | GML syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-language-zvm-gml |
-| cmsfs-fuse | Mount and access CMS minidisks from Linux | IBM s390-tools | https://github.com/ibm-s390-linux/s390-tools |
-| hyptop | Monitor z/VM and LPAR hypervisor activity | IBM s390-tools | https://github.com/ibm-s390-linux/s390-tools |
-| hmcdrvfs | Access files on HMC-attached media | IBM s390-tools | https://github.com/ibm-s390-linux/s390-tools |
-| qethqoat | Inspect OSA address information | IBM s390-tools | https://github.com/ibm-s390-linux/s390-tools |
 
 ## Source Notes
 
