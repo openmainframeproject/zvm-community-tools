@@ -61,13 +61,14 @@ This section describes tools hosted under the Open Mainframe Project ecosystem, 
 
 This repository includes these packages:
 
-| Component | Description |
+| Directory | Description |
 |---|---|
-| execs | CMS REXX EXECs, many inspired by Linux commands, including ``diff``, ``grep``, ``man`` and ``which`` |
-| dmscmd | Provides CMS "command editing": re-executing a previous command by typing = and hitting enter; or ? to retrieve it |
-| zlma | z/VM and Linux Modern Administration provides a Web interface from Linux for systems administration tasks |
-| znetboot | Network boot facilities |
-| CPHOST | allows a second-level z/VM guest issue CP commands at the first-level z/VM |
+| [cphost](https://github.com/openmainframeproject/zvm-community-tools/tree/main/cphost) | allows a second-level z/VM guest issue CP commands at the first-level z/VM |
+| [dmscmd](https://github.com/openmainframeproject/zvm-community-tools/tree/main/dmscmd) | Provides CMS "command editing": re-executing a previous command by typing = and hitting enter; or ? to retrieve it |
+| [execs](https://github.com/openmainframeproject/zvm-community-tools/tree/main/execs) | REXX EXECs, many mimicing Linux commands such as ``grep``, ``man`` and ``which`` |
+| [ipgate-v6](https://github.com/openmainframeproject/zvm-community-tools/tree/main/ipgate-v6) | Provides IPv6 gateway configuration, routing, and network management components |
+| [zlma](https://github.com/openmainframeproject/zvm-community-tools/tree/main/zlma) | z/VM and Linux Modern Administration provides a Web interface from Linux for systems administration tasks |
+| [znetboot](https://github.com/openmainframeproject/zvm-community-tools/tree/main/znetboot) | Network boot facilities |
 | AUTO.VMLINK | VMLINK-related automation |
 
 See the repository README for current components, installation procedures, and documentation.
@@ -392,6 +393,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **NETLIST** | A FILELIST for RSCS Network Files and Links Version 2.9 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=NETLIST |
 | **NONAMES** | Avoid NAMEFIND lookup for SFS administrative commands | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=NONAMES |
 | **nord** | a minimalist Linux system that can run on s390x | Github | https://github.com/trothtech/nord |
+| **OpenAFS** | A distributed filesystem product, pioneered at Carnegie Mellon University  | Sine Nomine Associates | https://download.sinenomine.net/openafs/ |
 | **OTTOSCR** | Screen scroller for Fullscreen CMS | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=OTTOSCR |
 | **OVASST** | Consolidated end user tailoring of OfficeVision/VM functions. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=OVASST |
 | **PCR** | The PCR utility enables CMS commands, subcommands, and Rexx functions/subroutines to be written in PL/I. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=PCR |
