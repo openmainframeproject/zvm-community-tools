@@ -10,16 +10,41 @@ If you'd like to help, email Mike MacIsaac at mike99mac@gmail.com
 
 ## Table of Contents
 
-- [1. Overview](#1-overview)
-- [2. Open Mainframe Project](#2-open-mainframe-project)
-- [3. IBM z/VM Download Library](#3-ibm-zvm-download-library)
-- [4. Independent GitHub Projects](#4-independent-github-projects)
-- [5. Linux-on-Z Tools](#5-linux-on-z-tools)
-- [6. VM Workshop](#6-vm-workshop)
-- [7. Other Information Sources](#7-other-information-sources)
-- [8. Historical VM Community Resources](#8-historical-vm-community-resources)
+# z/VM Community Tools
 
-# 1. Overview
+## Table of Contents
+
+- [1. Overview](#overview-section)
+- [2. Open Mainframe Project](#ibm-zvm-download-library-section)
+- [3. IBM z/VM Download Library](#ibm-zvm-download-library-section)
+- [4. Independent GitHub Projects](#independent-github-projects-section)
+- [5. Linux-on-Z Tools](#linux-on-z-tools-section)
+- [6. VM Workshop](#vm-workshop-section)
+- [7. Other Information Sources](#other-information-sources-section)
+- [8. Historical VM Community Resources](#historical-vm-community-resources-section)
+
+---
+
+# <a id="ibm-zvm-download-library-section">3. IBM z/VM Download Library</a>
+References and links pointing to official IBM z/VM downloadable packages and utilities.
+
+# <a id="independent-github-projects-section">4. Independent GitHub Projects</a>
+Community-driven utilities maintained independently on GitHub.
+
+# <a id="linux-on-z-tools-section">5. Linux-on-Z Tools</a>
+Tools specifically designed to support Linux workloads running on IBM Z mainframes.
+
+# <a id="vm-workshop-section">6. VM Workshop</a>
+Resources, presentations, and code shared during annual VM Workshop events.
+
+# <a id="other-information-sources-section">7. Other Information Sources</a>
+External documentation, mailing lists, and reference materials.
+
+# <a id="historical-vm-community-resources-section">8. Historical VM Community Resources</a>
+Archives and legacy code from historical VM community repositories.
+
+# <a id="overview-section">1. Overview</a>
+This section is an overview of this git repository and associated community utilities.
 This section is an overview of this git repository.
 
 ## Install
@@ -52,25 +77,26 @@ Anyone can contribute to the z/VM Community Tools project - see: [CONTRIBUTING.m
 
 z/VM Community Tools is a project hosted by the [Open Mainframe Project](https://openmainframeproject.org). This project has established it's own processes for managing day-to-day processes in the project at [GOVERNANCE.md](GOVERNANCE.md).
 
-## z/VM Community Tools
+# <a id="open-mainframe-project-section">2. Open Mainframe Project</a>
+This section describes tools hosted under the Open Mainframe Project ecosystem, including, but not limited to this repository.
 
-- **Repository:** https://github.com/openmainframeproject/zvm-community-tools
-- **Website:** https://www.zvmcommunitytools.org/
+- **This repository:** https://github.com/openmainframeproject/zvm-community-tools
 
-This describes the content on this Github repo:
+This repository includes these packages:
 
 | Component | Description |
 |---|---|
-| EXECs | CMS REXX EXEC utilities, including WHICH and MAN |
-| DMSCMD | Additional commands and history functionality for Directory Maintenance |
-| ZLMA | z/VM and Linux Modern Administration |
-| ZNETBOOT | Network boot facilities |
-| CPHOST | CP host-related utilities |
+| execs | CMS REXX EXECs, many inspired by Linux commands, including ``diff``, ``grep``, ``man`` and ``which`` |
+| dmscmd | Provides CMS "command editing": re-executing a previous command by typing = and hitting enter; or ? to retrieve it |
+| zlma | z/VM and Linux Modern Administration provides a Web interface from Linux for systems administration tasks |
+| znetboot | Network boot facilities |
+| CPHOST | allows a second-level z/VM guest issue CP commands at the first-level z/VM |
 | AUTO.VMLINK | VMLINK-related automation |
 
 See the repository README for current components, installation procedures, and documentation.
 
-## 2. IBM z/VM Download Library
+# <a id="ibm-zvm-download-library-section">3. IBM z/VM Download Library</a>
+References and links pointing to official IBM z/VM downloadable packages and utilities.
 
 - **Main download page:** https://www.ibm.com/support/pages/zvm/download/
 - **Package index:** https://www.ibm.com/support/pages/zvm/download/packages/
@@ -85,7 +111,7 @@ It includes utilities developed by IBM employees, customers, independent develop
 
 ---
 
-## 3. Independent GitHub Projects
+- [3. Independent GitHub Projects](#independent-github-projects-section)
 
 Many useful z/VM tools are maintained independently of the Open Mainframe Project and IBM download library.
 
@@ -295,9 +321,9 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **CMS2CDL** | Convert a CMS formatted disk into Linux CDL format | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CMS2CDL |
 | **CMSDDR** | Enhanced DDR program to simulate DDR tapes via CMS files | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CMSDDR |
 | **CMSFMT** | DVF Aids for CMS Application Multitasking | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CMSFMT |
-| **CMS Make** | Make-like build automation for CMS | Github | https://github.com/trothtech/cmsmake |
+| **CMS make** | Make-like build automation for CMS | Github | https://github.com/trothtech/cmsmake |
 | **CMS NAMES support** | CMS NAMES syntax highlighting | https://github.com/openmainframeproject/atompkg-language-zvm-names |
-| **CMS TAR** | TAR archive utility for CMS | Github | https://github.com/trothtech/cmstar |
+| **CMS tar** | TAR archive utility for CMS | Github | https://github.com/trothtech/cmstar |
 | **CMDTABLE** | Generate files listing all defined CP commands and diagnoses with the privilege classes. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CMDTABLE |
 | **COLSIMPL** | COLS insert and COLS delete SIMPLE Xedit macros. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=COLSIMPL |
 | **COMPARE** | Comparing files with XEDIT, Comparing minidisks (or FILELISTs). V1.9b | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=COMPARE |
@@ -306,7 +332,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **CP1STLVL** | CP exit allowing 2nd-level user to invoke 1st-level commands | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CP1STLVL |
 | **CP3KVMXT** | v2.9l Create an input file for zPCR or zCP3000 from monitor data. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CP3KVMXT |
 | **CP4ZVM72** | Tool check for service on a z/VM 7.1 system that is not in base of z/VM 7.2 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CP4ZVM72 |
-| **CPHOST** | CP1STLVL*2: CP exit allowing 2nd-level user to invoke 1st-level cmds V1.4 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CPHOST |
+| **CPHOST** | CP exit allowing 2nd-level user to invoke 1st-level cmds V1.4 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CPHOST |
 | **CPLINKPW** | Avoid CP READ when LINKing to a minidisk | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CPLINKPW |
 | **CPQUERY** | CMS GUI exec, issues CP Query commands and manages NSS V4.0.4 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CPQUERY |
 | **CPUMF** | Report on D5 R13 MRPRCMFC CPU Measurement Facility counters. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=CPUMF |
@@ -334,7 +360,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **EDFBA** | Displays and/or alters blocks on FBA DASD. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=EDFBA |
 | **EDEVPATH** | FCP path management tool for EDEVs | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=EDEVPATH |
 | **ERALIAS** | An exec to remove ERASEd ALIASes from the SFS catalog. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=ERALIAS |
-| **EXECs** | REXX EXEC utilities, including WHICH and MAN | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/execs |
+| **execs** | REXX EXEC utilities, including WHICH and MAN | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/execs |
 | **FCXTREND** | Pruning aid for IBM Performance Toolkit's FCXTREND files | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=FCXTREND |
 | **FCXRENAM** | Sample FCXRENAM EXEC for Perfkit to automatically archive performance logs. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=FCXRENAM |
 | **FCOPY** | * FCOPY - High speed CMS file copy routine with PACKLIB support | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=FCOPY |
@@ -384,6 +410,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **MULTISRV** | Multiple protocol server for TCP/IP | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=MULTISRV |
 | **NETLIST** | A FILELIST for RSCS Network Files and Links Version 2.9 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=NETLIST |
 | **NONAMES** | Avoid NAMEFIND lookup for SFS administrative commands | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=NONAMES |
+| **nord** | a minimalist Linux system that can run on s390x | Github | https://github.com/trothtech/nord |
 | **OTTOSCR** | Screen scroller for Fullscreen CMS | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=OTTOSCR |
 | **OVASST** | Consolidated end user tailoring of OfficeVision/VM functions. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=OVASST |
 | **PCR** | The PCR utility enables CMS commands, subcommands, and Rexx functions/subroutines to be written in PL/I. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=PCR |
@@ -457,6 +484,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **TCVM2** | CMS Pipelines Telecourse (an HTML selfstudy course) V1.3 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=TCVM2 |
 | **tela** | framework for running tests that are controlled by a Makefile. | Github | https://github.com/ibm-s390-linux/tela |
 | **libzfcphbaapi** | Shared library providing zfcp-specific parts for an implementation of FC-HBA | Github | https://github.com/ibm-s390-linux/libzfcphbaapi |
+| **Terraform** | Terraform integration with the z/VM SDK/Feilong ecosystem | GitHub | https://github.com/mfcloud/terraform-provider-zvmsdk |
 | **TIMEBOMB** | Set, snooze or cancel the CP timebomb (diagnose 288) feature from CMS. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=TIMEBOMB |
 | **TIMESERV** | VM/TimeServ - An SNTP Version 4 Time Server for VM/ESA and z/VM | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=TIMESERV |
 | **TLD** | TCP/IP line driver for CMS distributed queues. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=TLD |
@@ -471,9 +499,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **VIR2REAL** | Compute the Virtual to Real storage (memory) ratio of running users in a VM LPAR. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=VIR2REAL |
 | **VMADMANY** | VMADMIN client anywhere | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=VMADMANY |
 | **VMMENU** | Easy selection menu presentation for CMS V2.0 | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=VMMENU |
-
-| **VMLINK** | CMS file and software linking automation | Github | https://github.com/trothtech/vmlink |
-
+| **vmlink** | CMS file and software linking automation | Github | https://github.com/trothtech/vmlink |
 | **VMLOGS** | Create an automatic managed repository for Consoles and data files. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=VMLOGS |
 | **VMREVIEW** | EXEC to check the major changes to a z/VM system if migrating to z/VM 6.4.0. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=VMREVIEW |
 | **VMSERVE** | A Disconnected Virtual Machine manager for VM that handles reader files, messages and time-of-day events. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=VMSERVE |
@@ -481,10 +507,11 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **XASTOR** | A multi-functioned, programmable, full-screen storage display | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=XASTOR |
 | **XBROWSE** | XBROWSE is a compiled REXX replacement for PEEK and BROWSE (in module form) | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=XBROWSE |
 | **XFILE** | Displays files being XEDITed by other users. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=XFILE |
+| **xfl** | Utility for flow-based programming, a CMS Pipelines workalike for POSIX systems | Github | https://github.com/trothtech/xfl |
 | **XMLPARSE** | Parse XML document into a tree structure easily processed in REXX | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=XMLPARSE |
-| **XMM** | XMIT message management utility | Github | https://github.com/trothtech/xmm |
+| **xmm** | XMIT message management utility | Github | https://github.com/trothtech/xmm |
 | **XPIPES** | cross-machine pipelines | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=XPIPES |
-| **ZNETBOOT** | Network booting tools | Github | https://github.com/trothtech/znetboot |
+| **ZNETBOOT** | Network booting tools | Github | https://github.com/openmainframeproject/zvm-community-tools/znetboot |
 | **zlma** | z/VM and Linux Modern Administration | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/zlma |
 | **zPXE** | PXE-like network boot functionality for z/VM guests | Github | https://github.com/beaker-project/zpxe |
 | **ZXCATIVP** | Preparation script for the Installation Verification Program for xCAT and OpenStack on z/VM. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=ZXCATIVP |
@@ -493,14 +520,8 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 
 | Name | Description | Source | URL |
 |---|---|---|---|
-| AUTO.VMLINK | VMLINK-related automation | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools |
-| Feilong | Open-source REST API and SDK for provisioning and managing z/VM guests, images, networks, and volumes | Independent GitHub | https://github.com/openmainframeproject/feilong |
-| IBM zvm_ansible | Ansible automation for z/VM using SMAPI and the Feilong ecosystem | Independent GitHub | https://github.com/IBM/zvm_ansible |
-| IBM zvm_ansible_collection | Ansible collection for z/VM automation | Independent GitHub | https://github.com/IBM/zvm_ansible_collection |
-| Terraform Provider for z/VM | Terraform integration with the z/VM SDK/Feilong ecosystem | Independent GitHub | https://github.com/mfcloud/terraform-provider-zvmsdk |
-| VMLINK | CMS file and software linking automation | Independent GitHub | https://github.com/trothtech/vmlink |
-| zPXE | PXE-like network boot functionality for z/VM guests | Independent GitHub | https://github.com/beaker-project/zpxe |
-| CMS TAR | TAR archive utility for CMS | Independent GitHub | https://github.com/trothtech/cmstar |
+| Terraform Provider for z/VM | Terraform integration with the z/VM SDK/Feilong ecosystem | GitHub | https://github.com/mfcloud/terraform-provider-zvmsdk |
+| zPXE | PXE-like network boot functionality for z/VM guests | GitHub | https://github.com/beaker-project/zpxe |
 | z/VM REXX language support | REXX syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-language-zvm-rexx |
 | z/VM assembler support | Assembler syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-languages-zvm |
 | CMS NAMES support | CMS NAMES syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-language-zvm-names |
