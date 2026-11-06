@@ -10,10 +10,6 @@ If you'd like to help, email Mike MacIsaac at mike99mac@gmail.com
 
 ## Table of Contents
 
-# z/VM Community Tools
-
-## Table of Contents
-
 - [Overview](#overview-section)
 - [Open Mainframe Project](#ibm-zvm-download-library-section)
 - [IBM z/VM Download Library](ibm-zvm-download-library-section)
