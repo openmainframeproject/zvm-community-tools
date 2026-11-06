@@ -14,13 +14,14 @@ If you'd like to help, email Mike MacIsaac at mike99mac@gmail.com
 
 ## Table of Contents
 
-- Overview(#overview-section)
-- Open Mainframe Project(#ibm-zvm-download-library-section)
-- Independent GitHub Projects(#independent-github-projects-section)
-- Linux-on-Z Tools(#linux-on-z-tools-section)
-- VM Workshop(#vm-workshop-section)
-- Other Information Sources(#other-information-sources-section)
-- Historical VM Community Resources(#historical-vm-community-resources-section)
+- [Overview](#overview-section)
+- [Open Mainframe Project](#ibm-zvm-download-library-section)
+- [IBM z/VM Download Library](ibm-zvm-download-library-section)
+- [Independent GitHub Projects](#independent-github-projects-section)
+- [Linux-on-Z Tools](#linux-on-z-tools-section)
+- [VM Workshop](#vm-workshop-section)
+- [Other Information Sources](#other-information-sources-section)
+- [Historical VM Community Resources](#historical-vm-community-resources-section)
 
 ---
 
