@@ -199,19 +199,13 @@ The following resources provide additional opportunities to discover z/VM softwa
 ---
 
 # <a id="historical-vm-community-resources-section">8. Historical VM Community Resources</a>
-Archives and legacy code from historical VM community repositories.
+Archives and legacy code from historical VM community repositories. Most of these tools have probably not been maintained for years, but they still may be useful
 
-A significant amount of z/VM software predates GitHub and modern source-code hosting.
-
-Historical archives are worth exploring because they contain utilities and contributions that may no longer be actively maintained but remain useful.
-
-## VMSHARE
-
-- **Archive:** https://vm.marist.edu/~vmshare/
-
-VMSHARE was a major VM software-sharing resource for 22 years before closing in August 1998.
-
-Its archives are worth investigating for historical CMS utilities, REXX EXECs, XEDIT macros, and other contributed software.
+| Name | Source | Description |
+|---|---|---|
+| VMSES Packages | https://download.sinenomine.net/vmses/ | VMSES packages from Sine Nomine Associates | 
+| VMSHARE | https://vm.marist.edu/~vmshare/ | VMSHARE was a major VM software-sharing resource for 22 years before closing in August 1998.  Its archives are worth investigating for historical CMS utilities, REXX EXECs, XEDIT macros, and other contributed software. |
+| VM Workshop tools | https://www.vmworkshop.org/tools.shtml | 
 
 ## IBM VM Mailing Lists
 
@@ -370,8 +364,9 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **IBM zvm_ansible_collection** | Ansible collection for z/VM automation | GitHub | https://github.com/IBM/zvm_ansible_collection |
 | **IMAP** | Internet Message Access Protocol server for TCP/IP | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=IMAP |
 | **INSTPROD** | Automated install of IBM products for z/VM including Operations Manager, Backup and Restore Manager, Tape Manager, zSecure, and OMEGAMON XE. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=INSTPROD |
+| **ipgate-v6** | Provides IPv6 gateway configuration, routing, and network management components | z/VM Community Tools | https://github.com/openmainframeproject/zvm-community-tools/tree/main/ipgate-v6 |
 | **IOS3270** | Runtime files for IOS3270 (Display I/O facility) | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=IOS3270 |
-| **KM** | This package is a CSL interface to the KMx cipher instructions; with Rexx Pipes stages showing their use. | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=KM |
+| **KM** | A CSL interface to the KMx cipher instructions; with Rexx Pipes stages showing their use | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=KM |
 | **LCLQRY** | Local CP-exits providing queries to display your AUTOLOGGER or ALTUSER st | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=LCLQRY |
 | **LEXX** | LEXX, The Live Parsing Editor | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=LEXX |
 | **LEXXPLXX** | LEXXPLXX, LEXX Parsers for PL/I, PL/X, Modula-2 and Pascal | z/VM Downloads | https://www.ibm.com/support/pages/zvm/download/packages/#search=LEXXPLXX |
