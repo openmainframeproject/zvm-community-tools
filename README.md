@@ -224,25 +224,6 @@ The IBMVM archive dates back to January 1994.
 
 ---
 
-### Suggested Classification
-
-Use three classifications to distinguish licensing and distribution status:
-
-- **Open Source:** Source code is available under an identifiable open-source license.
-- **Community Contributed:** Available for download, but licensing or source availability needs verification.
-- **Commercial / Proprietary:** Useful in the z/VM ecosystem but not open source.
-
-### Execution Environment
-
-It is also important to distinguish where software runs:
-
-1. **CP:** Runs as part of, or interacts directly with, the z/VM Control Program.
-2. **CMS:** Runs in a CMS virtual machine.
-3. **Linux Guest:** Runs inside Linux under z/VM.
-4. **External Management:** Runs on an external Linux or other management system and manages z/VM through APIs or network interfaces.
-
----
-
 # <a id="complete-table-section">9. Complete table of all z/VM Open Source packages</a>
 
 This catalog combines the package entries from the IBM z/VM Download Packages page supplied as HTML with the community and independent projects listed in the `Other Sources of Community Tools` section of the Open Mainframe Project README.
@@ -254,11 +235,11 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **BENCH** | Check how much resources a command uses; compare alternatives. V1.2 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BENCH) |
 | **BFSLIST** | List a BFS filespace in a FILELIST/DIRLIST like way Version 3.2 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BFSLIST) |
 | **BOX2BMS** | Draw box diagrams for BookMaster documents | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BOX2BMS) |
-| **CGI4RTM** | CGIs on zLinux for RTM, VM TCP/IP, ACCOUNT command ; V1.10 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CGI4RTM) |
 | **CALCENT** | Calculate LPAR entitlement table from a MONWRITE file | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CALCENT) |
 | **CALWEEK** | Print OV/VM calendar information in various formats, including "daytimer". | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CALWEEK) |
-| **CGIs on zLinux for RTM, VM TCP/IP, ACCOUNT command ; V1.10** *(CGIs on zLinux)* | CGIs on zLinux for RTM, VM TCP/IP, ACCOUNT command ; V1.10 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CGI4RTM) |
+| **CGI4RTM** | CGIs on zLinux for RTM, VM TCP/IP, ACCOUNT command ; V1.10 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CGI4RTM) |
 | **CHARLOTT** | Charlotte - fullscreen, textual World Wide Web browser for CMS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHARLOTT) |
+| **CHAT** | Network chatting tool demonstrating various CMS APIs. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHAT) |
 | **CHKAPARS** | CHKAPARS EXEC - Evaluates system APAR data for a selected z/VM component or all such components | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHKAPARS) |
 | **CHKRECLM** | Tool to check the impact of a memory reclamation similar to the VIR2REAL tool. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHKRECLM) |
 | **CHKSERV** | A CMS/GUI application to manage lots of RXSERVER based servers V0.7 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHKSERV) |
@@ -311,8 +292,8 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **execs** | REXX EXEC utilities, including WHICH and MAN | [z/VM Community Tools](https://github.com/openmainframeproject/zvm-community-tools/tree/main/execs) |
 | **FCXTREND** | Pruning aid for IBM Performance Toolkit's FCXTREND files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FCXTREND) |
 | **FCXRENAM** | Sample FCXRENAM EXEC for Perfkit to automatically archive performance logs. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FCXRENAM) |
-| **FCOPY** | * FCOPY - High speed CMS file copy routine with PACKLIB support | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FCOPY) |
-| **feilong** | * An open-source REST API and SDK for provisioning and managing z/VM guests, images, networks, and volumes. | [Github](https://github.com/openmainframeproject/feilong) |
+| **FCOPY** | High speed CMS file copy routine with PACKLIB support | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FCOPY) |
+| **feilong** | An open-source REST API and SDK for provisioning and managing z/VM guests, images, networks, and volumes. | [Github](https://github.com/openmainframeproject/feilong) |
 | **FERRET** | FERRET - A program to search CMS files for character strings | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FERRET) |
 | **FIXZMAN** | CMS program to consolidate a SMAPI zManager NOTEBOOK configuration file | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FIXZMAN) |
 | **FILELIST** | Improvements to FILELIST, RDRLIST and EXECUTE Version 2.4.9a | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FILELIST) |
@@ -321,10 +302,16 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **GD-XEDIT** | Various XEDIT Goodies from Kris Buelens V 1.5 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GD-XEDIT) |
 | **GET370AC** | Check all logged on users for the 370ACCOM setting | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GET370AC) |
 | **GETSTHYI** | GETSTHYI - issue STHYI function code 0 and format response. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GETSTHYI) |
+| **GUIBLD95** | Windows 95 GUI Builder for Writing CMS GUI Applications | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GUIBLD95) |
 | **GUICACHE** | CMS/GUI exec to view at 3990 cache statistics V1.0 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GUICACHE) |
+| **GUITELL** | A CMS GUI front-end for TELL Version 1.2b | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GUITELL) |
 | **GUIWDOC** | HTML documentation for GUIWIRE V1.2 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GUIWDOC) |
 | **GUIWIRE** | CMS/GUI application to build other REXX CMS/GUI applications V4.5.1 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GUIWIRE) |
+| **GUISKEL** | A framework to build REXX CMS/GUI applications much easier. V3 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GUISKEL) |
+| **GUIONE** | Make your own CMS/GUI performance monitor (includes GBOS2) V1.1 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GUIONE) |
+| **GUISET** | Tailor XEDIT settings via a CMS GUI application | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GUISET) |
 | **H2S** | H2S - Converts HTML to Script/VS (DCF) for fine printing with AFP or PostScript | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=H2S) |
+| **HASHWF** | A General HASH function (S/370 and other systems) | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=HASHWF) |
 | **HELP** | Improvements to HELP: help with wildcards, more colors, better RRT V1.5 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=HELP) |
 | **HELPDESK** | Database of OV/VM Q&A's for help desk personnel, can add your own Q&A, too. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=HELPDESK) |
 | **HEXDUMP** | Browse data from any source in hexadecimal. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=HEXDUMP) |
@@ -340,6 +327,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **IOS3270** | Runtime files for IOS3270 (Display I/O facility) | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=IOS3270) |
 | **KM** | A CSL interface to the KMx cipher instructions; with Rexx Pipes stages showing their use | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=KM) |
 | **LCLQRY** | Local CP-exits providing queries to display your AUTOLOGGER or ALTUSER st | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LCLQRY) |
+| **LP3820** | Convert AFP (LIST3820) files to personal printers | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LP3820) |
 | **LEXX** | LEXX, The Live Parsing Editor | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LEXX) |
 | **LEXXPLXX** | LEXXPLXX, LEXX Parsers for PL/I, PL/X, Modula-2 and Pascal | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LEXXPLXX) |
 | **LIBICA** | Crypto library for s390x | [Github](https://github.com/opencryptoki/libica) |
@@ -349,6 +337,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **LIVE** | Sample web access to SMAPI functionality | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LIVE) |
 | **LXC** | Run CMS commands from a TCP connected system (V1.4.2) | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LXC) |
 | **LXCMS** | Linux access to CMS resources | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LXCMS) |
+| **MAILGATE** | Package to enable SMTP gateway functions on a pre-VM/ESA 2.3.0 system. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=MAILGATE) |
 | **MAILIT** | MAILIT is a general purpose VM e-mail sender program. V3.4.c | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=MAILIT) |
 | **MAPALLOC** | Displays the allocation map on a CP-owned volume. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=MAPALLOC) |
 | **MDSK** | A few Minidisk related tools & DEFINE MDISK aids V0.9 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=MDSK) |
@@ -413,6 +402,8 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **SFCOUNTR** | SFCOUNTR makes a list of users with more than a requested number of spool files. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SFCOUNTR) |
 | **SFSKTOOL** | Various tools related to SFS management. V1.0 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SFSKTOOL) |
 | **SFSULIST** | SFSUserList lets you handle SFS users in a FILELIST like way V1.13 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SFSULIST) |
+| **SG245148** | Redbook "VM/ESA Network Computing with Java and NetRexx" sample programs | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SG245148) |
+| **SG245164** | Redbook sample programs | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SG245164) |
 | **SHAREDQS** | Shared CMS Queues over DCSS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SHAREDQS) |
 | **SHUTTRAP** | CMS program to detect and react to CP SHUTDOWN signals | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SHUTTRAP) |
 | **SMAPIREX** | Rexx routine to simplify the invocation of smapi | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SMAPIREX) |
@@ -440,6 +431,8 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **TLD** | TCP/IP line driver for CMS distributed queues. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TLD) |
 | **TOOLS** | User interface program for managing and updating TOOLSRUN maintained disks. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TOOLS) |
 | **TOOLSRUN** | TOOLSRUN Distributed Master/Shadow Disks and Conference Manager | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TOOLSRUN) |
+| **VMHP** | Tools we use to manage the VM home page system | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=VMHP) |
+| **VMWEBCD** | Redbook SG24-5347 "Web-Enabling VM resources" sample programs | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=VMWEBCD) |
 
 ## Other Community Tools and Projects
 
