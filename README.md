@@ -14,37 +14,17 @@ If you'd like to help, email Mike MacIsaac at mike99mac@gmail.com
 
 ## Table of Contents
 
-- [1. Overview](#overview-section)
-- [2. Open Mainframe Project](#ibm-zvm-download-library-section)
-- [3. IBM z/VM Download Library](#ibm-zvm-download-library-section)
-- [4. Independent GitHub Projects](#independent-github-projects-section)
-- [5. Linux-on-Z Tools](#linux-on-z-tools-section)
-- [6. VM Workshop](#vm-workshop-section)
-- [7. Other Information Sources](#other-information-sources-section)
-- [8. Historical VM Community Resources](#historical-vm-community-resources-section)
+- Overview(#overview-section)
+- Open Mainframe Project(#ibm-zvm-download-library-section)
+- Independent GitHub Projects(#independent-github-projects-section)
+- Linux-on-Z Tools(#linux-on-z-tools-section)
+- VM Workshop(#vm-workshop-section)
+- Other Information Sources(#other-information-sources-section)
+- Historical VM Community Resources(#historical-vm-community-resources-section)
 
 ---
 
-# <a id="ibm-zvm-download-library-section">3. IBM z/VM Download Library</a>
-References and links pointing to official IBM z/VM downloadable packages and utilities.
-
-# <a id="independent-github-projects-section">4. Independent GitHub Projects</a>
-Community-driven utilities maintained independently on GitHub.
-
-# <a id="linux-on-z-tools-section">5. Linux-on-Z Tools</a>
-Tools specifically designed to support Linux workloads running on IBM Z mainframes.
-
-# <a id="vm-workshop-section">6. VM Workshop</a>
-Resources, presentations, and code shared during annual VM Workshop events.
-
-# <a id="other-information-sources-section">7. Other Information Sources</a>
-External documentation, mailing lists, and reference materials.
-
-# <a id="historical-vm-community-resources-section">8. Historical VM Community Resources</a>
-Archives and legacy code from historical VM community repositories.
-
 # <a id="overview-section">1. Overview</a>
-This section is an overview of this git repository and associated community utilities.
 This section is an overview of this git repository.
 
 ## Install
@@ -164,11 +144,12 @@ Some of these projects are older and should be considered historical development
 
 ---
 
-## 4. Linux-on-Z Tools
+# <a id="linux-on-z-tools-section">5. Linux-on-Z Tools</a>
+Tools specifically designed to support Linux workloads running on IBM Z mainframes.
 
 A separate category includes tools that run inside Linux guests or Linux management servers but provide useful z/VM functionality.
 
-### IBM s390-tools
+## IBM s390-tools
 
 - **Repository:** https://github.com/ibm-s390-linux/s390-tools
 
@@ -189,7 +170,8 @@ They are nevertheless valuable components of a broader z/VM ecosystem catalog.
 
 ---
 
-## 5. VM Workshop
+# <a id="vm-workshop-section">6. VM Workshop</a>
+Resources, presentations, and code shared during annual VM Workshop events.
 
 - **Website:** https://www.vmworkshop.org/
 - **Tools page:** https://www.vmworkshop.org/tools.shtml
@@ -203,7 +185,8 @@ Its archives contain presentations, technical papers, demonstrations, and links 
 
 ---
 
-## 6. Other Information Sources
+# <a id="other-information-sources-section">7. Other Information Sources</a>
+External documentation, mailing lists, and reference materials.
 
 The following resources provide additional opportunities to discover z/VM software, utilities, documentation, and technical information.
 
@@ -217,13 +200,14 @@ The following resources provide additional opportunities to discover z/VM softwa
 
 ---
 
-## 7. Historical VM Community Resources
+# <a id="historical-vm-community-resources-section">8. Historical VM Community Resources</a>
+Archives and legacy code from historical VM community repositories.
 
 A significant amount of z/VM software predates GitHub and modern source-code hosting.
 
 Historical archives are worth exploring because they contain utilities and contributions that may no longer be actively maintained but remain useful.
 
-### VMSHARE
+## VMSHARE
 
 - **Archive:** https://vm.marist.edu/~vmshare/
 
@@ -231,7 +215,7 @@ VMSHARE was a major VM software-sharing resource for 22 years before closing in 
 
 Its archives are worth investigating for historical CMS utilities, REXX EXECs, XEDIT macros, and other contributed software.
 
-### IBM VM Mailing Lists
+## IBM VM Mailing Lists
 
 - **IBM list information:** https://www.ibm.com/support/pages/zvm/techinfo/listserv.html
 
