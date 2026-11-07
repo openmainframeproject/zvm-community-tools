@@ -298,6 +298,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **FIXZMAN** | CMS program to consolidate a SMAPI zManager NOTEBOOK configuration file | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FIXZMAN) |
 | **FILELIST** | Improvements to FILELIST, RDRLIST and EXECUTE Version 2.4.9a | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FILELIST) |
 | **FILEMGR** | Organizes CMS files into folders, provides hiding options and expiration dates. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FILEMGR) |
+| **fsiucv** | A character device driver that enables you to perform IUCV functions using open/close/read/write/ioctl as opposed to a network driver (AF_IUCV) | [Github](https://github.com/nealef/fsiucv) |
 | **FTPREXX** | FTP client and socksified tcpclient Pipeline stages, both originally from Steve Hayes | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FTPREXX) |
 | **GD-XEDIT** | Various XEDIT Goodies from Kris Buelens V 1.5 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GD-XEDIT) |
 | **GET370AC** | Check all logged on users for the 370ACCOM setting | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GET370AC) |
@@ -330,6 +331,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **LP3820** | Convert AFP (LIST3820) files to personal printers | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LP3820) |
 | **LEXX** | LEXX, The Live Parsing Editor | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LEXX) |
 | **LEXXPLXX** | LEXXPLXX, LEXX Parsers for PL/I, PL/X, Modula-2 and Pascal | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LEXXPLXX) |
+| **libascii** | Helps you port ASCII-based C applications to the EBCDIC-based z/VM OpenExtensions | [Github](https://github.com/nealef/libascii) | 
 | **LIBICA** | Crypto library for s390x | [Github](https://github.com/opencryptoki/libica) |
 | **LIBRCMS** | VSE/ESA Librarian Server for CMS users | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LIBRCMS) |
 | **LINMON** | MONWRITE Collector | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=LINMON) |
@@ -350,6 +352,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **NONAMES** | Avoid NAMEFIND lookup for SFS administrative commands | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=NONAMES) |
 | **nord** | a minimalist Linux system that can run on s390x | [Github](https://github.com/trothtech/nord) |
 | **OpenAFS** | A distributed filesystem product, pioneered at Carnegie Mellon University  | [Sine Nomine Associates](https://download.sinenomine.net/openafs/) |
+| **openssl** | A robust, full-featured Toolkit for TLS (formerly SSL), Datagram TLS (DTLS), and QUIC protocols| [Github](https://github.com/nealef/openssl) |
 | **OTTOSCR** | Screen scroller for Fullscreen CMS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=OTTOSCR) |
 | **OVASST** | Consolidated end user tailoring of OfficeVision/VM functions. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=OVASST) |
 | **PCR** | The PCR utility enables CMS commands, subcommands, and Rexx functions/subroutines to be written in PL/I. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PCR) |
@@ -420,6 +423,8 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **SRMTIDLE** | Sets value of CP dispatcher "test-idle" timer | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SRMTIDLE) |
 | **SSIQSERV** | Issue Q CPSERVICE on all SSI members and show differences in the active fixes. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SSIQSERV) |
 | **SYSLOGD** | SYSLOGD daemon for CMS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SYSLOGD) |
+| **syslog_vm** | A simplistic syslog daemon which accepts UDP/TCP connections plus a shared library containing the APIs ``openlog(), syslog(), closelog()`` and ``setlogmask()``
+ | [Github](https://github.com/nealef/syslog_vm) |
 | **TAB2GC** | Draw charts entirely on CMS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TAB2GC) |
 | **TCVM1** | Advanced REXX Telecourse (an HTML selfstudy course) V1.3 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TCVM1) |
 | **TCVM2** | CMS Pipelines Telecourse (an HTML selfstudy course) V1.3 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TCVM2) |
@@ -433,6 +438,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **TOOLSRUN** | TOOLSRUN Distributed Master/Shadow Disks and Conference Manager | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TOOLSRUN) |
 | **VMHP** | Tools we use to manage the VM home page system | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=VMHP) |
 | **VMWEBCD** | Redbook SG24-5347 "Web-Enabling VM resources" sample programs | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=VMWEBCD) |
+| **zvm-ssh-extension** | used by VSCode to access and modify files residing on CMS | [Github](https://github.com/nealef/zvm-ssh-extension) |
 
 ## Other Community Tools and Projects
 
