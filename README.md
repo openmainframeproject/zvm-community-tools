@@ -235,6 +235,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **ADDON** | CMS/GUI appl to add/change wakeup commands in RxServer based servers V1.4 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ADDON) |
 | **ANALYSE** | Draw flow lines and structure for 370 assembler programmes | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ANALYSE) |
 | **B2H** | B2H: Convert Bookmaster, GML, Script/VS and "flat" files to HTML (Internet) Release 4.7 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=B2H) |
+| **ASKPMAN** | To display Full screen in CUA standard with REXX | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ASKPMAN) |
 | **BENCH** | Check how much resources a command uses; compare alternatives. V1.2 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BENCH) |
 | **BFSLIST** | List a BFS filespace in a FILELIST/DIRLIST like way Version 3.2 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BFSLIST) |
 | **BLOCK** | Perform XEDIT operations on a Block/box of data | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BLOCK) |
