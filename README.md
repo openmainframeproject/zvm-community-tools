@@ -269,9 +269,10 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **CMS2CDL** | Convert a CMS formatted disk into Linux CDL format | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMS2CDL) |
 | **CMSDDR** | Enhanced DDR program to simulate DDR tapes via CMS files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMSDDR) |
 | **CMSFMT** | DVF Aids for CMS Application Multitasking | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMSFMT) |
-| **CMS make** | Make-like build automation for CMS | [Github](https://github.com/trothtech/cmsmake) |
+| **CMSFS Util** | CMS EDF FS tool no mount needed | [Github](https://github.com/trothtech/cmsfs) |
+| **CMS Make** | Make-like build automation for CMS | [Github](https://github.com/trothtech/cmsmake) |
 | **CMS NAMES support** | CMS NAMES syntax highlighting | [GitHub](https://github.com/openmainframeproject/atompkg-language-zvm-names) |
-| **CMS tar** | TAR archive utility for CMS | [Github](https://github.com/trothtech/cmstar) |
+| **CMS TAR** | TAR archive utility for CMS | [Github](https://github.com/trothtech/cmstar) |
 | **CODE** | Front end to CIPHER product. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CODE) |
 | **COLRXTND** | Extension to the COLORS package. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COLRXTND) |
 | **COLSIMPL** | COLS insert and COLS delete SIMPLE Xedit macros. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COLSIMPL) |
@@ -406,6 +407,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **PIGS** | An exec that can be used to determine who is using too much spool space. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PIGS) |
 | **PIPEDDR** | Dump/Restore a disk to a file, ftp server, or over TCP/IP to a remote system. Supports compression, digest verification, and secure connections. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PIPEDDR) |
 | **PIPESERV** | A Pipeline Server. A driver for service machines. Version 1.2.4. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PIPESERV) |
+| **POSIX Pipelines** | Works like CMS Pipelines | [Github](https://github.com/trothtech/xfl) |
 | **PRFCOPY** | The most complete "cut&paste" for XEDIT V4.2.f | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PRFCOPY) |
 | **PRFIT** | Wrapper to invoke PERFKIT BATCH | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PRFIT) |
 | **PRFRUN** | A server to automate VMPRF & MONWRITE. Also remote cmds V3.3.a | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PRFRUN) |
@@ -481,8 +483,10 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **TLD** | TCP/IP line driver for CMS distributed queues. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TLD) |
 | **TOOLS** | User interface program for managing and updating TOOLSRUN maintained disks. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TOOLS) |
 | **TOOLSRUN** | TOOLSRUN Distributed Master/Shadow Disks and Conference Manager | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TOOLSRUN) |
+| **UFT File Transfer** | works like NJE but no NJE needed | [Github](https://github.com/trothtech/uft) |
 | **VMHP** | Tools we use to manage the VM home page system | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=VMHP) |
 | **VMWEBCD** | Redbook SG24-5347 "Web-Enabling VM resources" sample programs | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=VMWEBCD) |
+| **XMITMSGX** | works like APPLMSG and XMITMSG but for Unix/Linux | [Github](https://github.com/trothtech/xmm) |
 | **zvm-ssh-extension** | used by VSCode to access and modify files residing on CMS | [Github](https://github.com/nealef/zvm-ssh-extension) |
 
 ## Other Community Tools and Projects
