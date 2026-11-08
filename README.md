@@ -264,6 +264,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **CLONE620** | Create an IPLable copy (CLONE) of the running ZVM 6.2 system. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CLONE620) |
 | **CLONEBKP** | Create an IPLable copy (CLONE) of the running ZVM system. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CLONEBKP) |
 | **CLCDAT** | Add or subtract days from a date in SCRIPT or BookMaster | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CLCDAT) |
+| **CMDTABLE** | Generate files listing all defined CP commands and diagnoses with the privilege classes. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMDTABLE) |
 | **CMR** | A Generic Conversation Management Routine | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMR) |
 | **CMS2CDL** | Convert a CMS formatted disk into Linux CDL format | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMS2CDL) |
 | **CMSDDR** | Enhanced DDR program to simulate DDR tapes via CMS files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMSDDR) |
@@ -271,12 +272,14 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **CMS make** | Make-like build automation for CMS | [Github](https://github.com/trothtech/cmsmake) |
 | **CMS NAMES support** | CMS NAMES syntax highlighting | [GitHub](https://github.com/openmainframeproject/atompkg-language-zvm-names) |
 | **CMS tar** | TAR archive utility for CMS | [Github](https://github.com/trothtech/cmstar) |
-| **CMDTABLE** | Generate files listing all defined CP commands and diagnoses with the privilege classes. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMDTABLE) |
 | **CODE** | Front end to CIPHER product. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CODE) |
 | **COLRXTND** | Extension to the COLORS package. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COLRXTND) |
+| **COLSIMPL** | COLS insert and COLS delete SIMPLE Xedit macros. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COLSIMPL) |
 | **COMMENTR** | XEDIT Macros for Adding Line and Block Comments to Files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COMMENTR) |
+| **COMPARE** | Comparing files with XEDIT, Comparing minidisks (or FILELISTs). V1.9b | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COMPARE) |
 | **COMPUTE** | REXX mathematics for each record in a pipeline. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COMPUTE) |
 | **CONCH** | Shell for CMS. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CONCH) |
+| **CONCLOSE** | An exec to close all or selected consoles/prints at midnight V1.0 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CONCLOSE) |
 | **CONINT** | CMS task switching by Console Interrupt at any time | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CONINT) |
 | **CONS** | Console Spooling made simple. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CONS) |
 | **COUNTER** | A CGI script to produce a graphical web page counter | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COUNTER) |
@@ -285,8 +288,16 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **CPDUMPTL** | CP Dump Tool, a dump scanning program for VM/ESA CP dumps | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPDUMPTL) |
 | **CPGRAB** | Innocuous CP exit demonstration, easily modified to grab/release locks. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPGRAB) |
 | **CPICSAMP** | Sample programs for CMS CPI Communications. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPICSAMP) |
+| **CP1STLVL** | CP exit allowing 2nd-level user to invoke 1st-level commands | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CP1STLVL) |
+| **CP3KVMXT** | v2.9l Create an input file for zPCR or zCP3000 from monitor data. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CP3KVMXT) |
+| **CP4ZVM72** | Tool check for service on a z/VM 7.1 system that is not in base of z/VM 7.2 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CP4ZVM72) |
+| **CPHOST** | CP exit allowing 2nd-level user to invoke 1st-level cmds V1.4 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPHOST) |
+| **CPLINKPW** | Avoid CP READ when LINKing to a minidisk | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPLINKPW) |
+| **CPQUERY** | CMS GUI exec, issues CP Query commands and manages NSS V4.0.4 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPQUERY) |
+| **CPUMF** | Report on D5 R13 MRPRCMFC CPU Measurement Facility counters. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPUMF) |
 | **CQ** | Query Status of Local or Remote Network Users | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CQ) |
 | **CRDELCMP** | Compare 2 source files and create optimum update file. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CRDELCMP) |
+| **CUA2001** | Support development of Common User Access (CUA) panels for 3270 terminals | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CUA2001) |
 | **CUTPASTE** | XEDIT macros CUT and PASTE to easily move and copy text | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CUTPASTE) |
 | **DAILY** | DAILY Package | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DAILY) |
 | **DATECNVT** | DATECNVT EXEC - Converts/validates date input to another date format. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DATECNVT) |
@@ -300,21 +311,6 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **DMGR** | Dialog Manager for EnterpriseWeb/VM | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DMGR) |
 | **DMSG** | Display a message on 3480 operator panel | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DMSG) |
 | **DMSXMS** | Modified Sort module for Xedit | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DMSXMS) |
-
-
-
-| **COLSIMPL** | COLS insert and COLS delete SIMPLE Xedit macros. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COLSIMPL) |
-| **COMPARE** | Comparing files with XEDIT, Comparing minidisks (or FILELISTs). V1.9b | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COMPARE) |
-| **CONCLOSE** | An exec to close all or selected consoles/prints at midnight V1.0 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CONCLOSE) |
-| **CONFROOM** | Schedule conference rooms and equipment across an entire site. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CONFROOM) |
-| **CP1STLVL** | CP exit allowing 2nd-level user to invoke 1st-level commands | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CP1STLVL) |
-| **CP3KVMXT** | v2.9l Create an input file for zPCR or zCP3000 from monitor data. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CP3KVMXT) |
-| **CP4ZVM72** | Tool check for service on a z/VM 7.1 system that is not in base of z/VM 7.2 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CP4ZVM72) |
-| **CPHOST** | CP exit allowing 2nd-level user to invoke 1st-level cmds V1.4 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPHOST) |
-| **CPLINKPW** | Avoid CP READ when LINKing to a minidisk | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPLINKPW) |
-| **CPQUERY** | CMS GUI exec, issues CP Query commands and manages NSS V4.0.4 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPQUERY) |
-| **CPUMF** | Report on D5 R13 MRPRCMFC CPU Measurement Facility counters. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPUMF) |
-| **CUA2001** | Support development of Common User Access (CUA) panels for 3270 terminals | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CUA2001) |
 | **D0R16TOP** | Draws machine topology from a MONWRITE File | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=D0R16TOP) |
 | **D1R31** | Report on D1 R31 CP Service Configuration record. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=D1R31) |
 | **D26C** | C language access to diagnose x'26C' (Info on Guest LANs, VSwitches etc.) | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=D26C) |
