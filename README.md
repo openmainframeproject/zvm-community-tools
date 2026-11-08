@@ -230,10 +230,14 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 
 | Name | Description | Source |
 | :--- | :--- | :--- |
+| **$SUBSET** | An elegant entry and exit to/from CMS SUBSET. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=$SUBSET) |
+| **ADDNAME** | Add entry to NAMES while in PEEK or NOTEBOOK | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ADDNAME) |
 | **ADDON** | CMS/GUI appl to add/change wakeup commands in RxServer based servers V1.4 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ADDON) |
+| **ANALYSE** | Draw flow lines and structure for 370 assembler programmes | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ANALYSE) |
 | **B2H** | B2H: Convert Bookmaster, GML, Script/VS and "flat" files to HTML (Internet) Release 4.7 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=B2H) |
 | **BENCH** | Check how much resources a command uses; compare alternatives. V1.2 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BENCH) |
 | **BFSLIST** | List a BFS filespace in a FILELIST/DIRLIST like way Version 3.2 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BFSLIST) |
+| **BLOCK** | Perform XEDIT operations on a Block/box of data | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BLOCK) |
 | **BOX2BMS** | Draw box diagrams for BookMaster documents | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BOX2BMS) |
 | **CALCENT** | Calculate LPAR entitlement table from a MONWRITE file | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CALCENT) |
 | **CALWEEK** | Print OV/VM calendar information in various formats, including "daytimer". | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CALWEEK) |
