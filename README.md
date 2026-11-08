@@ -242,16 +242,29 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **BOX2BMS** | Draw box diagrams for BookMaster documents | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BOX2BMS) |
 | **CALCENT** | Calculate LPAR entitlement table from a MONWRITE file | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CALCENT) |
 | **CALWEEK** | Print OV/VM calendar information in various formats, including "daytimer". | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CALWEEK) |
+| **CASEWRD** | Change the case of a word in XEDIT | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CASEWRD) |
+| **CC** | Compares TOD clocks of two VM systems. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CC) |
+| **CCC** | Cut and Paste for VM! Contains CCC and FFF | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CCC) |
 | **CGI4RTM** | CGIs on zLinux for RTM, VM TCP/IP, ACCOUNT command ; V1.10 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CGI4RTM) |
+| **CGLOBALS** | Incl. GLOBAL TXTLIBs & LOADLIBs in a C/370 load module. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CGLOBALS)
 | **CHARLOTT** | Charlotte - fullscreen, textual World Wide Web browser for CMS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHARLOTT) |
 | **CHAT** | Network chatting tool demonstrating various CMS APIs. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHAT) |
+| **CHECKREF** | Checks BookMaster symbols and cross-references | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHECKREF) |
+| **CHGPROFX** | Alternate CHARGE Profile System | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHGPROFX) |
 | **CHKAPARS** | CHKAPARS EXEC - Evaluates system APAR data for a selected z/VM component or all such components | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHKAPARS) |
+| **CHKDEV** | CHKDEV/GDDMTERM - Terminal Recognition and GDDM Setup | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHKDEV) |
+| **CHKPACK** | Check a PACKAGE file against TOOLS disk. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHKPACK) |
 | **CHKRECLM** | Tool to check the impact of a memory reclamation similar to the VIR2REAL tool. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHKRECLM) |
 | **CHKSERV** | A CMS/GUI application to manage lots of RXSERVER based servers V0.7 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHKSERV) |
 | **CHUG** | Script-driven test tool with HTML output and near-total control of test UserID. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHUG) |
 | **CHUGDEMO** | Demonstration files for the CHUG tool; input and resulting HTML output. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CHUGDEMO) |
+| **CKDDRTAP** | Checks the contents of a DDR tape. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CKDDRTAP) |
+| **CKDSVRST** | Multi-purpose DASD backup/restore program also NON-CMS. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CKDSVRST)
+| **CLCDAT** | Add or subtract days from a date in SCRIPT or BookMaster | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CLCDAT) |
 | **CLONE620** | Create an IPLable copy (CLONE) of the running ZVM 6.2 system. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CLONE620) |
 | **CLONEBKP** | Create an IPLable copy (CLONE) of the running ZVM system. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CLONEBKP) |
+| **CLCDAT** | Add or subtract days from a date in SCRIPT or BookMaster | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CLCDAT) |
+| **CMR** | A Generic Conversation Management Routine | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMR) |
 | **CMS2CDL** | Convert a CMS formatted disk into Linux CDL format | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMS2CDL) |
 | **CMSDDR** | Enhanced DDR program to simulate DDR tapes via CMS files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMSDDR) |
 | **CMSFMT** | DVF Aids for CMS Application Multitasking | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMSFMT) |
@@ -259,6 +272,37 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **CMS NAMES support** | CMS NAMES syntax highlighting | [GitHub](https://github.com/openmainframeproject/atompkg-language-zvm-names) |
 | **CMS tar** | TAR archive utility for CMS | [Github](https://github.com/trothtech/cmstar) |
 | **CMDTABLE** | Generate files listing all defined CP commands and diagnoses with the privilege classes. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMDTABLE) |
+| **CODE** | Front end to CIPHER product. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CODE) |
+| **COLRXTND** | Extension to the COLORS package. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COLRXTND) |
+| **COMMENTR** | XEDIT Macros for Adding Line and Block Comments to Files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COMMENTR) |
+| **COMPUTE** | REXX mathematics for each record in a pipeline. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COMPUTE) |
+| **CONCH** | Shell for CMS. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CONCH) |
+| **CONINT** | CMS task switching by Console Interrupt at any time | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CONINT) |
+| **CONS** | Console Spooling made simple. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CONS) |
+| **COUNTER** | A CGI script to produce a graphical web page counter | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COUNTER) |
+| **CP_IP** | CP_IP - CP mod to add IP address awareness to CP | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CP_IP) |
+| **CP2KVMXT** | No description provided | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CP2KVMXT) |
+| **CPDUMPTL** | CP Dump Tool, a dump scanning program for VM/ESA CP dumps | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPDUMPTL) |
+| **CPGRAB** | Innocuous CP exit demonstration, easily modified to grab/release locks. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPGRAB) |
+| **CPICSAMP** | Sample programs for CMS CPI Communications. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CPICSAMP) |
+| **CQ** | Query Status of Local or Remote Network Users | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CQ) |
+| **CRDELCMP** | Compare 2 source files and create optimum update file. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CRDELCMP) |
+| **CUTPASTE** | XEDIT macros CUT and PASTE to easily move and copy text | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CUTPASTE) |
+| **DAILY** | DAILY Package | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DAILY) |
+| **DATECNVT** | DATECNVT EXEC - Converts/validates date input to another date format. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DATECNVT) |
+| **DCLGEN** | Create host variable declaration for an SQL Table | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DCLGEN) |
+| **DELMACS** | Set of macros to selectively delete data | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DELMACS) |
+| **DEPT** | Do various things with DEPARTMENT LISTS. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DEPT) |
+| **DESCRIBE** | Describe the contents of files in a FILELIST/FILELELS display. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DESCRIBE) |
+| **DIAG00E4** | Diagnose E4 CSL routine. Get minidisk info, create overlay. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DIAG00E4) |
+| **DIRLIST** | Dirlist update to add FILEPOOL and SUBDIR tag support with NICK option | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DIRLIST) |
+| **DISKPUT** | Frontend EXEC for NAMEFIND and PROFS name files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DISKPUT) |
+| **DMGR** | Dialog Manager for EnterpriseWeb/VM | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DMGR) |
+| **DMSG** | Display a message on 3480 operator panel | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DMSG) |
+| **DMSXMS** | Modified Sort module for Xedit | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DMSXMS) |
+
+
+
 | **COLSIMPL** | COLS insert and COLS delete SIMPLE Xedit macros. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COLSIMPL) |
 | **COMPARE** | Comparing files with XEDIT, Comparing minidisks (or FILELISTs). V1.9b | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COMPARE) |
 | **CONCLOSE** | An exec to close all or selected consoles/prints at midnight V1.0 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CONCLOSE) |
