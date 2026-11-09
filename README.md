@@ -328,15 +328,28 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **DRMGUI** | A CMS/GUI interface to defragment VM disks Version 1.2.1 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DRMGUI) |
 | **DRPC** | Add-on to make DDR work with CMS PIPES | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DRPC) |
 | **DR_DRCT** | Directory fix-it tools: Move/expand DRCT area; find CMS minidisks; more. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DR_DRCT) |
+| **DTSCAN** | Storage scan tool | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DTSCAN) |
 | **DUMPEDIT** | Replacement for DUMPLOAD allowing you to select which pages to load. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DUMPEDIT) |
+| **DUPL** | Establish 3990 duplex pair | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DUPL) |
 | **DYNAMO** | Linux DCSS management tool | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=DYNAMO) |
 | **ECHO** | Empty Rexx/Sockets-based, multi-client TCP server | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ECHO) |
 | **EDCKD** | A tool to display and/or alter records on any CKD DASD. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EDCKD) |
 | **EDFBA** | Displays and/or alters blocks on FBA DASD. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EDFBA) |
 | **EDEVPATH** | FCP path management tool for EDEVs | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EDEVPATH) |
+| **EDSAY** | Used to print messages with the editor in control or on screen | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EDSAY) |
+| **ELAPSE** | Date functions on a given date or absolute day number. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ELAPSE) |
+| **EMAIL** | Pipelines SMTP Protocol EMAIL Stage | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EMAIL) |
+| **EMIFREPT** | No description provided | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EMIFREPT) |
+| **ENAMER** | Enhanced reNAMER, especially for FULIST/FILELIST/FILELELS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ENAMER) |
 | **ERALIAS** | An exec to remove ERASEd ALIASes from the SFS catalog. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ERALIAS) |
+| **EWEBSTAT** | Status Display for EnterpriseWeb/VM (Shadow VM | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EWEBSTAT) |
+| **EXCIT** | Extract citations in context from BookMaster files. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EXCIT) |
 | **execs** | REXX EXEC utilities, including WHICH and MAN | [z/VM Community Tools](https://github.com/openmainframeproject/zvm-community-tools/tree/main/execs) |
-| **FCXTREND** | Pruning aid for IBM Performance Toolkit's FCXTREND files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FCXTREND) |
+| **EXECUTE2** | Modified EXECUTE to support DESCRIBE PACKAGE. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EXECUTE2) |
+| **EXPLAIN** | EXPLAIN | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EXPLAIN) |
+| **EXTMSG** | XEDIT screen builder VERSION 2. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EXTMSG) |
+| **EZMENU** | EZMENU an IOSMENU compatible tool to write Menu | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=EZMENU) |
+| **FCXTREND** | Pruning aid for Performance Toolkit's FCXTREND files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FCXTREND) |
 | **FCXRENAM** | Sample FCXRENAM EXEC for Perfkit to automatically archive performance logs. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FCXRENAM) |
 | **FCOPY** | High speed CMS file copy routine with PACKLIB support | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=FCOPY) |
 | **feilong** | An open-source REST API and SDK for provisioning and managing z/VM guests, images, networks, and volumes. | [Github](https://github.com/openmainframeproject/feilong) |
