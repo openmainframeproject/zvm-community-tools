@@ -603,7 +603,7 @@ YOOOO
 | **RUNREXX** | A framework to develop crossplatform Rexx programs using the eclipse framework | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=RUNREXX) |
 | **RXDASD** | DASD I/O as REXX a function | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=RXDASD) |
 | **RXDISP** | CMS REXX display utility | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=RXDISP) |
-| **RXFLOW** | REXX function to reflow/justify text or to separate sentences. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#namesearch=RXFLOW) |
+| **RXFLOW** | REXX function to reflow/justify text or to separate sentences. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=RXFLOW) |
 | **RXMODE** | Rexx Mode Function | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=RXMODE) |
 | **RXSERVER** | A kernel to build REXX WAKEUP servers, such as VMUTIL. V6.7 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=RXSERVER) |
 | **RXSORT** | A Sort function for REXX | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=RXSORT) |
@@ -671,7 +671,7 @@ YOOOO
 | **SUPERSAY** | Issue multiline message, color selectable, with/without editor | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SUPERSAY) |
 | **SUPPRESS** | VM read in non-display mode, like asking for password. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SUPPRESS) |
 | **SWITCH** | SWITCH mode | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SWITCH) |
-| **SYNPEEK** | Syntax Diagram Peeker | [z/VM Downloads](https://www.ibm.com/support/pages/zmm/download/packages/#search=SYNPEEK) |
+| **SYNPEEK** | Syntax Diagram Peeker | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SYNPEEK) |
 | **SYSLOGD** | SYSLOGD daemon for CMS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SYSLOGD) |
 | **syslog_vm** | A simplistic syslog daemon which accepts UDP/TCP connections plus a shared library containing the APIs ``openlog(), syslog(), closelog()`` and ``setlogmask()``
 | **TAB2GC** | Draw charts entirely on CMS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TAB2GC) |
@@ -742,16 +742,16 @@ YOOOO
 | **WORDMACS** | XEDIT macros that locate, change, or count words | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=WORDMACS) |
 | **WORFAUTH** | WORF SFS ESM rule database updater | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=WORFAUTH) |
 | **WORF** | Simple Shared File System (SFS) external security manager (ESM | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=WORF) |
-| **XASTOR** | A multi-functioned, programmable, full-screen storage display | [z/VM Downloads](https://README.md](https://www.ibm.com/support/pages/zvm/download/packages/#search=XASTOR) |
+| **XASTOR** | A multi-functioned, programmable, full-screen storage display | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XASTOR) |
 | **XBROWSE** | XBROWSE is a compiled REXX replacement for PEEK and BROWSE (in module form | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XBROWSE) |
 | **XCOL** | Xedit Column Editing for VM/ESA | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XCOL) |
 | **XFER2** | Transfer a file from your RDRLIST. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XFER2) |
 | **XFILE** | Displays files being XEDITed by other users. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XFILE) |
 | **XGRAPHIC** | Safe character translate graphics for BookMaster | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XGRAPHIC) |
 | **XLISTF** | Listfile for CMS in CUA mode, Give TOOLS description. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XLISTF) |
-| **XMENUVM** | A really cool CMS user interface! | [z/VM Downloads](https://www.ibm.com/search=...???) |
+| **XMENUVM** | A really cool CMS user interface! | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XMENUVM) |
 | **XMITMSGX** | works like APPLMSG and XMITMSG but for Unix/Linux | [Github](https://github.com/trothtech/xmm) |
-| **XRECALL** | Recall/execute previous XEDIT commands in a window | [z/VM Downloads](https://www.ibm.com/support/pages/zmdownload/packages/#search=XRECALL) |
+| **XRECALL** | Recall/execute previous XEDIT commands in a window | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XRECALL) |
 | **XREC** | Receive Current Note up to Cursored Line | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XREC) |
 | **XRL** | An X-Windows view of CMS Reader List | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XRL) |
 | **XSF** | XEDIT files that reside in unaccessed SFS directories. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XSF) |
