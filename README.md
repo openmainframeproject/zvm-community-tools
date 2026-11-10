@@ -230,7 +230,6 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 
 | Name | Description | Source |
 | :--- | :--- | :--- |
-YOOOO
 | **$SUBSET** | An elegant entry and exit to/from CMS SUBSET. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=$SUBSET) |
 | **ADDNAME** | Add entry to NAMES while in PEEK or NOTEBOOK | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ADDNAME) |
 | **ADDON** | CMS/GUI appl to add/change wakeup commands in RxServer based servers V1.4 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ADDON) |
