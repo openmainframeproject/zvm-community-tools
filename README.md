@@ -612,6 +612,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **SCKSMAP2** | No description provided | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SCKSMAP2) |
 | **SCKSMAPI** | Socket access to SMAPI functions | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SCKSMAPI) |
 | **SCKXPIPE** | Socket access to XPIPES functions | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SCKXPIPE) |
+| **SCRIPT/BookMaster support** | GML syntax highlighting | [Open Mainframe Project](https://github.com/openmainframeproject/atompkg-language-zvm-gml) |
 | **SCRUSCRD** | XEDIT Macros to Scroll Up and Down by Cursor position | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SCRUSCRD) |
 | **SDOENA54** | Enabling Aid files for z/VM 5.4.0 SDO configuration. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SDOENA54) |
 | **SEARCH** | Search Engine for VM-Hosted Web Sites | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SEARCH) |
@@ -761,19 +762,12 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **XX** | Frontend for XEDIT, provides windows. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=XX) |
 | **YR2000VM** | Technical Description of VM/ESA's Year 2000 Support (updated Sept. 1999 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=YR2000VM) |
 | **YVETTE** | Yvette - provide multiple sessions to DIALed 3270s. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=YVETTE) |
+| **zPXE** | PXE-like network boot functionality for z/VM guests | [Github](https://github.com/beaker-project/zpxe) |
 | **zvm-ssh-extension** | used by VSCode to access and modify files residing on CMS | [Github](https://github.com/nealef/zvm-ssh-extension) |
 | **ZXCATIVP** | Preparation script for the Installation Verification Program for xCAT and OpenStack on z/VM. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ZXCATIVP) |
+| **z/VM assembler support** | Assembler syntax highlighting | [Open Mainframe Project](https://github.com/openmainframeproject/atompkg-language-zvm-rexx) |
+| **z/VM REXX language support** | REXX syntax highlighting | [Open Mainframe Project](https://github.com/openmainframeproject/atompkg-language-zvm) |
 
-## Other Community Tools and Projects
-
-| Name | Description | Source | URL |
-|---|---|---|---|
-| Terraform Provider for z/VM | Terraform integration with the z/VM SDK/Feilong ecosystem | GitHub | https://github.com/mfcloud/terraform-provider-zvmsdk |
-| zPXE | PXE-like network boot functionality for z/VM guests | GitHub | https://github.com/beaker-project/zpxe |
-| z/VM REXX language support | REXX syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-language-zvm-rexx |
-| z/VM assembler support | Assembler syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-languages-zvm |
-| CMS NAMES support | CMS NAMES syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-language-zvm-names |
-| SCRIPT/BookMaster support | GML syntax highlighting | Open Mainframe Project | https://github.com/openmainframeproject/atompkg-language-zvm-gml |
 
 ## Source Notes
 
