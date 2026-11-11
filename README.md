@@ -607,6 +607,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **RXSERVER** | A kernel to build REXX WAKEUP servers, such as VMUTIL. V6.7 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=RXSERVER) |
 | **RXSORT** | A Sort function for REXX | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=RXSORT) |
 | **RXTAPE** | API to issue commands to a tape device | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=RXTAPE) |
+| **s390-tools** | Tools for use with the s390 Linux kernel and device drivers | [Github](https://github.com/ibm-s390-linux/s390-tools) |
 | **SCIF** | Easier "talking" to SCIFfed users (avoid the CP SEND command) V1.4 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SCIF) |
 | **SCKSMAP1** | No description provided | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SCKSMAP1) |
 | **SCKSMAP2** | No description provided | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SCKSMAP2) |
@@ -632,7 +633,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **SFSGRAPH** | No description provided | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SFSGRAPH) |
 | **SFSKTOOL** | Various tools related to SFS management. V1.0 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SFSKTOOL) |
 | **SFSTAR** | Archive (zip up) SFS directory tree into file/pipeline stream | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SFSTAR) |
-| **SFSTOOLS** | Shared File System Tools | [z/VM Downloads](https://www.z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SFSTOOLS) |
+| **SFSTOOLS** | Shared File System Tools | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SFSTOOLS) |
 | **SFSULIST** | SFSUserList lets you handle SFS users in a FILELIST like way V1.13 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SFSULIST) |
 | **SG245148** | Redbook "VM/ESA Network Computing with Java and NetRexx" sample programs | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SG245148) |
 | **SG245164** | Redbook "Exploiting Recent CMS Function: A User's Guide to CMS Application Multitasking" sample programs. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SG245164) |
@@ -655,7 +656,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **SPOOLKIT** | Show SPOOL utilization details and allow viewing/manipulating SPOOL files (replaces SFLIST package | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SPOOLKIT) |
 | **SPOOLKIT** | Show SPOOL utilization details and allow viewing/manipulating SPOOL files (replaces SFLIST package) | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SPOOLKIT) |
 | **SPOOLPIG** | Display the largest spool files and users of the spool on a system. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SPOOLPIG) |
-| **SPOOLUSE** | Smart query of RDR, PRT, and PUN files | [z/VM Downloads](https://z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SPOOLUSE) |
+| **SPOOLUSE** | Smart query of RDR, PRT, and PUN files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SPOOLUSE) |
 | **SPXPINTV** | SPXTAPE Progress Report Interval Modifications | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SPXPINTV) |
 | **SQLITE** | SQLite is a C-language library that implements a small, self-contained, high-reliability, full-featured, SQL database engine, ported to CMS. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SQLITE) |
 | **SRCHDATA** | Process the $SEARCH$ OFSDATA file produced by OV/VM. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SRCHDATA) |
@@ -672,7 +673,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **SWITCH** | SWITCH mode | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SWITCH) |
 | **SYNPEEK** | Syntax Diagram Peeker | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SYNPEEK) |
 | **SYSLOGD** | SYSLOGD daemon for CMS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=SYSLOGD) |
-| **syslog_vm** | A simplistic syslog daemon which accepts UDP/TCP connections plus a shared library containing the APIs ``openlog(), syslog(), closelog()`` and ``setlogmask()``
+| **syslog_vm** | A simplistic syslog daemon which accepts UDP/TCP connections plus a shared library containing the APIs ``openlog(), syslog(), closelog()`` and ``setlogmask()`` | [Github](https://github.com/nealef/syslog_vm) |
 | **TAB2GC** | Draw charts entirely on CMS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TAB2GC) |
 | **TABCRE** | EASY SCRIPT/GML/BOOKMASTER TABLES (WYSIWYG | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TABCRE) |
 | **TAB** | TAB -- Add Thumb Tabs to BookMaster | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=TAB) |
