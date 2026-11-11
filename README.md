@@ -376,7 +376,6 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **GETBACK** | Recover a wrongly erased file. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GETBACK) |
 | **GETFILE** | Remotely-initiated uploading of PC file to VM user | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GETFILE) |
 | **GETSTHYI** | GETSTHYI - issue STHYI function code 0 and format response. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GETSTHYI) |
- | [Github](https://github.com/nealef/syslog_vm) |
 | **GMLLABEL** | Create address labels by using GML tags | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GMLLABEL) |
 | **GOPHER** | A gopher client for CMS | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GOPHER) |
 | **GREPX** | A text search utility that uses nested expression as arguments. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=GREPX) |
@@ -518,7 +517,7 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **PCR** | The PCR utility enables CMS commands, subcommands, and Rexx functions/subroutines to be written in PL/I. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PCR) |
 | **PEEKMENU** | Super Menu for PEEK. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PEEKMENU) |
 | **PEEKXTND** | PEEKXTND - Supporting package to the FILELSND PACKAGE. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PEEKXTND) |
-| **PF10PF11** | PF10 and PF11 XEDIT macros allow to move from left to right, based on the position of the cursor in the delimited area defined by the SET Verify XEDIT command. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PF10PF11) |
+| **PF10PF11** | PF10 and PF11 XEDIT macros allow to move from left to right | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PF10PF11) |
 | **PHONEM** | Telephone Message | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PHONEM) |
 | **PICDIR** | The Picture Directory | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PICDIR) |
 | **PICKPIPE** | Choose between default VM, Marist, and test runtime versions of Pipelines | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=PICKPIPE) |
