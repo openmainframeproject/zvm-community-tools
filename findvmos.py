@@ -42,11 +42,18 @@ VERBOSE = False
 ROW = re.compile(r'^\|\s*\*\*(?P<name>.+?)\*\*\s*\|\s*(?P<desc>.*?)\s*\|\s*'
                  r'\[(?P<src>[^\]]+)\]\((?P<url>[^)\s]+)\)\s*\|?\s*$')
 
+REPO_LINK_ROW = re.compile(
+    r'^\|\s*\[(?P<name>[^\]]+)\]\((?P<url>[^)]+)\)\s*\|\s*(?P<desc>.*?)(?:\|.*)?\s*$'
+)
+
+def verbose(msg):
+    if VERBOSE:
+        print(msg, file=sys.stderr)
+
 
 # ----------------------------------------------------------------- catalog --
 def http_get(url, timeout=60):
-    if VERBOSE:
-        print("+ GET %s" % url, file=sys.stderr)
+    verbose("+ GET %s" % url)
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
@@ -54,17 +61,28 @@ def http_get(url, timeout=60):
 
 def load_readme(path, refresh):
     if path:
+        verbose("+ reading local README: %s" % path)
         with open(path, encoding="utf-8") as f:
             return f.read()
+
     cache = os.path.join(CACHE_DIR, "README.md")
     fresh = (os.path.exists(cache)
              and time.time() - os.path.getmtime(cache) < CACHE_MAX_AGE)
+
+    if refresh:
+        verbose("+ forced refresh of README cache")
+    elif fresh:
+        verbose("+ using cached README: %s" % cache)
+    else:
+        verbose("+ README cache missing or stale; fetching from GitHub")
+
     if refresh or not fresh:
         try:
             data = http_get(README_URL)
             os.makedirs(CACHE_DIR, exist_ok=True)
             with open(cache, "wb") as f:
                 f.write(data)
+            verbose("+ saved README cache: %s" % cache)
         except (urllib.error.URLError, OSError) as exc:
             if not os.path.exists(cache):
                 sys.exit("cannot fetch README and no cached copy: %s" % exc)
@@ -74,25 +92,39 @@ def load_readme(path, refresh):
 
 
 def parse_catalog(text):
-    """Return the rows of the table in the 'complete-table-section' section."""
-    entries, inside, seen = [], False, set()
+    """Return the rows of the package catalog, including the main README package list."""
+    entries, seen = [], set()
+
     for line in text.splitlines():
-        if 'id="complete-table-section"' in line:
-            inside = True
-            continue
-        if not inside:
-            continue
+        # Stop once we reach the source notes section; no more package rows follow.
         if line.startswith("## Source Notes"):
             break
+
+        # Parse the big complete-table section
         m = ROW.match(line)
-        if not m:
+        if m:
+            e = m.groupdict()
+            key = (e["name"].lower(), e["url"].lower())
+            if key not in seen:
+                seen.add(key)
+                entries.append(e)
             continue
-        e = m.groupdict()
-        key = (e["name"].lower(), e["url"].lower())
-        if key in seen:                      # README lists a few rows twice
-            continue
-        seen.add(key)
-        entries.append(e)
+
+        # Fallback for package rows like:
+        # | [zlma](https://github.com/.../tree/main/zlma) | z/VM and Linux Modern Administration ... |
+        m = REPO_LINK_ROW.match(line)
+        if m:
+            e = {
+                "name": m.group("name"),
+                "desc": m.group("desc").strip(),
+                "src": "README",
+                "url": m.group("url"),
+            }
+            key = (e["name"].lower(), e["url"].lower())
+            if key not in seen:
+                seen.add(key)
+                entries.append(e)
+
     return entries
 
 
@@ -370,10 +402,14 @@ def main():
     entries = parse_catalog(load_readme(args.readme, args.refresh))
     if not entries:
         sys.exit("no table rows found - has the README layout changed?")
+
     hits = search(entries, args.terms, args.name_only)
     if not hits:
         print("No match for: %s" % " ".join(args.terms))
+        if VERBOSE:
+            print("+ searched %d catalog entries" % len(entries), file=sys.stderr)
         return 1
+
     entry = pick_single(hits, args.terms)
     if entry is None:
         print("%d matches - refine the search term:" % len(hits))
@@ -386,6 +422,7 @@ def main():
     os.makedirs(dest, exist_ok=True)
     print("Match: %s  [%s]" % (entry["name"], entry["src"]))
     files, root, ogs = {}, dest, None
+
     try:
         if kind == "ibm":
             html = http_get(IBM_LISTING_URL).decode("utf-8", "replace")
@@ -425,3 +462,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
