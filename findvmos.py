@@ -6,15 +6,16 @@ Usage:
     findvmos.py --refresh spoolkit       re-download the cached README first
     findvmos.py --readme README.md dir   use a local copy of the README
     findvmos.py --dest /tmp/sw --type zip filelist
+    findvmos.py -v TERM                  show each HTTP request
 
 All TERMs must appear (case-insensitive) in the package name or description.
 If several packages match, they are listed and nothing is downloaded -- unless
 exactly one of them has a name equal to the term (so "CC" finds CC, not CCC).
 
-Exit codes: 
-  0 ok, 
-  1 no match, 
-  2 several matches, 
+Exit codes:
+  0 ok,
+  1 no match,
+  2 several matches,
   3 download/resolve problem.
 """
 import argparse
@@ -36,6 +37,7 @@ IBM_LISTING_URL = "https://www.vm.ibm.com/download/packages/"
 CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "zvmsw")
 CACHE_MAX_AGE = 24 * 3600
 UA = {"User-Agent": "zvmsw/1.0 (z/VM community tools catalog helper)"}
+VERBOSE = False
 
 ROW = re.compile(r'^\|\s*\*\*(?P<name>.+?)\*\*\s*\|\s*(?P<desc>.*?)\s*\|\s*'
                  r'\[(?P<src>[^\]]+)\]\((?P<url>[^)\s]+)\)\s*\|?\s*$')
@@ -43,6 +45,8 @@ ROW = re.compile(r'^\|\s*\*\*(?P<name>.+?)\*\*\s*\|\s*(?P<desc>.*?)\s*\|\s*'
 
 # ----------------------------------------------------------------- catalog --
 def http_get(url, timeout=60):
+    if VERBOSE:
+        print("+ GET %s" % url, file=sys.stderr)
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
@@ -346,8 +350,11 @@ def describe(entry, kind, files, root, owner_repo_sub):
 
 # -------------------------------------------------------------------- main --
 def main():
+    global VERBOSE
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("terms", nargs="+", help="search term(s)")
+    ap.add_argument("-v", "--verbose", action="store_true",
+                    help="show each HTTP request as it runs")
     ap.add_argument("--readme", help="use this local README.md")
     ap.add_argument("--refresh", action="store_true",
                     help="re-fetch the README instead of using the cache")
@@ -358,6 +365,7 @@ def main():
     ap.add_argument("--name-only", action="store_true",
                     help="match package names only, not descriptions")
     args = ap.parse_args()
+    VERBOSE = args.verbose
 
     entries = parse_catalog(load_readme(args.readme, args.refresh))
     if not entries:
@@ -417,4 +425,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
