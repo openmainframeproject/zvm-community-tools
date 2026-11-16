@@ -39,11 +39,19 @@ ROW = re.compile(r'^\|\s*\*\*(?P<name>.+?)\*\*\s*\|\s*(?P<desc>.*?)\s*\|\s*'
                  r'\[(?P<src>[^\]]+)\]\((?P<url>[^)\s]+)\)\s*\|?\s*$')
 REPO_LINK_ROW = re.compile(
     r'^\|\s*\[(?P<name>[^\]]+)\]\((?P<url>[^)]+)\)\s*\|\s*(?P<desc>.*?)(?:\|.*)?\s*$')
+<<<<<<< HEAD
+=======
+
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
 
 def verbose(msg):
     if VERBOSE:
         print(msg, file=sys.stderr)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
 def http_get(url, timeout=60):
     verbose("+ GET %s" % url)
     req = urllib.request.Request(url, headers=UA)
@@ -75,6 +83,7 @@ def load_readme(path, refresh):
             if not os.path.exists(cache):
                 sys.exit("cannot fetch README and no cached copy: %s" % exc)
             print("warning: using stale cache (%s)" % exc, file=sys.stderr)
+
     with open(cache, encoding="utf-8") as f:
         return f.read()
 
@@ -85,6 +94,10 @@ def parse_catalog(text):
     for line in text.splitlines():
         if line.startswith("## Source Notes"):
             break
+<<<<<<< HEAD
+=======
+
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
         m = ROW.match(line)
         if m:
             e = m.groupdict()
@@ -98,10 +111,18 @@ def parse_catalog(text):
                 "src": "README",
                 "url": m.group("url"),
             }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
         key = (e["name"].lower(), e["url"].lower())
         if key not in seen:
             seen.add(key)
             entries.append(e)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
     return entries
 
 def search(entries, terms, name_only=False):
@@ -119,6 +140,10 @@ def pick_single(hits, terms):
     exact = [e for e in hits if e["name"].lower() == " ".join(terms).lower()]
     return exact[0] if len(exact) == 1 else None
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
 def classify(url):
     host = urllib.parse.urlparse(url).netloc.lower()
     if host.endswith("ibm.com") and "#search=" in url:
@@ -138,6 +163,10 @@ def parse_github(url):
         ref, sub = parts[3], "/".join(parts[4:])
     return owner, repo, ref, sub
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
 def save(url, dest, fallback_name):
     name = os.path.basename(urllib.parse.urlparse(url).path) or fallback_name
     path = os.path.join(dest, name)
@@ -156,17 +185,24 @@ def extract_tar(path, dest, subdir=""):
         wanted = [m for m in members if m.name == prefix or m.name.startswith(prefix + "/")]
         if not wanted:
             raise RuntimeError("path %r not found in archive" % subdir)
+
         root = os.path.realpath(dest)
         for m in wanted:
             tgt = os.path.realpath(os.path.join(root, m.name))
             if not (tgt == root or tgt.startswith(root + os.sep)):
                 raise RuntimeError("unsafe path in archive: %s" % m.name)
+
         try:
             tar.extractall(dest, members=wanted, filter="data")
         except TypeError:
             tar.extractall(dest, members=wanted)
+
     return os.path.join(dest, prefix)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
 VMARC_HOWTO = """\
 Installing a VMARC package on z/VM (steps from IBM's download page):
   1. Upload the .vmarc file to CMS in BINARY (e.g. FTP binary mode),
@@ -243,11 +279,17 @@ def describe(entry, kind, files, root, owner_repo_sub):
 
     if kind == "ibm":
         lines.append(VMARC_HOWTO)
+<<<<<<< HEAD
         lines.append(
             "\nIBM's license agreement for the download library "
             "applies; listing there is not a\nguarantee that the "
             "package is open source - check the license inside."
         )
+=======
+        lines.append("\nIBM's license agreement for the download library "
+                     "applies; listing there is not a\nguarantee that the "
+                     "package is open source - check the license inside.")
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
     elif kind == "github":
         _owner, repo, sub = owner_repo_sub
         lines.append("Code unpacked in: %s" % root)
@@ -258,12 +300,18 @@ def describe(entry, kind, files, root, owner_repo_sub):
         if hints:
             lines.append("On Linux, based on the files found:")
             lines += ["  - " + hint for hint in hints]
+<<<<<<< HEAD
         if has_cms_content(root) or repo == "zvm-community-tools":
             lines += [
                 "",
                 "The tree contains CMS content (EXEC/REXX/XEDIT/VMARC).",
                 VMARC_HOWTO,
             ]
+=======
+        if has_cms_content(root) or repo in ("zvm-community-tools",):
+            lines += ["", "The tree contains CMS content (EXEC/REXX/XEDIT/VMARC).",
+                      VMARC_HOWTO]
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
         if not hints and not note:
             lines.append("No build files recognised; read the README in the unpacked directory.")
     elif kind == "direct":
@@ -275,6 +323,10 @@ def describe(entry, kind, files, root, owner_repo_sub):
         )
     return "\n".join(lines)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
 def main():
     global VERBOSE
 
@@ -299,8 +351,7 @@ def main():
     hits = search(entries, args.terms, args.name_only)
     if not hits:
         print("No match for: %s" % " ".join(args.terms))
-        if VERBOSE:
-            print("+ searched %d catalog entries" % len(entries), file=sys.stderr)
+        verbose("+ searched %d catalog entries" % len(entries))
         return 1
     entry = pick_single(hits, args.terms)
     if entry is None:
@@ -310,8 +361,15 @@ def main():
         return 2
     kind = classify(entry["url"])
     if kind == "ibm" and args.type not in (None, "vmarc"):
+<<<<<<< HEAD
         print("IBM package downloads from this endpoint are VMARC only; --type must be vmarc.", file=sys.stderr)
         return 3
+=======
+        print("IBM package downloads from this endpoint are VMARC only; "
+              "--type must be vmarc.", file=sys.stderr)
+        return 3
+
+>>>>>>> 21ff15cf53f1621bebdb801fdcb9182dd8c5e612
     dest = os.path.join(args.dest, re.sub(r"[^\w.$-]", "_", entry["name"]))
     os.makedirs(dest, exist_ok=True)
     print("Match: %s  [%s]" % (entry["name"], entry["src"]))
@@ -348,4 +406,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
