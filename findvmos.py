@@ -27,13 +27,9 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from html.parser import HTMLParser
 
-README_URL = ("https://raw.githubusercontent.com/openmainframeproject/zvm-community-tools/main/README.md")
-# Static (non-JavaScript) listing of the IBM z/VM Download Library.  The
-# "z/VM Downloads" links in the README point at a JavaScript search page
-# (#search=NAME) that carries no file URLs, so the real links are scraped here.
-IBM_LISTING_URL = "https://www.vm.ibm.com/download/packages/"
+README_URL = "https://raw.githubusercontent.com/openmainframeproject/zvm-community-tools/main/README.md"
+IBM_PACKAGE_URL = "https://www.ibm.com/support/pages/zvm/download/packages/"
 CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "zvmsw")
 CACHE_MAX_AGE = 24 * 3600
 UA = {"User-Agent": "zvmsw/1.0 (z/VM community tools catalog helper)"}
@@ -41,17 +37,15 @@ VERBOSE = False
 
 ROW = re.compile(r'^\|\s*\*\*(?P<name>.+?)\*\*\s*\|\s*(?P<desc>.*?)\s*\|\s*'
                  r'\[(?P<src>[^\]]+)\]\((?P<url>[^)\s]+)\)\s*\|?\s*$')
-
 REPO_LINK_ROW = re.compile(
-    r'^\|\s*\[(?P<name>[^\]]+)\]\((?P<url>[^)]+)\)\s*\|\s*(?P<desc>.*?)(?:\|.*)?\s*$'
-)
+    r'^\|\s*\[(?P<name>[^\]]+)\]\((?P<url>[^)]+)\)\s*\|\s*(?P<desc>.*?)(?:\|.*)?\s*$')
+
 
 def verbose(msg):
     if VERBOSE:
         print(msg, file=sys.stderr)
 
 
-# ----------------------------------------------------------------- catalog --
 def http_get(url, timeout=60):
     verbose("+ GET %s" % url)
     req = urllib.request.Request(url, headers=UA)
@@ -87,43 +81,37 @@ def load_readme(path, refresh):
             if not os.path.exists(cache):
                 sys.exit("cannot fetch README and no cached copy: %s" % exc)
             print("warning: using stale cache (%s)" % exc, file=sys.stderr)
+
     with open(cache, encoding="utf-8") as f:
         return f.read()
 
 
 def parse_catalog(text):
-    """Return the rows of the package catalog, including the main README package list."""
+    """Return package rows from the README catalog and component tables."""
     entries, seen = [], set()
 
     for line in text.splitlines():
-        # Stop once we reach the source notes section; no more package rows follow.
         if line.startswith("## Source Notes"):
             break
 
-        # Parse the big complete-table section
         m = ROW.match(line)
         if m:
             e = m.groupdict()
-            key = (e["name"].lower(), e["url"].lower())
-            if key not in seen:
-                seen.add(key)
-                entries.append(e)
-            continue
-
-        # Fallback for package rows like:
-        # | [zlma](https://github.com/.../tree/main/zlma) | z/VM and Linux Modern Administration ... |
-        m = REPO_LINK_ROW.match(line)
-        if m:
+        else:
+            m = REPO_LINK_ROW.match(line)
+            if not m:
+                continue
             e = {
                 "name": m.group("name"),
                 "desc": m.group("desc").strip(),
                 "src": "README",
                 "url": m.group("url"),
             }
-            key = (e["name"].lower(), e["url"].lower())
-            if key not in seen:
-                seen.add(key)
-                entries.append(e)
+
+        key = (e["name"].lower(), e["url"].lower())
+        if key not in seen:
+            seen.add(key)
+            entries.append(e)
 
     return entries
 
@@ -144,76 +132,6 @@ def pick_single(hits, terms):
         return hits[0]
     exact = [e for e in hits if e["name"].lower() == " ".join(terms).lower()]
     return exact[0] if len(exact) == 1 else None
-
-
-# ------------------------------------------------------- source resolution --
-class ListingParser(HTMLParser):
-    """Collect table rows: cell texts and links (tolerates unclosed tags)."""
-
-    def __init__(self, base):
-        super().__init__(convert_charrefs=True)
-        self.base, self.rows = base, []
-        self._row = self._cell = self._a = None
-
-    def _close_cell(self):
-        if self._cell is not None and self._row is not None:
-            self._row["cells"].append("".join(self._cell).strip())
-        self._cell = None
-
-    def _close_row(self):
-        self._close_cell()
-        if self._row is not None:
-            self.rows.append(self._row)
-        self._row = None
-
-    def handle_starttag(self, tag, attrs):
-        if tag == "tr":
-            self._close_row()
-            self._row = {"cells": [], "links": []}
-        elif tag in ("td", "th") and self._row is not None:
-            self._close_cell()
-            self._cell = []
-        elif tag == "a" and self._row is not None:
-            href = dict(attrs).get("href")
-            if href:
-                self._a = {"href": urllib.parse.urljoin(self.base, href),
-                           "text": []}
-
-    def handle_data(self, data):
-        if self._cell is not None:
-            self._cell.append(data)
-        if self._a is not None:
-            self._a["text"].append(data)
-
-    def handle_endtag(self, tag):
-        if tag == "a" and self._a is not None and self._row is not None:
-            self._a["text"] = "".join(self._a["text"]).strip()
-            self._row["links"].append(self._a)
-            self._a = None
-        elif tag in ("td", "th"):
-            self._close_cell()
-        elif tag == "tr":
-            self._close_row()
-
-    def close(self):
-        super().close()
-        self._close_row()
-
-
-def ibm_files(name, html):
-    """Return {'vmarc': url, 'zip': url, 'tar': url} for package NAME."""
-    p = ListingParser(IBM_LISTING_URL)
-    p.feed(html)
-    p.close()
-    for row in p.rows:
-        if row["cells"] and row["cells"][0].strip().lower() == name.lower():
-            files = {}
-            for a in row["links"]:
-                m = re.match(r"(VMARC|ZIP|TAR)\b", a["text"], re.I)
-                if m:
-                    files[m.group(1).lower()] = a["href"]
-            return files
-    return {}
 
 
 def classify(url):
@@ -237,7 +155,6 @@ def parse_github(url):
     return owner, repo, ref, sub
 
 
-# --------------------------------------------------------------- downloads --
 def save(url, dest, fallback_name):
     name = os.path.basename(urllib.parse.urlparse(url).path) or fallback_name
     path = os.path.join(dest, name)
@@ -258,19 +175,21 @@ def extract_tar(path, dest, subdir=""):
                   if m.name == prefix or m.name.startswith(prefix + "/")]
         if not wanted:
             raise RuntimeError("path %r not found in archive" % subdir)
+
         root = os.path.realpath(dest)
-        for m in wanted:                      # refuse path traversal
+        for m in wanted:
             tgt = os.path.realpath(os.path.join(root, m.name))
             if not (tgt == root or tgt.startswith(root + os.sep)):
                 raise RuntimeError("unsafe path in archive: %s" % m.name)
+
         try:
             tar.extractall(dest, members=wanted, filter="data")
-        except TypeError:                     # Python < 3.12
+        except TypeError:
             tar.extractall(dest, members=wanted)
+
     return os.path.join(dest, prefix)
 
 
-# ----------------------------------------------------- install description --
 VMARC_HOWTO = """\
 Installing a VMARC package on z/VM (steps from IBM's download page):
   1. Upload the .vmarc file to CMS in BINARY (e.g. FTP binary mode),
@@ -335,9 +254,9 @@ def linux_hints(root):
 
 
 def has_cms_content(root):
-    for base, _dirs, files in os.walk(root):
-        for f in files:
-            if re.search(r"\.(vmarc|exec|rexx|xedit)$", f, re.I):
+    for _base, _dirs, files in os.walk(root):
+        for filename in files:
+            if re.search(r"\.(vmarc|exec|rexx|xedit)$", filename, re.I):
                 return True
     return False
 
@@ -347,14 +266,12 @@ def describe(entry, kind, files, root, owner_repo_sub):
              "%s - %s" % (entry["name"], entry["desc"]),
              "Source: %s (%s)" % (entry["src"], entry["url"]), "=" * 70]
     if kind == "ibm":
-        lines.append(VMARC_HOWTO if "vmarc" in files else
-                     "No VMARC file: unpack the ZIP/TAR on Linux and follow "
-                     "the files it contains.")
+        lines.append(VMARC_HOWTO)
         lines.append("\nIBM's license agreement for the download library "
                      "applies; listing there is not a\nguarantee that the "
                      "package is open source - check the license inside.")
     elif kind == "github":
-        owner, repo, sub = owner_repo_sub
+        _owner, repo, sub = owner_repo_sub
         lines.append("Code unpacked in: %s" % root)
         note = KNOWN.get((repo, sub.split("/")[0] if sub else ""))
         if note:
@@ -362,12 +279,10 @@ def describe(entry, kind, files, root, owner_repo_sub):
         hints = linux_hints(root)
         if hints:
             lines.append("On Linux, based on the files found:")
-            lines += ["  - " + h for h in hints]
+            lines += ["  - " + hint for hint in hints]
         if has_cms_content(root) or repo in ("zvm-community-tools",):
-            lines.append("")
-            lines.append("The tree contains CMS content (EXEC/REXX/XEDIT/"
-                         "VMARC).")
-            lines.append(VMARC_HOWTO)
+            lines += ["", "The tree contains CMS content (EXEC/REXX/XEDIT/VMARC).",
+                      VMARC_HOWTO]
         if not hints and not note:
             lines.append("No build files recognised; read the README in "
                          "the unpacked directory.")
@@ -380,7 +295,6 @@ def describe(entry, kind, files, root, owner_repo_sub):
     return "\n".join(lines)
 
 
-# -------------------------------------------------------------------- main --
 def main():
     global VERBOSE
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -393,7 +307,7 @@ def main():
     ap.add_argument("--dest", default="zvmsw-downloads",
                     help="download directory (default: %(default)s)")
     ap.add_argument("--type", choices=["vmarc", "zip", "tar"],
-                    help="for IBM packages: only this archive type")
+                    help="for IBM packages, download VMARC only")
     ap.add_argument("--name-only", action="store_true",
                     help="match package names only, not descriptions")
     args = ap.parse_args()
@@ -406,8 +320,7 @@ def main():
     hits = search(entries, args.terms, args.name_only)
     if not hits:
         print("No match for: %s" % " ".join(args.terms))
-        if VERBOSE:
-            print("+ searched %d catalog entries" % len(entries), file=sys.stderr)
+        verbose("+ searched %d catalog entries" % len(entries))
         return 1
 
     entry = pick_single(hits, args.terms)
@@ -418,6 +331,11 @@ def main():
         return 2
 
     kind = classify(entry["url"])
+    if kind == "ibm" and args.type not in (None, "vmarc"):
+        print("IBM package downloads from this endpoint are VMARC only; "
+              "--type must be vmarc.", file=sys.stderr)
+        return 3
+
     dest = os.path.join(args.dest, re.sub(r"[^\w.$-]", "_", entry["name"]))
     os.makedirs(dest, exist_ok=True)
     print("Match: %s  [%s]" % (entry["name"], entry["src"]))
@@ -425,18 +343,10 @@ def main():
 
     try:
         if kind == "ibm":
-            html = http_get(IBM_LISTING_URL).decode("utf-8", "replace")
-            files = ibm_files(entry["name"], html)
-            if args.type:
-                files = {k: v for k, v in files.items() if k == args.type}
-            if not files:
-                print("Could not find download links for %s on %s.\nOpen %s "
-                      "in a browser." % (entry["name"], IBM_LISTING_URL,
-                                         entry["url"]))
-                print(describe(entry, kind, files, root, None))
-                return 3
-            for typ, url in files.items():
-                save(url, dest, "%s.%s" % (entry["name"], typ))
+            filename = urllib.parse.quote(entry["name"].lower(), safe="") + ".vmarc"
+            url = urllib.parse.urljoin(IBM_PACKAGE_URL, filename)
+            files = {"vmarc": url}
+            save(url, dest, entry["name"].lower() + ".vmarc")
         elif kind == "github":
             owner, repo, ref, sub = parse_github(entry["url"])
             ogs = (owner, repo, sub)
@@ -462,4 +372,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
