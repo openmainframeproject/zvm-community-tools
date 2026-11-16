@@ -234,6 +234,8 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **ADDNAME** | Add entry to NAMES while in PEEK or NOTEBOOK | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ADDNAME) |
 | **ADDON** | CMS/GUI appl to add/change wakeup commands in RxServer based servers V1.4 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ADDON) |
 | **ANALYSE** | Draw flow lines and structure for 370 assembler programmes | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ANALYSE) |
+| **ansible** | Ansible automation for z/VM using SMAPI and the Feilong ecosystem | [GitHub](https://github.com/IBM/zvm_ansible) |
+| **ansible_collection** | Ansible collection for z/VM automation | [GitHub](https://github.com/IBM/zvm_ansible_collection) |
 | **ASKPMAN** | To display Full screen in CUA standard with REXX | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ASKPMAN) |
 | **B2H** | B2H: Convert Bookmaster, GML, Script/VS and "flat" files to HTML (Internet) Release 4.7 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=B2H) |
 | **BENCH** | Check how much resources a command uses; compare alternatives. V1.2 | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=BENCH) |
@@ -268,10 +270,10 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **CMS2CDL** | Convert a CMS formatted disk into Linux CDL format | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMS2CDL) |
 | **CMSDDR** | Enhanced DDR program to simulate DDR tapes via CMS files | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMSDDR) |
 | **CMSFMT** | DVF Aids for CMS Application Multitasking | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CMSFMT) |
-| **CMSFS Util** | CMS EDF FS tool no mount needed | [Github](https://github.com/trothtech/cmsfs) |
-| **CMS Make** | Make-like build automation for CMS | [Github](https://github.com/trothtech/cmsmake) |
-| **CMS NAMES support** | CMS NAMES syntax highlighting | [GitHub](https://github.com/openmainframeproject/atompkg-language-zvm-names) |
-| **CMS TAR** | TAR archive utility for CMS | [Github](https://github.com/trothtech/cmstar) |
+| **cmsfs** | CMS EDF FS tool no mount needed | [Github](https://github.com/trothtech/cmsfs) |
+| **cmsmake** | Make-like build automation for CMS | [Github](https://github.com/trothtech/cmsmake) |
+| **cmsnames** | CMS NAMES syntax highlighting | [GitHub](https://github.com/openmainframeproject/atompkg-language-zvm-names) |
+| **cmstar** | TAR archive utility for CMS | [Github](https://github.com/trothtech/cmstar) |
 | **CODE** | Front end to CIPHER product. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CODE) |
 | **COLRXTND** | Extension to the COLORS package. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COLRXTND) |
 | **COLSIMPL** | COLS insert and COLS delete SIMPLE Xedit macros. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=COLSIMPL) |
@@ -403,8 +405,6 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **HSX** | HSX - Adds Compressed File Support to any CMS program | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=HSX) |
 | **IAMMGR** | IAM Manager - an IAM SAFE front-end | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=IAMMGR) |
 | **IBMVMGAT** | IBMVMGAT TOOLS documents and TOOLS Catalog | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=IBMVMGAT) |
-| **IBM zvm_ansible** | Ansible automation for z/VM using SMAPI and the Feilong ecosystem | [GitHub](https://github.com/IBM/zvm_ansible) |
-| **IBM zvm_ansible_collection** | Ansible collection for z/VM automation | [GitHub](https://github.com/IBM/zvm_ansible_collection) |
 | **ICKGENSA** | Generate ICKDSF to work with SAPL (Stand-alone program loader | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ICKGENSA) |
 | **IDLEDISC** | Disconnect VMID if there is no I/O for a specified period. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=IDLEDISC) |
 | **ILEXITS** | Sample User Exits for INFOLIST PACKAGE | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=ILEXITS) |

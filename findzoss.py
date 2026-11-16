@@ -104,19 +104,33 @@ def parse_catalog(text):
             entries.append(e)
     return entries
 
+def normalize_name(value):
+    """Make names comparable regardless of punctuation or spacing."""
+    return re.sub(r"[^a-z0-9]", "", value.lower())
+
 def search(entries, terms, name_only=False):
-    terms = [t.lower() for t in terms]
     hits = []
     for e in entries:
-        hay = e["name"].lower() if name_only else (e["name"] + " " + e["desc"]).lower()
-        if all(t in hay for t in terms):
+        name = e["name"].lower()
+        normalized_name = normalize_name(name)
+        desc = e["desc"].lower()
+
+        def matches(term):
+            normalized_term = normalize_name(term)
+            name_match = (
+                normalized_term in normalized_name
+                if normalized_term else term.lower() in name
+            )
+            return name_match or (not name_only and term.lower() in desc)
+        if all(matches(term) for term in terms):
             hits.append(e)
     return hits
 
 def pick_single(hits, terms):
     if len(hits) == 1:
         return hits[0]
-    exact = [e for e in hits if e["name"].lower() == " ".join(terms).lower()]
+    search_name = normalize_name(" ".join(terms))
+    exact = [e for e in hits if normalize_name(e["name"]) == search_name]
     return exact[0] if len(exact) == 1 else None
 
 def classify(url):
