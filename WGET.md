@@ -7,4 +7,6 @@ https://github.com/trothtech/cmsmake
 `wget` is part of CMS Make because it helps in achieving CMS Make's
 objective of recipes looking the same on CMS as they do on Unix.
 
+https://raw.githubusercontent.com/trothtech/cmsmake/refs/heads/main/cms/wget.rexx
+
 
