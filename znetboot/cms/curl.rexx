@@ -3,18 +3,22 @@
  *        Date: 2006-Mar-02                                           *
  *              This program is part of the CMS Make package.         *
  *       Calls: WEBROVER REXX when it cannot handle a given URL.      *
+ *                                                                    *
+ *              This program is part of the CMS Make package.         *
+ *                                                                    *
+ *              Thanks to Sir Rob the Plumber for many enhancements   *
+ *              to CMS Pipelines, especially SSL/TLS support.         *
  *                                                                    */
 
+make_version = "2.0.43"
 Numeric Digits 20
-
-make_version = "2.0.35"
 
 /* if no other output, attach console */
 'STREAMSTATE OUTPUT'
 If rc = 4 Then rc = 0
 If rc = 8 Then rc = 0
 If rc = 12 Then 'ADDPIPE *.OUTPUT: | CONSOLE'
-If rc /= 0 Then Exit rc
+If rc ^= 0 Then Exit rc
 
 verbose = 0
 outfile = ""
@@ -42,20 +46,15 @@ Do While Left(arg1,1) = "-"
     When Abbrev("--ascii",arg1,5) Then trans = 1
     When Abbrev("--use-ascii",arg1,11) Then trans = 1
     When Abbrev("-B",arg1,2) Then trans = 1
-
-
-
-
-
-
-
     When Abbrev("--text",arg1,6) Then trans = 1
     When Abbrev("--output",arg1,8) Then Parse Var args outfile args
+
     When Abbrev("-h",arg1,2) | Abbrev("--help",arg1,6) Then Do
       'CALLPIPE COMMAND HELP CMS' argu '(NOSCREEN' ,
         '| NLOCATE 1.10 /DMSHLL355I/ | UNIQ | *.OUTPUT:'
       Exit rc
     End /* When .. Do */
+
     When Abbrev("--version",arg1,9) Then Do
       'CALLPIPE VAR MAKE_VERSION' ,
         '| SPEC /CMS Make/ NW W 1 NW /' || argu || '/ NW | *.OUTPUT:'
@@ -67,10 +66,16 @@ Do While Left(arg1,1) = "-"
        | Abbrev("--cacert",arg1,8) ,
        | Abbrev("--capath",arg1,8) ,
        | Abbrev("--cert",arg1,6) ,
+       | Abbrev("--key",arg1,5) ,
        | Abbrev("-E",arg1,2) ,
-       | Abbrev("-k",arg1,2) Then Do
+       | Abbrev("-X",arg1,2) ,
+       | Abbrev("-H",arg1,2) ,
+       | Abbrev("-u",arg1,2) ,
+       | Abbrev("-k",arg1,2) ,
+       | Abbrev("-d",arg1,2) ,
+       | Abbrev("--data",arg1,6) ,
+       Then Do
       Address "COMMAND" 'XMITMSG 14 ARG1 (ERRMSG CALLER URL'
-      Say "CMS Pipelines needs SSL support"
       Exit 24
     End
 
@@ -78,6 +83,7 @@ Do While Left(arg1,1) = "-"
       Address "COMMAND" 'XMITMSG 3 ARG1 (ERRMSG CALLER URL'
       Exit 24
     End /* Otherwise Do */
+
   End /* Select */
   Parse Var args arg1 .
 End /* Do While */
@@ -87,13 +93,14 @@ If argu = "CURL" & outfile = "" Then outfile = "-"
 'CALLPIPE STATE POSIX TCPXLBIN'
 If rc = 28 Then Address "COMMAND" 'EXEC VMLINK TCPMAINT 592'
 'CALLPIPE < POSIX TCPXLBIN | STEM TCP.'
-If rc /= 0 Then Return rc ;  a2e = tcp.2 ;  e2a = tcp.3
+If rc ^= 0 Then Return rc ; a2e = tcp.2 ; e2a = tcp.3
 
 /* get essential config info - like the stack name */
 'CALLPIPE < TCPIP DATA | STRIP' ,
   '| NLOCATE 1.1 /;/ | STEM TCF.'
-If rc /= 0 Then Return rc
+If rc ^= 0 Then Return rc
 tcp.id = "TCPIP"
+tcp.ssl = ""
 Do i = 1 to tcf.0
   Parse Upper Var tcf.i cf c1 .
   Select
@@ -103,7 +110,7 @@ Do i = 1 to tcf.0
 End /* Do For */
 
 /* step through command line list-o-URLs */
-Do While args /= ""
+Do While args ^= ""
   Parse Var args furl args
   Parse Var furl mode '://' host '/' file
   port = ""
@@ -125,27 +132,45 @@ Do While args /= ""
 
   /* CALL OUT HERE */
   Select /* mode */
+
     When mode = "HTTP" Then Parse Value ,
       url_http(user,pass,host,port,file,outfile,trans) With rc rs
+
+    When mode = "HTTPS" Then Parse Value ,
+      url_https(user,pass,host,port,file,outfile,trans) With rc rs
+
     When mode = "FTP" Then Parse Value ,
       url_ftp(user,pass,host,port,file,outfile,trans) With rc rs
+
+    When mode = "FILE" Then Parse Value ,
+      url_file(user,pass,host,port,file,outfile,trans) With rc rs
+
     Otherwise Do
 /*    Address "COMMAND" 'XMITMSG 15 MODE (ERRMSG CALLER URL'          */
       Address "COMMAND" 'XMITMSG 475 MODE (ERRMSG CALLER URL'
 /*    Address "COMMAND" 'XMITMSG 2481 MODE (ERRMSG CALLER URL'        */
-      Exit 24 ;  End
+      rc = 24 ; End
+
   End /* Select */
 
-  If rc /= 0 Then Exit rc
+  If rc ^= 0 Then Exit rc
 
 End
 
 Exit
 
+/* ----------------------------------------------------------- URL_HTTPS
+ *  This routine is for files fetched via HTTP over SSL/TLS.
+ */
+url_https: Procedure Expose tcp.
+tcp.ssl = "SECURE"
+Parse Arg user,pass,host,port,file,outfile,trans,.
+Return url_http(user,pass,host,port,file,outfile,trans)
 
 /* ------------------------------------------------------------ URL_HTTP
+ *  This routine is for files fetched via HTTP.
  */
-url_http: Procedure Expose tcp. ;  a2e = tcp.2 ;  e2a = tcp.3
+url_http: Procedure Expose tcp. ; a2e = tcp.2 ; e2a = tcp.3
 Parse Arg user,pass,host,port,file,outfile,trans,.
 Parse Var file file ";" flag      /* look for ";type=A" to mean ASCII */
 Upper flag
@@ -161,7 +186,7 @@ If Verify(host,"0123456789.") > 0 Then Do
   /* 'CALLPIPE VAR HOST | HOSTBYNAME | VAR ADDR' */
   /* a fix from phsiii */
   'CALLPIPE VAR HOST | HOSTBYNAME | SPECS w1 1 | VAR ADDR'
-  If rc /= 0 Then Return rc
+  If rc ^= 0 Then Return rc
 End /* If .. Do */
 Else addr = host
 
@@ -188,17 +213,17 @@ req.0 = 4
 a2ex = "X" || C2X(a2e)
 e2ax = "X" || C2X(e2a)
 'ADDPIPE' ,
-    '*.OUTPUT.HTTP: | TCPCLIENT' addr port ,
+    '*.OUTPUT.HTTP: | TCPCLIENT' addr port tcp.ssl ,
                       'LINGER 7 USERID' tcp.id 'DEBLOCK LINEND 0A' ,
                    '| *.INPUT.HTTP:'
-If rc /= 0 Then Return rc
+If rc ^= 0 Then Return rc
 
 /* send the request header then read the response header */
 'CALLPIPE (END !) STEM REQ.' ,
   '| E2A: XLATE | SPEC 1-* 1 x0D0A N' ,
   '| *.OUTPUT.HTTP:',
   '! STRLITERAL' e2ax '| E2A:'
-If rc /= 0 Then Return rc
+If rc ^= 0 Then Return rc
 
 /* consume the response header */
 'SELECT INPUT HTTP'
@@ -207,7 +232,7 @@ i = 0
 lm = ""
 Do Forever
   'PEEKTO RECORD'
-  If rc /= 0 Then Leave
+  If rc ^= 0 Then Leave
   Parse Var record record '0D'x
   If record = "" Then Leave
   i = i + 1 ; h.i = Translate(record,a2e)
@@ -217,7 +242,7 @@ Do Forever
   'READTO'
 End
 If rc = 12 Then rc = 0
-If rc /= 0 Then Do
+If rc ^= 0 Then Do
   _rc = rc
   'SELECT INPUT 0'
   Return _rc
@@ -230,7 +255,7 @@ h.0 = i
 If h.0 > 0 Then Do
   Parse Var h.1 . _rc rs
   If _rc = 200 Then _rc = 0
-  If _rc /= 0 Then Do
+  If _rc ^= 0 Then Do
     'SELECT INPUT 0'
     Return _rc rs
   End
@@ -252,15 +277,16 @@ _rc = rc
 
 /* 'CALLPIPE STEM H. | > WGET HEAD A' */
 /* stamp time on file if a file was written */
-If fn /= "-" & lm /= "" Then lm = _lm2full(lm)
-If fn /= "-" & lm /= "" Then Address "COMMAND" 'DMSPLU' fn ft 'A' lm
+If fn ^= "-" & lm ^= "" Then lm = _lm2full(lm)
+If fn ^= "-" & lm ^= "" Then Address "COMMAND" 'DMSPLU' fn ft 'A' lm
 
 Return _rc
 
-
 /* ------------------------------------------------------------- URL_FTP
+ *  This routine is for files fetched using FTP.
+ *  We punt to VM TCP/IP FTP utility wrapping it in a 'MAKEBUF'.
  */
-url_ftp: Procedure Expose tcp. ;  a2e = tcp.2 ;  e2a = tcp.3
+url_ftp: Procedure Expose tcp. ; a2e = tcp.2 ; e2a = tcp.3
 Parse Arg user,pass,host,port,file,outfile,trans,.
 Parse Var file file ";" flag      /* look for ";type=A" to mean ASCII */
 Upper flag
@@ -270,7 +296,7 @@ If Verify(host,"0123456789.") > 0 Then Do
   /* 'CALLPIPE VAR HOST | HOSTBYNAME | VAR ADDR' */
   /* a fix from phsiii */
   'CALLPIPE VAR HOST | HOSTBYNAME | SPECS w1 1 | VAR ADDR'
-  If rc /= 0 Then Return rc
+  If rc ^= 0 Then Return rc
 End /* If .. Do */
 Else addr = host
 
@@ -302,7 +328,7 @@ Address "COMMAND" 'MAKEBUF'
   Queue user pass
   If trans Then Queue "TYPE A"
            Else Queue "TYPE I"
-  Do While dir /= ""
+  Do While dir ^= ""
     Parse Var dir dir1 "/" dir
     Queue "CD" dir1
   End
@@ -314,7 +340,7 @@ Address "COMMAND" 'MAKEBUF'
 
 Address "COMMAND" 'DROPBUF'
 
-If ftprc /= 0 Then Return ftprc
+If ftprc ^= 0 Then Return ftprc
 
 /* pipeline fixup here */
 Parse Upper Var temp tfn '.' tft '.' .
@@ -328,11 +354,25 @@ End
 
 Return ftprc
 
+/* ------------------------------------------------------------ URL_FILE
+ *  This routine is for local files.
+ */
+url_file: Procedure Expose tcp. ; a2e = tcp.2 ; e2a = tcp.3
+Parse Arg user,pass,host,port,file,outfile,trans,.
+Parse Var file file ";" flag      /* look for ";type=A" to mean ASCII */
+Upper flag
+If flag = "TYPE=A" Then trans = 1
+
+file = Strip(file,"L","/")
+Parse Var file fn "." ft "." .
+'CALLPIPE <' fn ft '| *.OUTPUT:'
+
+Return rc
 
 /* ------------------------------------------------------------ VIAROVER
  *  For some URLs, just punt to WEBROVER, assuming it is present.
  */
-viarover: Procedure Expose tcp. ;  a2e = tcp.2 ;  e2a = tcp.3
+viarover: Procedure Expose tcp. ; a2e = tcp.2 ; e2a = tcp.3
 Parse Arg f . , o . , t . , .
 
 /* force WEBROVER into binary mode */
@@ -358,15 +398,14 @@ Else 'CALLPIPE VAR F | WEBROVER |' pipe
 
 Return rc
 
-
 /* ------------------------------------------------------------ BASENAME
+ *  This routine returns the basename of the path supplied.
  */
 basename: Procedure
 Parse Arg file . , .
 file = Reverse(file)
 Parse Var file file '/' .
 Return Reverse(file)
-
 
 /* ---------------------------------------------------------------------
  *  Convert Last-Modified HTTP header to FULLDATE format.
@@ -381,7 +420,7 @@ lmdt = dd mon yyyy time
 /* convert to POSIX for easier arithmetic */
 Address "COMMAND" ,
 'PIPE VAR LMDT | DATECONVERT NORMAL POSIX | VAR PDATE'
-If rc /= 0 Then Return ""
+If rc ^= 0 Then Return ""
 
 /* apply time zone offset */
 zdate = C2D(pdate) + tzoffset("S")
@@ -390,13 +429,12 @@ zdate = D2C(zdate,8)
 /* convert back to FULLDATE and include time */
 Address "COMMAND" ,
 'PIPE VAR ZDATE | DATECONVERT POSIX FULLDATE TIMEOUT | VAR RS'
-If rc /= 0 Then Return ""
+If rc ^= 0 Then Return ""
 
 /* slice off fractional time and return usable stamp */
 Parse Var rs rd rt .
 Parse Var rt rt "." .
 Return rd rt
-
 
 /* ------------------------------------------------------------ TZOFFSET
  *  Compute timezone offset based on timezone string from 'CP Q TIME'.
@@ -437,7 +475,6 @@ Select /* denom */
   When denom = "M" Then Return zo * 60           /* offset in minutes */
   Otherwise Return zo
 End /* Select denom */
-
 
 /*
  * There are many more options defined for 'curl' and 'wget' than this
