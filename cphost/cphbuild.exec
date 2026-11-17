@@ -1,0 +1,52 @@
+/* REXX */
+ 
+Parse Upper Source . . myname mytype mymode syn .
+Address "COMMAND"
+ 
+/* assembling directly - be sure you have VM/CP macro libraries */
+'GLOBAL MACLIB HCPGPI HCPPSI HCPOM1 HCPOM2 DMSOM'
+If rc ^= 0 Then Exit rc
+'HLASM CPHOST'
+If rc ^= 0 Then Exit rc
+ 
+Exit
+ 
+/* assmbling using logic from Kris */
+Call asm 'CPHOST'
+ 
+Exit
+ 
+/* assmbling in a SES/update context */
+'EXEC VMFHLASM CPHOST HCPVM (OUTMODE A'
+If rc ^= 0 Then Exit rc
+ 
+Exit
+ 
+ 
+ 
+/* This exec to assemble CP1STLVL
+    +-----------------------------------------------------------+
+    | format:  | ASMCP1                                         |
+    +-----------------------------------------------------------+
+  Written by: Kris Buelens 12 Jun 1997*/
+ 
+parse upper source . . myname mytype mymode syn .
+address command
+maxrc=0
+Call asm 'CPHOST'
+exit maxrc
+ 
+ASM:
+ parse arg fn .
+ 'STATE ZVM PPF *'
+ if rc=0 then
+   'EXEC VMFHLASM' fn 'ZVM CP (LOGMOD OUTMODE' mymode
+ else do
+   say 'ZVM PPF not found, We will assemble outside VMSES'
+   'EXEC VMFHLASM' fn 'HCPVM (OUTMODE' mymode
+ end
+if rc<>0 then Say '1DE8'x 'VMFHLASM of' fn 'failed with rc' rc '1DD0'x
+ maxrc=max(rc,maxrc)
+return
+ 
+ 
