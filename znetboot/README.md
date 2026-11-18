@@ -1,17 +1,20 @@
-# znetboot
+# ZNETBOOT
 
 ZNETBOOT makes it easy to bring up Linux on z/VM. <br/>
 Just enter the command `znetboot` from the CMS "Ready;" prompt.
 
+ZNETBOOT is designed to simplify things for those hosting Linux on z/VM
+who are unfamiliar with z/VM.
+
 ZNETBOOT is intended to reduce the number of manual steps required
 to boot Linux on a VM/CMS system. It should make things much easier
-for non-VM and non-mainframe users. After nearly two decades of Linux
-on z/VM, mainframe Linux should be at least this easy.
+for non-VM and non-mainframe users. After more than two decades of
+Linux on z/VM, mainframe Linux should be *at least* this easy.
 
 ## Official Repository
 
 What you find here under the z/VM Community Tools repository
-is a copy of the official distribution.
+is a *copy* of the official distribution.
 
 https://github.com/trothr/znetboot/
 
@@ -33,9 +36,10 @@ The syntax of the `znetboot` command is ...
 or SFS directory. If you do not specify a filename, the username
 of your virtual machine is taken as the default filename.
 
-ZNETBOOT reads the installation file and retrieves the kernel and initrd
+ZNETBOOT reads an installation file and retrieves the kernel and initrd
 indicated in that file. Other statements in the installation file are
-passed to the kernel as boot parameters. For example ...
+passed to the kernel as boot parameters. For example, create and
+upload to CMS a file like ...
 
     # the following are used by ZNETBOOT EXEC
     ZNETBOOT_KERNEL=http://znetboot.casita.net/nord/image
@@ -51,14 +55,22 @@ Next stop, Linux.
 
 ## Working ZNETBOOT Distributions
 
-Installers for the following Linux distributions
-are known to work with ZNETBOOT:
+Installers for the following Linux distributions are known to work
+with ZNETBOOT:
 
 * ClefOS
 * Alpine
 * Debian
 * Fedora
 * Ubuntu
-* NORD  
+* OpenSUSE
+* NORD
+
+Support for the following Linux distributions are wanted:
+
+* CentOS
+* Slack/390
+* Gentoo
+* Red Hat
 
 
