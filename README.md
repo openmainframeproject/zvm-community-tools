@@ -299,6 +299,8 @@ This catalog combines the package entries from the IBM z/VM Download Packages pa
 | **CQ** | Query Status of Local or Remote Network Users | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CQ) |
 | **CRDELCMP** | Compare 2 source files and create optimum update file. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CRDELCMP) |
 | **CUA2001** | Support development of Common User Access (CUA) panels for 3270 terminals | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CUA2001) |
+| **curlexec** | CURL EXEC for z/VM used with CURL REXX | [Github](https://github.com/trothr/cmsmake/blob/master/curl.exec) | 
+| **curlrexx** | CURL REXX for z/VM used with CURL EXEC | [Github](https://github.com/trothr/cmsmake/blob/master/curl.rexx) | 
 | **CUTPASTE** | XEDIT macros CUT and PASTE to easily move and copy text | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=CUTPASTE) |
 | **D0R16TOP** | Draws machine topology from a MONWRITE File | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=D0R16TOP) |
 | **D1R31** | Report on D1 R31 CP Service Configuration record. | [z/VM Downloads](https://www.ibm.com/support/pages/zvm/download/packages/#search=D1R31) |
