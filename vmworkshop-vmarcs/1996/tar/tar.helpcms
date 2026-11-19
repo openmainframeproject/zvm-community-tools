@@ -1,0 +1,73 @@
+.cm This file was created from  file "TAR -HLPCMS"
+.cm    using version 1989-09-06 of the UCSF "HELPCONV" command.
+.cm
+.cm Author of this help file: Sean Starke
+.cm
+.cs 1 on
+ 
+¢|TAR EXEC¢%
+ 
+ Use CMS TAR to store many files in an archive file on tape or disk.
+ CMS TAR can read UNIX TAR archives and archives created with CMS TAR
+ can be read by UNIX 'tar'.
+ 
+.cs 1 off
+.cs 2 on
+ The format of the TAR command is:
+ +------------+-------------------------------------------------------------+
+ |            |                                                             |
+ |  TAR       | command [tar-file] [pattern] [(options...]                  |
+ |            |                                                             |
+ +------------+-------------------------------------------------------------+
+ 
+.cs 2 off
+.cs 3 on
+¢|where:¢%
+ 
+¢|command¢%  is a combination of C, X, or T with M, V and F or 0..7,
+           C|X|T[M][V][S|F|0|1|2|3|4|5|6|7], signifying:
+ 
+           C : create a new archive
+           X : extract files from an archive
+           T : list the files in an archive
+           (these are mutually exclusive)
+ 
+           M : don't extract modification times
+           V : verbose
+ 
+           S : working with a spool file
+           F : next argument is a disk resident archive
+           01234567 : tape drive number, default is TAP1 (181)
+           (F, S, and numerics are mutually exclusive)
+ 
+¢|tar-file¢% is the filename of the disk resident archive, having a filetype of
+           TAR,  if  F was specified  in the command.   This can also  be the
+           spoolid of the file when extracting a spool TAR file,  or a target
+           user@node when creating a spool TAR file.
+ 
+¢|pattern¢%  specifies what files to tar/untar.
+           CREATING AN ARCHIVE:  When creating an archive,  this pattern must
+           be specified in the form 'fn ft fm',  like when using the LISTSILE
+           command.   In addition to '*' and '%', periods (.)  can be used as
+           wilcards (like in Unix)  so that if  you specify simply '.' as the
+           pattern, then all files on your 'A' disk will be archived.  If the
+           pattern omitted, only files specified with the INCLUDE option will
+           be archived.
+           EXTRACTING AN ARCHIVE.  If you want to extract only one file,  put
+           it's name (exactly as it appears with the LIST command) here.   If
+           this option  is omitted,   all files  will be  extracted from  the
+           archive.
+ 
+.cs 3 off
+.cs 4 on
+¢|Options:¢%
+ 
+¢|INCLUDE fn
+           specifies  a FILELIST  file listing  files  to be  included in  an
+           archive being built.   When building  an archive file according to
+           the INCLUDE file,  the name of each  file as it will appear in the
+           archive  may follow  fn ft  fm  in the  FILELIST,  overriding  the
+           default.
+ 
+.cs 4 off
+ 

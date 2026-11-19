@@ -1,0 +1,430 @@
+*******************************************************************
+BACKSERV.CMD
+ 
+/*
+This exec will setup a TCP/IP socket to listen for incoming commands from an operator.  It is designed to
+be used on the Marist LAN Servers to allow operators to initiate ADSM backups from a remote host.
+Written by Martha McConaghy  4/6/94
+ 
+Change log:
+    4/6/94 - add logging feature for connections, good or bad.  MMM
+    6/24/94 - add improved security and remove need for priv client list.  MMM
+    9/05/94 - add support for new command, CHKDSK.  MMM
+    11/11/94 - add support for restores.  MMM
+*/
+address CMD
+trace o
+ 
+/* Initialize required constants.  */
+port = 2500
+call RxFuncAdd 'SysFileTree','Rexxutil','SysFileTree'
+Prog_dir = directory()
+ 
+/*  Initialize the RXSocket function package and create the initial socket for listening. */
+ rc = RxFuncAdd("SockLoadFuncs","RxSock","SockLoadFuncs")
+ rc = SockLoadFuncs()
+Listen_sock = SockSocket("AF_INET","SOCK_STREAM",0)
+if (Listen_sock = -1) then do
+   call log_it "Error on SockSocket:" errno
+   exit
+   end
+ 
+/*  The following will cause control to transfer to the HALT subroutine when the program
+      is interrupted, like a ctl-C.  */
+signal on halt
+ 
+/*  Now bind to the socket */
+server.!family = "AF_INET"
+server.!port   = port
+server.!addr   = "INADDR_ANY"
+rc = SockBind(Listen_sock,"server.!")
+if (rc = -1) then do
+   call log_it "Error on SockBind:" errno
+   exit
+   end
+/*
+Level = "SOL_SOCKET"
+rc = SockGetSockOpt(Listen_sock,level,"SO_RCVTIMEO","Rec_time")
+say "****** GetOpt RC:" RC "Receive Timeout:" Rec_time
+rc = SockGetSockOpt(Listen_sock,level,"SO_SNDTIMEO","Snd_time")
+say "****** GetOpt RC:" RC "Send Timeout:" Snd_time
+*/
+ 
+ 
+/*  Now that we are bound to the socket, set up the listener and await incoming commands. */
+rc = SockListen(Listen_sock,10)
+if (rc = -1) then do
+   call log_it "Error on SockListen:" errno
+   exit
+   end
+ 
+/* The following loop processes the incoming connection when the "listen socket" detects one.
+*/
+do forever
+   say "Waiting for client"
+ 
+   /*  When a connection comes in, accept it and then validate that its someone we know. */
+   Accept_sock = SockAccept(Listen_sock,"client.!")
+   if (Accept_sock = -1) then do
+      call log_it "Error on SockAccept:" errno
+      exit
+      end
+ 
+/*  Now check to see if the incoming client is a valid one.  If so, go on.  If not, then reject connection.*/
+    call Security_chk
+    Response = 'Security check:' Sec_num
+    rc = SockSend(Accept_sock,Response)
+    if(rc = -1) then do
+       call log_it "Error on SockSend:" errno
+       exit
+       end;
+    else rc = SockRecv(Accept_sock,"Sec_resp",30)
+    parse var Sec_resp . ':' Sec_code .
+    if(Sec_code<>Sec_result) then do
+          Response = 'Invalid client.  Unable to accept connection.'
+          rc = SockSend(Accept_sock,Response)
+          call Log_it  "Rejecting connection from" Client.!addr "Not priviledged client"
+          call Kill_it 0
+          iterate
+          end;
+    else  do
+          say 'Connecting client is valid'
+          Response = 'Connection accepted'
+          rc = SockSend(Accept_sock,Response)
+          call Log_it "Accepting connection from" Client.!addr
+     end;
+ 
+   /*  Now, receive data from contacting client.  If syntax is valid, then perform requested action. */
+   rc = SockRecv(Accept_sock,"Info",30)
+   if (rc = -1) then do
+       call log_it "Error on SockRecv:" errno
+      exit
+      end
+   say 'Received command from:' Client.!addr 'on socket:' Accept_sock
+   say 'Command is:' Info
+   call Log_it  "Processing command:" Info "from" Client.!addr
+   select
+        when (Info='Backup Incremental') then call iback
+        when (Info='Backup Full') then call fback
+        when (Info='Restore') then call Restore_it
+        otherwise do
+             Response='Invalid command specified'
+             rc=SockSend(Accept_sock,Response)
+             call Log_it "Invalid command specified by" Client.!addr
+             end;
+    end;
+ 
+   /* We are done for now, so kill the current socket and continue to listen. */
+   call Kill_it 1
+end  /* do forever */
+/* end of exec */
+ 
+Halt:
+   /*  They want to close down the program now, so clean up the sockets. */
+   say
+   say "Quitting ..."
+   call Log_it  "Shutting down server and closing sockets"
+   rc = SockSoClose(Listen_sock)
+   if datatype(Accept_sock,"W") then
+         rc = SockSoClose(Accept_sock)
+exit
+ 
+Kill_it:
+   /* This subroutine closes out a current connected socket, but keeps the listen socket open.*/
+   arg Good_close .
+   rc = SockSoClose(Accept_sock)
+   Accept_sock = ""
+   if (rc = -1) then do
+      call log_it "Error on SockSoClose:" errno
+      exit
+      end
+   if(Good_close) then say "Closing connection"
+        else say "Rejecting connection"
+   say
+return
+ 
+Iback:
+    /*  This routine will initiate the incremental backup on the server machine. */
+    Response='Incremental backup being initiated'
+    rc=SockSend(Accept_sock,Response)
+    say 'Incremental Backup being initiated'
+    call Log_it  "Initiating Incremental backup for:" Client.!addr
+    'call BACKIN'
+    if (RC=0) then call Log_it  "Incremental backup completed"
+      else call Log_it "Incremental backup with RC:" rc
+return
+ 
+Fback:
+    /* This routine will initiate the full backup on the server machine.  */
+    Response='Full backup being initiated'
+    rc=SockSend(Accept_sock,Response)
+    call Log_it "Full backup being initiated for:" Client.!addr
+    say 'Full backup being initiated'
+    'call BACKSEL'
+    if (RC=0) then call Log_it "Full backup completed"
+      else call Log_it "Full backup failed with RC:" rc
+return
+ 
+Restore_it:
+    /*  This routine will initiate the restore of a file on the server machine. */
+    Response='File restore being initiated'
+    rc=SockSend(Accept_sock,Response)
+    say Response
+    /* Obtain the specs on the file(s) to be restored */
+    rc = SockRecv(Accept_sock,"File_spec",50)
+    if (rc = -1) then do
+        call log_it "Error on SockRecv:" errno
+       exit
+       end
+    call Log_it  "Initiating file restore for:" Client.!addr
+    'call RESTIT' File_spec
+    if (RC=0) then call Log_it  "Restore completed"
+      else call Log_it "Restore with RC:" rc
+return
+ 
+Log_it:
+  /* This routine will log info passed to it in a file for tracking purposes. */
+  procedure
+  parse arg Log_data
+  Log_data = 'Backserv:' date() time() Log_data
+  call lineout 'BACKSERV.LOG',Log_data
+  call lineout 'BACKSERV.LOG'
+  say Log_data
+  return
+ 
+Security_chk:
+  /* This routine will set up the security formula which will verify that
+     the incoming communication is from a trusted client.
+  */
+  procedure expose Sec_num Sec_result
+  Sec_num = random()
+  Data = (3 * Sec_num) + 10
+  Sec_result = (Data ** 2) % 6
+return
+*******************************************************************
+BACKIN.CMD
+ 
+/* Rexx exec to begin the ADSM incremental backup of a client machine.
+ 
+    Written by Martha McConaghy 3/9/94
+ 
+    The exec takes as optional parameters the drives to be backed up, the nodeid of the ADSM
+     machine and its password.   The drives can be specified in any order and should include the colon.
+     If the node and password are specified,  enclose them in parens to seperate from drives.  An
+     example would be:       backin c: d: e: (CEILI.IS marthapw)    If you don't specify any parameters,
+     the values will default to settings created at the beginning section of this exec.
+ 
+    Change log:
+ 
+       7/11/94 - added date and time to report header and reduced the number of asterisks so
+                 it would fit in under 80 chars.  MMM
+*/
+address CMD
+trace o
+ 
+/*  Customize the following three variables for the specific ADSM node.  */
+call GETCUST
+if(0=queued()) then do
+    call Log_it 'Unable to read customization data, exiting backup.'
+    exit 10
+end;
+do while 0<queued()
+   parse pull Data
+   interpret Data
+   end;
+/* Set defaults for variables and environment.  */
+'@echo off'
+call RxFuncAdd 'SysFileTree','Rexxutil','SysFileTree'                  /*  loads the needed function  */
+Cur_dirvar='DSM_DIR'
+Cur_dir = value(Cur_dirvar,,'OS2ENVIRONMENT')                        /* Obtain value of DSM_DIR variable */
+Backup_log =  Cur_dir ||'\'|| 'backup.log'	                                           /* Make sure our logs e
+History_log = Cur_dir ||'\'|| 'history.log'
+Prog_dir = directory()
+call directory(Cur_dir)                                                                                 /* Ch
+call sysfiletree History_log,Stat_history,'FO'                                      /* Obtain info on log fil
+call sysfiletree Backup_log,Stat_backup,'FO'
+if(Stat_backup.0>0)  then do                                                                   /* If it exist
+               if(Stat_History.0=0) then 'COPY' Backup_log History_log
+                     else do
+                        'ERASE' History_log
+                        'COPY' Backup_log History_log
+                        end;
+               'ERASE' Backup_log
+end;
+ 
+/* Create new log file with identifier so we can tell them apart on the mainframe. */
+Hdr_text = '********** Incremental backup for  node:' ADSM_node date() time() '**********'
+call lineout Backup_log,Hdr_text,1
+call lineout Backup_log
+ 
+/*  Save the current variables, so we can change them.  */
+Res = setlocal()
+if(Res\=1) then do
+   call Log_it 'Unable to save current configuration'
+   exit 15
+end;
+ 
+/*  Now, the moment of truth, run the backup  */
+'SET DSM_CONFIG=INCR.OPT'
+'DSMC I ' Incr_drives ' -password=' || ADSM_pass '>> backup.log'
+if(RC=0) then call Log_it 'Backup ended successfully'
+   else call Log_it 'Backup has ended with bad return code.  Check' Backup_log
+Res = endlocal()	
+ 
+/*  Now, send log up to VM for archiving.  */ 	
+'lpr -b -pARCHIVE -sVM.MARIST.EDU backup.log'
+if(RC=0) then call Log_it 'Backup log successfully sent to VM'
+     else call Log_it 'Error sending log to VM, RC:' rc
+call directory(Prog_dir)
+exit RC
+ 
+/* end of exec */
+ 
+Log_it:
+/*  This subroutine will log info passed to it in a file for tracking. */
+  procedure
+  parse arg Log_data
+  Log_data = 'Backin:' date() time() Log_data
+  call lineout 'BACKSERV.LOG',Log_data
+  call lineout 'BACKSERV.LOG'
+  say Log_data
+  return
+*******************************************************************
+BACKSEL.CMD
+ 
+/* Rexx exec to begin the ADSM selective backup of a client machine.
+ 
+    Written by Martha McConaghy 3/15/94
+ 
+    The exec takes as optional parameters the drives to be backed up, the nodeid of the ADSM
+     machine and its password.   The drives can be specified in any order and should include the colon.
+     If the node and password are specified,  enclose them in parens to seperate from drives.  An
+     example would be:       backin c: d: e: (CEILI.IS marthapw)    If you don't specify any parameters,
+     the values will default to settings created at the beginning section of this exec.
+ 
+    Change log:
+ 
+       7/11/94 - Added date and time to report header and reduced the number of stars so it
+                 would fit in under 80 chars.  MMM
+       10/6/94 - Ensure that the node name reported in the log matches the node name in
+                 the FULLDUMP.OPT file.  All should include "_FULL" at the end.  MMM
+*/
+address CMD
+trace o
+arg Sub_dirs  '(' ADSM_node Password ')' .
+ 
+/* Set defaults for variables and environment.  */
+call GETCUST
+if (0=queued()) then do
+   call Log_it 'Unable to locate customization data'
+   exit 10
+end;
+do while 0<queued()
+   parse pull Data
+   interpret Data
+end;
+ 
+'@echo off'
+call RxFuncAdd 'SysFileTree','Rexxutil','SysFileTree'                  /*  loads the needed function  */
+Cur_dirvar='DSM_DIR'
+Cur_dir = value(Cur_dirvar,,'OS2ENVIRONMENT')                        /* Obtain value of DSM_DIR variable */
+Backup_log =  Cur_dir ||'\'|| 'backup.log'	                                           /* Make sure our logs e
+History_log = Cur_dir ||'\'|| 'history.log'
+Prog_dir = directory()
+call directory(Cur_dir)                                                                                 /* Ch
+call sysfiletree History_log,Stat_history,'FO'                                      /* Obtain info on log fil
+call sysfiletree Backup_log,Stat_backup,'FO'
+if(Stat_backup.0>0)  then do                                                                   /* If it exist
+               if(Stat_History.0=0) then 'COPY' Backup_log History_log
+                     else do
+                        'ERASE' History_log
+                        'COPY' Backup_log History_log
+                        end;
+               'ERASE' Backup_log
+end;
+ 
+/* Create new log file with identifier so we can tell them apart on the mainframe. */
+parse var ADSM_node Hold_it '_' .
+ADSM_node = Hold_it || '_FULL'
+Hdr_text = '********** Full backup for node:' ADSM_node date() time()'**********'
+call lineout Backup_log,Hdr_text,1
+call lineout Backup_log
+ 
+/*  Save the current variables, so we can change them.  */
+Res = setlocal()
+if(Res\=1) then do
+   say 'Unable to save current configuration'
+   exit 99
+end;
+ 
+/*  Now, the moment of truth, run the backup  */
+'SET DSM_CONFIG=FULLDUMP.OPT'
+'DSMC S  -password=' || ADSM_pass '-subdir=yes -tapeprompt=no' Full_dirs '>> backup.log'
+if(RC=0) then say 'Backup ended successfully'
+   else say 'Backup has ended with bad return code.  Check' Backup_log
+Res = endlocal()	
+ 
+/*  Now, send log up to VM for archiving.   */
+'lpr -b -pARCHIVE -sVM.MARIST.EDU backup.log'
+if(RC=0) then say 'Backup log successfully sent to VM'
+     else say 'Error sending log to VM, RC:' rc
+call directory(Prog_dir)
+exit RC
+ 
+/* End of exec */
+ 
+Log_it:
+/* This function will log information for tracking. */
+  procedure
+  parse arg Log_data
+  Log_data = 'Backsel:' date() time() Log_data
+  call lineout 'BACKSERV.LOG',Log_data
+  call lineout 'BACKSERV.LOG'
+  say Log_data
+  return
+*******************************************************************
+GETCUST.CMD
+ 
+/*  This routine will read a file of customization data and return the REXX code necessary to set
+     these values within the call exec.  The code is returned as a string of characters which are then	
+     executed by the calling exec to set the values.  The strings are passed back through the current	
+     defined queue.  The order of the strings passed back will depend on the order of the records in
+     the customization file.
+ 
+     Written by Martha McConaghy 4/7/94
+     Change log:
+         7/13/94 - Change comment character to # due to conflict with directory definitions.  MMM
+*/
+address Command
+trace o
+'@echo off'
+ 
+Cust_file = 'BACKCUST.DAT'
+if(0=lines(Cust_file)) then do
+       say 'Unable to locate customize file:' Cust_file
+       exit 99
+end;
+do while 0<lines(Cust_file)
+      Out_rec = ''
+      Record = linein(Cust_file)
+      parse var Record Tag Tag_val '#' .
+      Tag = translate(Tag)
+      Tag_val = "'"|| strip(Tag_val) ||"'"
+      select
+            when(Tag=':NODE') then Out_rec = 'ADSM_node =' Tag_val
+            when(Tag=':PASSWORD') then Out_rec = 'ADSM_pass =' Tag_val
+            when(Tag=':INCR_DRIVES') then Out_rec = 'INCR_DRIVES =' Tag_val
+            when(Tag=':FULL_DIRS') then Out_rec = 'FULL_DIRS =' Tag_val
+            otherwise nop
+      end;
+      queue Out_rec
+end;
+exit 0
+ 
+*******************************************************************
+BACKCUST.DAT - example
+ 
+:node nodename                    # ADSM node name
+:password passw           # ADSM node password
+:incr_drives c:                  # drives backed up by incremental job
+:full_dirs  c:\*  # subdirectories backed up by full dump job

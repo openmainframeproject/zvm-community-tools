@@ -1,0 +1,33 @@
+.* fromhtml script
+.* modeled after DSMPROFx, so imbed that first
+.im dsmprof4
+.* following changed 3/16/95 by Nick Laflamme
+.dc gml < < /
+.* following added 3/16/95 by Nick Laflamme
+.dc mcs >
+.aa title    dsm#cntx         dsmnoop
+.aa cite     dsmcit   (noatt) dsmecit
+.aa center   dsmcntr          dsmecntr
+.aa html     dsmgdoc          dsmegdoc
+.aa h1       dsmhead1 (noatt) dsmnoop
+.aa h2       dsmhead2 (noatt) dsmnoop
+.aa h3       dsmhead3 (noatt) dsmnoop
+.aa h4       dsmhead4
+.aa h5       dsmhead5
+.aa h6       dsmhead6
+.aa dfn      dsmhp1   (noatt) dsmehp
+.aa i        dsmhp1   (noatt) dsmehp
+.aa var      dsmhp1   (noatt) dsmehp
+.aa b        dsmhp2   (noatt) dsmehp
+.aa strong   dsmhp2   (noatt) dsmehp
+.aa kbd      dsmhp2   (noatt) dsmehp
+.aa samp     dsmhp3   (noatt) dsmehp
+.aa blockqu  dsmlquot (noatt) dsmelqu
+.aa head     dsmttlep (noatt) dsmettlp
+.aa code     dsmxmp           dsmexmp
+.aa pre      dsmxmp           dsmexmp
+.aa tt       dsmxmp           dsmexmp
+.aa body     dsmbody  (noatt) null
+.aa a        dsmanchr         null
+.tr " '
+.* above to fix anchor definitions? Please?

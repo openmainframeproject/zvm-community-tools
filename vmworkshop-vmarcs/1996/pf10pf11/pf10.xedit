@@ -1,0 +1,107 @@
+/* PF10 */
+"REFRESH"
+"EXTRACT /VERSHIFT/"
+IF VERSHIFT.1<0 THEN "RIGHT "ABS(VERSHIFT.1)
+                ELSE DO
+   "EXTRACT /CMDLINE/CURSOR/"
+   IF CURSOR.1=CMDLINE.2 THEN DO
+      "EXTRACT /VERIFY/"
+      IF WORDS(VERIFY.2)=2 THEN DO
+         "PIPE VAR VERIFY.2",
+             "| SPLIT AT ANYOF / H/",
+             "| JOIN 1 / /",
+             "| STEM TABLE1."
+         IF VERSHIFT.1>0 THEN DO
+            "EXTRACT /LRECL/"
+            SELECT
+               WHEN LRECL.1<=WORD(TABLE1.1,2) THEN "LEFT "VERSHIFT.1
+               WHEN LRECL.1<VERSHIFT.1+WORD(TABLE1.1,1) THEN "LEFT "VERSHIFT.1+WORD(TABLE1.1,2)-LRECL.1
+               WHEN WORD(TABLE1.1,1)=WORD(TABLE1.1,2) THEN "LEFT 1"
+               WHEN LRECL.1<=VERSHIFT.1+WORD(TABLE1.1,2)-WORD(TABLE1.1,1) THEN "LEFT "WORD(TABLE1.1,2)-WORD(TABLE1.1,1)-(LRECL.1-VERSHIFT.1)+1
+               WHEN VERSHIFT.1>=WORD(TABLE1.1,2)-WORD(TABLE1.1,1) THEN "LEFT "WORD(TABLE1.1,2)-WORD(TABLE1.1,1)
+               OTHERWISE "LEFT "VERSHIFT.1
+            END
+         END
+      END
+   END
+                         ELSE DO
+      "EXTRACT /SIZE/"
+      IF CURSOR.7=-1 |,
+         CURSOR.7>SIZE.1 |,
+         CURSOR.8=-1 THEN "CURSOR CMDLINE 1"
+                     ELSE DO
+         "EXTRACT /LSCREEN/PREFIX/VERIFY/"
+         "PIPE VAR VERIFY.2",
+             "| SPLIT",
+             "| JOIN 1 / /",
+             "| STEM TABLE1."
+         IF PREFIX.1="ON" &,
+            PREFIX.2="LEFT" THEN COUNT1=6
+                            ELSE COUNT1=0
+         DO  COUNT2=1 FOR LSCREEN.1
+             "CURSOR SCREEN "COUNT2" 1"
+             "EXTRACT /CURSOR/"
+             IF CURSOR.3=CURSOR.7 THEN LEAVE COUNT2
+         END COUNT2
+         COUNT3=LSCREEN.2*(CURSOR.5-CURSOR.1)+CURSOR.6-COUNT1
+         COUNT4=0
+         COUNT5=COUNT1+1
+         DO  COUNT6=1 FOR TABLE1.0
+             IF SUBSTR(TABLE1.COUNT6,1,1)="H" THEN DO
+                TABLE1.COUNT6=TRANSLATE(TABLE1.COUNT6,,"H")
+                COUNT4=COUNT4+(WORD(TABLE1.COUNT6,2)-WORD(TABLE1.COUNT6,1)+1)*2
+                COUNT7=2
+             END
+                                              ELSE DO
+                COUNT4=COUNT4+WORD(TABLE1.COUNT6,2)-WORD(TABLE1.COUNT6,1)+1
+                COUNT7=1
+             END
+             IF COUNT4>=COUNT3 THEN LEAVE COUNT6
+             COUNT5=COUNT5+WORD(TABLE1.COUNT6,2)-WORD(TABLE1.COUNT6,1)+1
+         END COUNT6
+         SELECT
+            WHEN VERSHIFT.1=0 THEN COUNT8=(CURSOR.8-WORD(TABLE1.COUNT6,1))*COUNT7
+            WHEN WORD(TABLE1.COUNT6,1)=WORD(TABLE1.COUNT6,2) THEN DO
+                 "LEFT 1"
+                 COUNT8=0
+            END
+            WHEN VERSHIFT.1<=WORD(TABLE1.COUNT6,2)-WORD(TABLE1.COUNT6,1) THEN DO
+                 SELECT
+                    WHEN CURSOR.8=VERSHIFT.1+WORD(TABLE1.COUNT6,2) THEN DO
+                         "LEFT "VERSHIFT.1
+                         COUNT8=0
+                    END
+                    WHEN CURSOR.8<=WORD(TABLE1.COUNT6,2) THEN DO
+                         "LEFT "VERSHIFT.1
+                         COUNT8=-VERSHIFT.1*COUNT7
+                    END
+                    OTHERWISE DO
+                       "LEFT "VERSHIFT.1+WORD(TABLE1.COUNT6,2)-CURSOR.8
+                       COUNT8=-(VERSHIFT.1+WORD(TABLE1.COUNT6,2)-CURSOR.8)*COUNT7
+                    END
+                 END
+            END
+            WHEN CURSOR.8=VERSHIFT.1+WORD(TABLE1.COUNT6,2) THEN DO
+                 "LEFT "WORD(TABLE1.COUNT6,2)-WORD(TABLE1.COUNT6,1)
+                 COUNT8=0
+            END
+            OTHERWISE DO
+               "LEFT "VERSHIFT.1+WORD(TABLE1.COUNT6,2)-CURSOR.8
+               COUNT8=-(VERSHIFT.1+WORD(TABLE1.COUNT6,2)-CURSOR.8)*COUNT7
+            END
+         END
+         DO  COUNT9=1 FOR LSCREEN.1
+             "CURSOR SCREEN "COUNT9" 1"
+             "EXTRACT /CURSOR/"
+             IF CURSOR.3=CURSOR.7 THEN LEAVE COUNT9
+         END COUNT9
+         COUNT10=LSCREEN.2*(COUNT9-CURSOR.1)+COUNT3-COUNT8+COUNT1
+         IF COUNT10//LSCREEN.2=0 THEN "CURSOR SCREEN "CURSOR.1+TRUNC((COUNT10-1)/LSCREEN.2)" "LSCREEN.2
+                                 ELSE "CURSOR SCREEN "CURSOR.1+TRUNC((COUNT10-1)/LSCREEN.2)" "COUNT10//LSCREEN.2
+         "EXTRACT /CURSOR/"
+         IF CURSOR.3=-1 |,
+            CURSOR.4=-1 THEN "CURSOR CMDLINE 1"
+      END
+   END
+END
+"REFRESH"

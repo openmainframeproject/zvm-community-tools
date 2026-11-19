@@ -1,0 +1,222 @@
+/*
+ *        Name: MIMEMAIN XEDIT
+ *              main macro for doing MIME with MAILBOOK
+ *
+ *     Warning: code developers, this macro is shared by both MIMEREAD
+ *              and MIMESEND.  In the case of the former,  we presume
+ *              we are in a sub-instance of XEDIT and might QUIT.
+ */
+ 
+Parse Upper Source . . . . . arg0 .
+Parse Arg args
+'COMMAND CMS GLOBALV SELECT MIME GET MAILBOOK'
+mailbook = (mailbook = 1)       /*  just in case  */
+ 
+Trace "OFF"
+ 
+Select  /*  arg0  */
+ 
+    When ^mailbook Then 'COMMAND' arg0 args
+ 
+    When Abbrev("PRINT",arg0,2)     Then Do
+        'COMMAND CMS GLOBALV SELECT MAIL GET SUBJECT'
+        'MACRO PRINT (TITLE Subject:' subject
+        End  /*  When  ..  Do  */
+ 
+    When Abbrev("ATTACH",arg0,3)    Then Signal ATTACH
+    When Abbrev("SIGN",arg0,3)      Then Signal SIGN
+ 
+    Otherwise Do    /*  pass the command to Schafer's code  */
+        Push arg0 args
+        Push "QQUIT"    /*  and quit from this XEDIT instance  */
+        End  /*  When  ..  Do  */
+ 
+    End  /*  Select  arg0  */
+ 
+Exit
+ 
+ 
+/* -------------------------------------------------------------- ATTACH
+ *  Mark this mail as multi-part and include the requested file.
+ */
+ATTACH:
+ 
+Parse Var args fn ft fm .
+If Index(fn,'.') > 0 Then Parse Var fn fn '.' ft '.' fm '.' .
+If ft = "" Then Do
+    'COMMAND CMS PIPE COMMAND XMITMSG 54 (ERRMSG | VAR EMSG'
+    'COMMAND EMSG' emsg
+    Exit 24
+    End  /*  If .. Do  */
+If fm = "" Then fm = "*"
+'COMMAND CMS PIPE CMS LISTFILE' fn ft fm '(DATE NOHEADER' ,
+    '| TAKE FIRST 1 | VAR RS'
+If rc ^= 0 Then Do
+    lsrc = rc
+    'COMMAND EMSG' rs
+    Exit lsrc
+    End  /*  If .. Do  */
+Parse Var rs . . fm recfm lrecl recs blks date time .
+ 
+'COMMAND EXTRACT/LINE/CURSOR'           /*  retain current position   */
+'COMMAND CMS GLOBALV SELECT MIME GET BOUNDARY'
+ 
+If boundary = "" Then Do
+    boundary = Date('S') || '.' || Time('L')    /*  something unique  */
+    'COMMAND CMS GLOBALV SELECT MIME PUT BOUNDARY'
+    'COMMAND TOP'               /*  move to top of file  */
+    'COMMAND /Content-Type:'    /*  change MIME content-type tag  */
+    'COMMAND REPLACE Content-Type: multipart/mixed;'
+    'COMMAND INPUT                 boundary=' || boundary
+    'COMMAND /================'
+'COMMAND -1'
+'COMMAND INPUT' " "
+    'COMMAND INPUT' "This note is in MIME format.   If you can see this line,"
+    'COMMAND INPUT' "then you're either NOT using a MIME capable mail reader,"
+    'COMMAND INPUT' "or this note was mangled by a bad gateway or list server."
+    'COMMAND INPUT --' || boundary
+    'COMMAND INPUT Content-Type: text/plain'
+/*  'COMMAND INPUT   '          */
+    /*  The following input step is done out of sequence  *
+     *  because we can't get MAILBOOK SEND to cooperate.  */
+    'COMMAND BOTTOM'
+    'COMMAND INPUT --' || boundary
+    If line.1 > -1 Then ,
+        line.1 = line.1 + 4             /*  adjust current line  */
+    If cursor.3 > -1 Then ,
+        cursor.3 = cursor.3 + 4         /*  adjust cursor location  */
+    End  /*  If  ..  Do  */
+ 
+'COMMAND CMS PIPE <' fn ft fm '| TAKE | VAR MAGIC'
+Select  /*  magic  */
+    When Left(magic,4) = '47494638'x Then Do    /*  GIF8x  */
+        type = "Image/GIF"
+        code = "BASE64"
+        End  /*  When  ..  Do  */
+    Otherwise Do
+        type = "text/plain"
+        code = ""
+        End  /*  Otherwise  Do  */
+    End  /*  Select  magic  */
+ 
+'COMMAND BOTTOM'
+'COMMAND INPUT Subject: FILE' fn || '.' || ft
+'COMMAND INPUT Content-Type:' type
+If code ^= "" Then ,
+'COMMAND INPUT Content-Transfer-Encoding:' code
+'COMMAND INPUT X-RECFM:' recfm
+'COMMAND INPUT X-LRECL:' lrecl
+'COMMAND INPUT   '
+'COMMAND INPUT   '      /*  extra blank line will get clobbered  */
+ 
+Select  /*  code  */
+    When  code = "BASE64" Then ,
+        'COMMAND CMS PIPE <' fn ft fm '| ENBASE64 | XEDIT'
+    Otherwise ,
+        'COMMAND CMS PIPE <' fn ft fm '| XEDIT'
+    End  /*  Select  magic  */
+ 
+/*  The following input step is done out of sequence  *
+ *  because we can't get MAILBOOK SEND to cooperate.  */
+'COMMAND BOTTOM'
+'COMMAND INPUT --' || boundary
+ 
+If line.1 > -1 Then ,
+    'COMMAND :' || line.1           /*  restore current line      */
+If cursor.3 > -1 Then ,
+    'COMMAND CURSOR FILE' cursor.3  /*  restore cursor location   */
+ 
+/*
+ *  This whole ATTACH thing is incomplete!
+ *  We need to be sure to append a trailing boundary line
+ *  (which has a different form than other boundary lines)
+ *  after the last "attachment" and insert the signature
+ *  before the first "attachment".   Lotta work.   :-(
+ */
+ 
+Exit
+ 
+ 
+/* ---------------------------------------------------------------- SIGN
+ *  Supply a text/signature (contact info) part.
+ *              Implement Greg Vaud's MIME signature trick.
+ */
+SIGN:
+ 
+'COMMAND EXTRACT/LINE/CURSOR'           /*  retain current position  */
+'COMMAND CMS GLOBALV SELECT MIME GET BOUNDARY'
+If boundary = "" Then Call MAKEMULT     /*  make it multipart  */
+ 
+'COMMAND CMS LPIPE COMMAND IDENTIFY | XLATE LOWER | VAR IDENTITY'
+If rc ^= 0 Then Exit rc
+Parse Var identity userid . nodeid .
+ 
+'COMMAND CMS PIPE COMMAND NAMEFIND :NICK * :NAME :USERID :NODE' ,
+    ':PHONE :FAXPHONE :ADDR :PORTRAIT' ,
+        '| VAR NAME | DROP | VAR USER | DROP | VAR NODE | DROP' ,
+            '| VAR PHONE | DROP | VAR FAXPHONE | DROP | VAR ADDR' ,
+                '| DROP | VAR PORTRAIT'
+If rc ^= 0 & rc ^= 88 Then Exit rc
+If user = "" Then user = userid
+If node = "" Then node = nodeid
+ 
+Exit
+ 
+'COMMAND BOTTOM'
+'COMMAND INPUT Subject: FILE' fn || '.' || ft
+'COMMAND INPUT' "Content-Type: Application/Signature"
+'COMMAND INPUT   '
+'COMMAND INPUT' "Name:" name
+'COMMAND INPUT' "Email:" user || '@' || node
+'COMMAND INPUT' "Telephone:" phone
+'COMMAND INPUT' "Fax:" faxphone
+'COMMAND INPUT' "Address:" addr
+'COMMAND INPUT' "Portrait:" portrait
+ 
+/*  The following input step is done out of sequence  *
+ *  because we can't get MAILBOOK SEND to cooperate.  */
+'COMMAND BOTTOM'
+'COMMAND INPUT --' || boundary
+ 
+If line.1 > -1 Then ,
+    'COMMAND :' || line.1           /*  restore current line      */
+If cursor.3 > -1 Then ,
+    'COMMAND CURSOR FILE' cursor.3  /*  restore cursor location   */
+ 
+Exit
+ 
+/*
+Greg's mug:
+R0lGODdhEAAQAIAAAAAAAP///ywAAAAAEAAQAAACK4wNqceR7UCT8FB
+n2aUc47550nZ5iFZWVqpG2bS+WhbK3frYrYmwOaRYMAoAOw==
+ */
+'OUTPUT' "Capabilities: Text/Plain, Image/GIF, Image/Postscript, Audio/Basic"
+'OUTPUT' "PEM-Cert:"
+ 
+ 
+/* ------------------------------------------------------------ MAKEMULT
+ *  Convert this into a multipart message.
+ */
+MAKEMULT:
+ 
+boundary = Time('L')        /*  some unique arbitrary string  */
+'COMMAND CMS GLOBALV SELECT MIME PUT BOUNDARY'
+'COMMAND TOP'               /*  move to top of file  */
+'COMMAND /Content-Type:'    /*  change MIME content-type tag  */
+'COMMAND REPLACE Content-Type: multipart/mixed;'
+'COMMAND INPUT                 boundary=' || boundary
+'COMMAND /================'
+'COMMAND INPUT --' || boundary
+'COMMAND INPUT Content-Type: text/plain'
+'COMMAND INPUT   '
+/*  The following input step is done out of sequence  *
+ *  because we can't get MAILBOOK SEND to cooperate.  */
+'COMMAND BOTTOM'
+'COMMAND INPUT --' || boundary
+If line.1 > -1 Then ,
+    line.1 = line.1 + 4             /*  adjust current line  */
+If cursor.3 > -1 Then ,
+    cursor.3 = cursor.3 + 4         /*  adjust cursor location  */
+ 
+Return
+ 

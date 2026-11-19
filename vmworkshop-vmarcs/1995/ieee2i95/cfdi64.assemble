@@ -1,0 +1,125 @@
+       TITLE ' Convert Floating Double => IEEE 64 bit long '                    
+* ------------------------------------------------------------------- *         
+*             subroutine cfdi64(ibm, ieee, n)                         *         
+*             integer    n, ibm(2*n), ieee(2*n)                       *         
+* ------------------------------------------------------------------- *         
+* PROCESSOR    - ASSEMBLER H, VERSION 2, RELEASE 1    VM/CMS          *         
+*                                                                     *         
+* DEPENDENCES  - NONE                                                 *         
+*                                                                     *         
+* ATTRIBUTES   - SERIALLY REUSABLE                                    *         
+*                                                                     *         
+* ENTRY POINT  - CFDI64                                               *         
+*                                                                     *         
+* STATUS       - NEW:           16 JUNE 1989                          *         
+*                LAST REVISION: 18 JULY 1990                          *         
+*                                                                     *         
+*                            Val I. Garger, Technology Integration    *         
+*                            Group, CNSF, Cornell University          *         
+*                                                                     *         
+*                               vig@cornellf.tn.cornell.edu           *         
+*                               vig@eagle.cnsf.cornell.edu            *         
+*                               vig@cornellf.bitnet                   *         
+*-------------------------------------------------------------------- *         
+*                                                                     *         
+*  COPYRIGHT -  VAL GARGER, CORNELL NATIONAL SUPERCOMPUTER FACILITY,  *         
+*               (JUNE 1990) CORNELL UNIVERSITY, ITHACA, NY.           *         
+*               CONTAINS RESTRICTED MATERIALS OF CORNELL UNIVERSITY,  *         
+*               (C) COPYRIGHT CORNELL UNIVERSITY 1990                 *         
+*                                                                     *         
+*-------------------------------------------------------------------- *         
+* Change log:                                                         *         
+* ------------------------------------------------------------------- *         
+* Convert floating point, 64-bit IBM to 64-bit IEEE standard          *         
+*                                                                     *         
+*   Example: call cfdi64(ibm , ieee, n)                               *         
+*                                                                     *         
+*    input: ibm   Array of IBM floating point numbers, REAL*8 values. *         
+*           n     Number of elements in ibm to convert, integer.      *         
+*   output: ieee  Array of 64-bit IEEE floating point numbers,        *         
+*                 double  precision.                                  *         
+*                                                                     *         
+* Format (bits, left to right):            |    Exponent bias:        *         
+*              sign   exponent   mantissa  |                          *         
+*  IBM           1      7           56     |     64 hex               *         
+*  IEEE          1     11           52     |     1023                 *         
+*                                          |                          *         
+* Usage notes:                                                        *         
+* 1. Data could be converted "inplace".                               *         
+* 2. Non-normalized with zero exponent values are kept intact.        *         
+* 3. Precision in the mantissa could be lost by rounding off the      *         
+*    least significant bits.     0 <= |error| <= .56E-16              *         
+*    (From 0 to 3 least significant bits out of 56 mantissa bits      *         
+*    could be rounded.)                                               *         
+* =================================================================== *         
+CFDI64 RMODE      ANY                                                           
+CFDI64 AMODE      ANY                                                           
+CFDI64 BEGIN      DATE=/7-18-90/version#1.9/                                    
+       LM         R2,R4,00(R1)                                                  
+       L          R11,00(,R4)          GR11 - numb of elem                      
+       LTR        R11,R11                                                       
+       BZ         EXIT                                                          
+NEXT   DS         0H                                                            
+       LM         R8,R9,00(R2)         ibt = ibm(j)                             
+       LR         R6,R8                                                         
+       N          R6,=X'80000000'      sign                                     
+       LR         R7,R8                                                         
+       N          R7,=X'7F000000'      exponent                                 
+       N          R8,=X'00FFFFFF'      ibt1, GR9 - ibt2                         
+*                                                                               
+       LR         R0,R8          if (ibt1 == 0  &&  ibt2 == 0)                  
+       OR         R0,R9                                                         
+       BNE        NORM                                                          
+       SR         R7,R7          then ibe = 0 also, so store the result         
+       B          STORE                                                         
+*                                                                               
+NORM   DS         0H                                                            
+       LTR        R0,R7                if (ibe != 0                             
+       BZ         TISSA                                                         
+       LR         R0,R8                                                         
+       N          R0,=X'00F00000'      and yet non-normalized                   
+       BNZ        TISSA                                                         
+       LM         R8,R9,00(R2)         then                                     
+       STM        R8,R9,RBT                                                     
+       LD         R0,RBT               normalize it                             
+       AD         R0,=D'0.0'                                                    
+       STD        R0,RBT                                                        
+       LM         R8,R9,RBT            and save back in ibt1 & 2                
+       LR         R7,R8                                                         
+       N          R7,=X'7F000000'      exponent                                 
+       N          R8,=X'00FFFFFF'      ibt1                                     
+*                                                                               
+TISSA  DS         0H                                                            
+       SLDL       R8,8                                                          
+       LA         R5,4                 see for 1 in a first nibble              
+TISHFT DS         0H                                                            
+       LTR        R8,R8                                                         
+       SLDL       R8,1                                                          
+       BM         TISNMR                                                        
+       BCT        R5,TISHFT                                                     
+       SRDL       R8,12                non-normalized, must be integer          
+       B          STORE                                                         
+TISNMR DS         0H                   j = 5 - k (see fortran version)          
+       SRDL       R8,11                ibt  to the place with rounding          
+       AL         R9,=F'1'                                                      
+       BC         8+4,*+8              Branch no carry                          
+       AL         R8,=F'1'             Propagate the carry                      
+       SRDL       R8,1                  To rounded value                        
+EXP    SRL        R7,22                pure quadrupled exponent                 
+       A          R7,=F'762'           - 256  + 1023 - 5                        
+       AR         R7,R5                + j; i.e. -256 + 1023 - k                
+       SLL        R7,20                                                         
+STORE  DS         0H                                                            
+       OR         R8,R7                .or. exponent                            
+       OR         R8,R6                .or. sign                                
+DONE   STM        R8,R9,00(R3)                                                  
+       LA         R2,8(R2)                                                      
+       LA         R3,8(R3)                                                      
+       BCT        R11,NEXT                                                      
+* -----------------------------------------------------------------             
+EXIT   L          R13,4(R13)           epiloge                                  
+       RETURN     (14,12),,RC=0                                                 
+* -----------------------------------------------------------------             
+RBT    DC         D'0.0'                                                        
+* -----------------------------------------------------------------             
+       END        CFDI64                                                        

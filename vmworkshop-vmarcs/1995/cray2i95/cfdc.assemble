@@ -1,0 +1,114 @@
+* ------------------------------------------------------------------- *         
+*                                                                     *         
+*   copyright - virtual machine / system product                      *         
+*               contains restricted materials of cornell university   *         
+*               5664-167 (c) copyright cornell university 1990        *         
+*               licensed materials - property of cornell university   *         
+*               refer to copyright instructions                       *         
+*               form number g120-2083                                 *         
+* ------------------------------------------------------------------- *         
+* processor    - assembler 5.0 5/1/83    under aix/370                *         
+*                                                                     *         
+* dependences  - none                                                 *         
+*                                                                     *         
+* attributes   - reenterant                                           *         
+*                                                                     *         
+* entry point  - _cfdc_                                               *         
+*                                                                     *         
+* 06/16/89                valery i. garger, technology integration    *         
+*                         group, cnsf, cornell university             *         
+*-------------------------------------------------------------------- *         
+* change log:    some minor changes and bugs fixed.      09/13/89     *         
+*                converted to aix/370                    05/01/90     *         
+*                                                      valery garger  *         
+* ------------------------------------------------------------------- *         
+* convert floating point numbers from a double precision ibm format   *         
+* to a cray floating point standard.                                  *         
+* call this subroutine by:                                            *         
+*                                                                     *         
+*      call  cfdc(ibm, cray, n)                                       *         
+*                                                                     *         
+* input : ibm     array of ibm floating point numbers, real*8 values. *         
+*           n     number of elements in ibm  to convert, integer.     *         
+* output: cray    array of cray floating point numbers.               *         
+*                                                                     *         
+* format (bits, left to right):            |    exponent bias:        *         
+*              sign   exponent   mantissa  |                          *         
+*  ibm           1      7           56     |     64 hex               *         
+*  cray          1     15           48     |  16384                   *         
+*                                          |                          *         
+* latency: 1.288 microseconds per conversion of one element           *         
+*          on one of ibm 3090-600e processors.                        *         
+*                                                                     *         
+* usage notes:                                                        *         
+* 1. non-normalized numbers with zero exponents are kept intact       *         
+*    (suspected to be integer values).                                *         
+* 2. precision in the mantissa could be lost by rounding off the      *         
+*    least significant bits.     0 <= |error| <= .18e-14              *         
+*    (from 5 to 8 least significant bits out of 56 mantissa bits      *         
+*    could be rounded.)                                               *         
+* --------------------------------------------------------------------*         
+_cfdc_  csect                                                                   
+       entry      _cfdc_                                                        
+       b          34(,15)                                                       
+       dc         al1(6+22)                                                     
+       dc         cl6'cfdc  '                                                   
+       dc         cl22'05-01-90/vesion#1.9'                                     
+       stm        2,15,x'10'(13)                                                
+       lr         12,13                                                         
+       la         11,x'68'                                                      
+       slr        13,11                                                         
+       st         12,4(13)                                                      
+       lr         12,15                                                         
+       using      _cfdc_,12                                                     
+* -----------------------------------------------                               
+       lr         4,2                  => n                                     
+       lr         3,1                  => cray                                  
+       lr         2,0                  => ibm                                   
+       l          4,00(,4)             n                                        
+next   ds         0h                                                            
+       lm         8,9,00(2)            gr8,gr9 -- tiss, gr8 now ibmf(j)         
+       lr         6,8                                                           
+       n          6,=x'80000000'       gr6 - sign                               
+       lr         7,8                                                           
+       n          7,=x'7f000000'       gr7 - exponent                           
+       n          8,=x'00ffffff'       tiss(1)                                  
+tissa  ds         0h                                                            
+       lr         10,8                 gr10 - ibntiss                           
+       lr         11,9                                                          
+       sldl       10,8                                                          
+       la         1,1                   gr4 - nmrlzd = .true.                   
+       la         5,4                   k = 4,1,-1                              
+tishft ds         0h                                                            
+       ltr        10,10                                                         
+       bm         l777                                                          
+       sldl       10,1                                                          
+       bct        5,tishft                                                      
+       sr         1,1                  nrmlzd = .false.                         
+       la         5,4                  k = 4                                    
+       srdl       10,4                                                          
+l777   ds         0h                                                            
+       or         1,7                  if(expn == 0 && ^nrmlzd)                 
+       bz         store                                                         
+       lr         8,10                                                          
+       lr         9,11                                                          
+       srdl       8,15                 tiss to the place with rounding          
+       al         9,=f'1'                                                       
+       bc         8+4,*+8              branch no carry                          
+       al         8,=f'1'              propagate the carry                      
+       srdl       8,1                  to rounded value                         
+exp    srl        7,22                 pure quadrupled exponent                 
+       a          7,=f'16124'          - 256 + 16384 - 4                        
+       ar         7,5                  + j; i.e. -256 + 16384 - k + 1           
+       sll        7,16                 expn in place                            
+store  ds         0h                                                            
+       or         8,7                  .or. exponent                            
+       or         8,6                  .or. sign                                
+done   stm        8,9,00(3)                                                     
+       la         2,8(2)                                                        
+       la         3,8(3)                                                        
+       bct        4,next                                                        
+* --------- epiloge -----------------------------------------------             
+exit   lm         2,14,x'78'(13)                                                
+       br         14                                                            
+       end                                                                      

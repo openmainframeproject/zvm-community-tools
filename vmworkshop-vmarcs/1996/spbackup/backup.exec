@@ -1,0 +1,1074 @@
+/* BACKUP EXEC:
+This is a WAKEUP application which will start, modify, query, or cancel a
+SPXTAPE spool backup.
+ 
+For users:
+                                 .--2--------.
+ >>--BACKUP--+--START--tapepool--+--ndrives--+--+--><
+             +--QUERY---------------------------+
+             +--DRIVES--ndrives-----------------+
+             +--CANCEL--------------------------+
+             +--DATA----------------------------+
+             +--DUMP----------------------------+
+             '--WRAPUP--hhmmss--tapepool--------'
+ 
+For IUCVTRAP action routine exits:
+ 
+ >>--BACKUP--+--MOUNTED-------------------+--><
+             +--EOT-----------------------+
+             '--UNLOADED--spfileid--------+
+ 
+...where hhmmss is the time stamp on the log files in the spool.
+ 
+TAPEPOOL is the filename of a CMS file (filetype TAPEPOOL) containing a
+list of tape volsers. These tapes must be in the VMTAPE Catalog. This
+file may contain comments with * in column one.
+ 
+The first tape in the tapepool is actually used last, to back up the
+catalog database of this backup.
+ 
+DATA STRUCTURES (mostly stored in GLOBALV)
+ 
+(Debugging tip: GLOBALV SELECT SPBACKUP LIST)
+ 
+qbackup    = 1 if a backup is running
+qcomplete  = 1 when we receive the first indication of SPXTAPE
+             completing on any drive. At that point, we refuse to start
+             any more new tapes that a sleeping operator woke up and
+             mounted.
+vdev.      - stem of virtual device addresses.
+drivevol.  - stem of which VOLSER is mounted on each member of vdev.
+drivestat. - stem of status of each member of vdev.
+             IDLE - not in use at all
+             MOUNTING - VMTAPE MOUNT issued; no response yet
+             DUMPING - Dumping currently in process
+             DRAINING - Dump completed to this vol but can't DETACH
+               due to this is the last drive, and the Operator is asleep.
+               There should be some other drive in MOUNTING status. Once
+               the Operator wakes up, mounts the tape, and it goes
+               DUMPING, this one can be DETACHed and made IDLE. Volume
+               Log will likely arrive in the meantime, and if it does,
+               we accept it and say thank you and that's all.
+             UNLOADING - Dump completed to this vol but can't DETACH yet
+               because it is still rewinding and unloading. This must
+               wait until we get the Volume Log in our reader for this
+               tape. When it arrives, we can CP DETACH it. In the
+               meantime, we'll mount our next tape on another vdev.
+ndrives    - How many drives the operator wishes to use
+nspxtape   - how many drives are actually in use BY SPXTAPE
+ninuse     - how many drives are actually in use either mounting or dump
+  Note: ninuse - nspxtape should equal the number of pending mounts.
+tapepool   - CMS filename of the current tapepool
+tapevol.   - stem of tapes in <tapepool>. This is read over again for
+             each invocation. Therefore, the operator can add tapes to
+             the end of a tapepool if it runs out.
+tapestat.  - stem of status of each member of tapevol.
+             UNUSED - not yet written on
+             MOUNTING - Requested for mount but not yet written on
+             WRITING - In the process of being written upon
+             WRITTEN - Completed writing
+             RESERVED - ineligible for writing
+tapevoli   - pointer to last tape used in stem tapevol.
+starttime  - hhmmss time that dump was started
+ 
+SLEEPING OPERATOR CONDITION: The problem is that SPXTAPE must have at
+least one drive at all times or else it terminates. Therefore, if the
+Operator goes to sleep, or to lunch, or to other duties, long enough
+for all mounted tapes to fill up, we must keep the last one active in
+a waiting-for-next-tape condition. When the operator returns and mounts
+any of the tapes whose mounts have been pending, we can then do the
+SPXTAPE END and DETACH commands for that drive.
+ 
+PREREQUISITES:
+WAKEUP - from the CMS Utilities/IPF set of tools.
+GETFMADR - from the CMS Utilities/IPF set of tools.
+External sorting program, such as PLSORT. Search on /LOCAL DEPEND/ to
+         find where you need to configure for your sort pgm.
+ 
+MODIFICATION HISTORY:
+05/13/96 - Roger Deschner - Handle tape drive that is attached after we
+           no longer need it. Don't issue SPXTAPE DUMP command at that
+           point, or a second dump may start itself up, and get all
+           confused.
+04/29/96 - Roger Deschner - When recovering from a sleeping-operator
+           condition, assume that the volume log has already arrived
+           by the time the operator wakes up and mounts the next tape.
+04/23/96 - Back up only specific files to tape during WRAPUP.
+04/22/96 - Roger Deschner - more bug fixes to detaching drive logic
+04/18/96 - Roger Deschner - fix bugs in reading logs, detaching drives
+04/17/96 - Roger Deschner - Change to a new method of waiting for the
+  log file to arrive in our reader to detach the drive. This may slow
+  the whole process down a little.
+04/15/96 - Roger Deschner - Change tape disposition back to RUN due to
+  not getting our logs on time at end of job. APAR opened with IBM
+  about rewind timing problem. Change to searching spool for logs.
+  (file BACKFILE LOGMSGS no longer needed?)
+04/12/96 - Roger Deschner - Changed tape disposition from RUN to REW to
+  help with tape-unloading timing problem. Also fix <nspxtape> bug in
+  Mounted: so that arithmetic is OK after recovering from a DRAINING
+  drive if the Operator went to sleep.
+03/29/96 - Roger Deschner - Added CP REWIND to solve timing problems
+  wherein hardware errors would occur detaching a tape drive which was
+  fully unwound. VMTAPE would grab the drive and cause an error.
+03/21/96 - Roger Deschner - Original Version
+ 
+*/
+ADDRESS COMMAND
+/******************** begin configuration section *********************/
+/* Parameter string to be issued to SPXTAPE on initial invocation */
+/* spxparms = 'USER NOTISSRV STD ALL MODE NOCOMP RUN'/* debug trace */ */
+spxparms = 'SPOOL ALL MODE COMP RUN' /* Includes NSS, etc. */
+ 
+/* String of consecutive virtual addresses to use for tapes */
+/* Must be expressed as 4-digit addresses. */
+vdevs = '0181 0182 0183 0184 0185 0186 0187 0188 0189 018A 018B 018C'
+ 
+/* Userid of the VMTAPE service virtual */
+vmtapeid = 'VMTAPE'
+/********************* end configuration section **********************/
+ 
+/* Self-configuration section */
+/* Turn above list into stem */
+'PIPE LITERAL' vdevs,
+  '| SPLIT',           /* Cut apart into individual tokens */
+  '| STEM vdev.'
+/* Who are we, and where are we? */
+'PIPE COMMAND IDENTIFY | VAR answer'
+PARSE VAR answer ourid . ournode .
+ 
+PARSE UPPER ARG action parms
+finalrc = 0
+SELECT
+  WHEN (action = 'START') THEN CALL START
+  WHEN (action = 'EOT') THEN CALL EOT           /* called by BACKTRAP */
+  WHEN (action = 'UNLOADED') THEN CALL UNLOADED parms /* by BACKTRAP */
+  WHEN (action = 'MOUNTED') THEN CALL MOUNTED   /* called by BACKMOUN */
+  WHEN (action = 'QUERY') THEN CALL QUERY
+  WHEN (action = 'DRIVES') THEN CALL DRIVES
+  WHEN (action = 'CANCEL') THEN CALL CANCEL
+  WHEN (action = 'NORMEND') THEN CALL NORMEND   /* Called by BACKTRAP */
+  WHEN (action = 'WRAPUP') THEN CALL WRAPUP parms /*Called by ACV AFTER*/
+  WHEN (action = 'DUMP') THEN 'GLOBALV SELECT SPBACKUP LIST'
+  WHEN (action = 'DATA') THEN CALL DATA parms
+  OTHERWISE DO
+    SAY 'Invalid arguments to BACKUP.'
+    finalrc = 12
+  END
+END
+EXIT finalrc
+ 
+ 
+COMMONV: /* EXPOSE EVERYTHING */
+/**********************************************************************\
+*                                                                      *
+*            COMMONV Minor Subroutine                                  *
+*                                                                      *
+\**********************************************************************/
+/* GET or PUT everything we know about current status of the program. */
+PARSE UPPER ARG direction .
+IF (WORDPOS(direction,'GET PUT') < 1) THEN DO
+  SAY 'Internal error, COMMONV arg must be GET or PUT.'
+  EXIT 16
+END
+ 
+'GLOBALV SELECT SPBACKUP' direction 'DRIVEVOL.0'    /* Stem drivevol. */
+DO i = 1 TO drivevol.0                              /* Stem drivevol. */
+  'GLOBALV SELECT SPBACKUP' direction 'DRIVEVOL.'i  /* Stem drivevol. */
+END                                                 /* Stem drivevol. */
+'GLOBALV SELECT SPBACKUP' direction 'DRIVESTAT.0'  /* Stem drivestat. */
+DO i = 1 TO drivestat.0                            /* Stem drivestat. */
+  'GLOBALV SELECT SPBACKUP' direction 'DRIVESTAT.'i /*Stem drivestat. */
+END                                                /* Stem drivestat. */
+IF (direction = 'GET') THEN tapestat. = 'UNUSED'
+'GLOBALV SELECT SPBACKUP' direction 'TAPESTAT.0'    /* Stem tapestat. */
+DO i = 1 TO tapestat.0                              /* Stem tapestat. */
+  'GLOBALV SELECT SPBACKUP' direction 'TAPESTAT.'i  /* Stem tapestat. */
+END                                                 /* Stem tapestat. */
+'GLOBALV SELECT SPBACKUP' direction 'NDRIVES'
+'GLOBALV SELECT SPBACKUP' direction 'NSPXTAPE'
+'GLOBALV SELECT SPBACKUP' direction 'NINUSE'
+'GLOBALV SELECT SPBACKUP' direction 'TAPEVOLI'
+'GLOBALV SELECT SPBACKUP' direction 'QCOMPLETE'
+IF (direction = 'GET') THEN DO
+  'GLOBALV SELECT SPBACKUP GET TAPEPOOL'
+  /* Get the list of tapes to use */
+  /* (Note that we reread the TAPEPOOL file here in case tapes were
+     added to the TAPEPOOL during the backup. This would be a thing to
+     do if a tapepool runs out partway through a backup. */
+  'PIPE <' tapepool 'TAPEPOOL *',
+    '| NFIND *' ||,     /* Eliminate comments */
+    '| SPECS 1-6 1',    /* Just the volsers */
+    '| STEM tapevol.'
+  tapestat.0 = tapevol.0 /* (added tapes will automatically have value */
+                         /* of UNUSED due to tapestat. = 'UNUSED') */
+END
+ 
+RETURN
+ 
+ 
+Start:
+/**********************************************************************\
+*                                                                      *
+* START subroutine                                                     *
+*                                                                      *
+\**********************************************************************/
+ 
+ 
+/* Initialize stems */
+drivevol. = ''
+drivevol.0 = vdev.0
+drivestat. = 'IDLE'
+drivestat.0 = vdev.0
+tapevoli = 1 /* We start this at 1 so that it uses tapevol.2 first. */
+             /* That is because tapevol.1 will contain the catalog. */
+ninuse = 0
+nspxtape = 0
+ 
+PARSE VAR parms tapepool ndrives .
+IF (ndrives = '') THEN ndrives = 2
+IF (tapepool = '') THEN DO
+  SAY 'BACKUP START Error: Tape pool name required.'
+  RETURN 16
+END
+ 
+/* Was a backup already started? */
+'GLOBALV SELECT SPBACKUP GET QBACKUP'
+IF (qbackup = 1) THEN DO
+  SAY 'Error: Backup is apparently already started.'
+  EXIT 12
+END
+qbackup = 1  /* It is now. */
+ 
+/* Prepare a clean slate of tape drives */
+DO i = 1 TO vdev.0
+  'CP REWIND' vdev.i
+  'PIPE CP DETACH' vdev.i '| HOLE'
+END
+'PIPE CMS VMTAPE CANCEL ALL | HOLE'
+ 
+/* VERY IMPORTANT - so we get the SPXTAPE logs: */
+'CP SPOOL CONS CLOSE'      /* to whomever it was before */
+'CP SPOOL CONS TO *'
+'PIPE COMMAND ERASE BACKFILE SAVEMSGS A | HOLE'
+ 
+/* Who invoked us? Remember for future use. */
+'PIPE VAR runuser 1 | VAR runuser'
+'GLOBALV SELECT SPBACKUP PUT RUNUSER'
+'GLOBALV SELECT SPBACKUP PUT STARTUSER'
+ 
+/* Get the list of tapes to use */
+'PIPE <' tapepool 'TAPEPOOL *',
+  '| NFIND *' ||,     /* Eliminate comments */
+  '| SPECS 1-6 1',    /* Just the volsers */
+  '| STEM tapevol.'
+orc = rc
+IF ((orc <> 0) | (tapevol.0 < ndrives)) THEN DO
+  SAY 'Error: Tape pool' tapepool 'contains fewer tapes than number',
+    'of drives specified.'
+  finalrc = 12
+  RETURN
+END
+ 
+/* Initialize <tapestat> stem. */
+tapestat. = 'UNUSED'
+tapestat.0 = tapevol.0
+tapestat.1 = 'RESERVED' /* Save first vol for restore catalog */
+ 
+/* Initialize qcomplete */
+qcomplete = 0
+ 
+/* Save everything we know */
+'GLOBALV SELECT SPBACKUP SETL QBACKUP 1'
+'GLOBALV SELECT SPBACKUP PUT TAPEPOOL'
+ 
+/* Mount the tapes */
+CALL REMOUNT
+ 
+/* Save everything else, including what REMOUNT might have changed */
+CALL COMMONV 'PUT'
+ 
+RETURN
+ 
+Remount: PROCEDURE EXPOSE vdev. drivevol. drivestat. ndrives ninuse,
+                          tapevoli nspxtape tapestat.
+/**********************************************************************\
+*                                                                      *
+*            REMOUNT Minor Subroutine                                  *
+*                                                                      *
+\**********************************************************************/
+/* Issue VMTAPE MOUNT commands for these tapes. If any MOUNT*/
+/* commands fail, bypass and go to the next tape volume. */
+ 
+ 
+/* Get everything we need to know */
+'GLOBALV SELECT SPBACKUP GET TAPEPOOL'
+'GLOBALV SELECT SPBACKUP GET RUNUSER'
+/* Get the list of tapes to use */
+/* (Note that we reread the TAPEPOOL file here in case tapes were
+   added to the TAPEPOOL during the backup. This would be a thing to
+   do if a tapepool runs out partway through a backup. */
+'PIPE <' tapepool 'TAPEPOOL *',
+  '| NFIND *' ||,     /* Eliminate comments */
+  '| SPECS 1-6 1',    /* Just the volsers */
+  '| STEM tapevol.'
+tapestat.0 = tapevol.0 /* (added tapes will automatically have value */
+                       /* of UNUSED due to tapestat. = 'UNUSED') */
+ 
+SAY 'REMOUNT called.'                                  /* debug trace */
+SAY 'NDRIVES=' ndrives 'NINUSE=' ninuse,               /* debug trace */
+    'NSPXTAPE=' nspxtape 'TAPEVOLI=' tapevoli          /* debug trace */
+SAY 'virt   real             tape  '
+SAY 'addr   addr   status    volser'
+SAY ' '
+DO i = 1 TO vdev.0
+  IF (WORDPOS(drivestat.i,'DUMPING DRAINING UNLOADING') > 0) THEN,
+    'PIPE CP Q V' vdev.i,
+      '| SPECS 19.4 1',
+      '| VAR rdev'
+  ELSE rdev = '----'
+  SAY vdev.i ' ' rdev ' ' drivestat.i ' ' drivevol.i
+END
+ 
+DO FOREVER
+ 
+  /* Have we accomplished our mission? */
+  IF (ninuse >= ndrives) THEN LEAVE
+ 
+  /* Do we have any more tapes? */
+  tapevoli = 0
+  DO i = 1 TO tapestat.0
+    IF (tapestat.i = 'UNUSED') THEN DO
+      /* We have found what we were looking for */
+      tapevoli = i
+      LEAVE
+    END
+  END
+ 
+  IF (tapevoli = 0) THEN DO
+    ndrives = ninuse
+    /* We have run out of tapes. */
+    yak = 'CP MSGNOH' runuser
+    yak 'Not enough tapes in:' tapepool 'TAPEPOOL. You should add more.'
+    yak ' '
+    yak 'Until you do, we will continue running on only' ndrives,
+        'drives.'
+    yak ' '
+    yak 'You should add more tapes now. Here is the procedure:'
+    yak ' '
+    yak 'New tapes must be in the VMTAPE catalog. (Use scratch tapes in',
+        'emergency.)'
+    yak 'Get a MR link to' ourid '3E1, and XEDIT' tapepool,
+        'TAPEPOOL.'
+    yak 'Add new volumes to the end of the file, file it, and release'
+    yak 'AND detach my minidisk. Then issue:'
+    yak ' '
+    yak 'SMSG' ourid 'ACCESS 3E1 C'
+    yak ' '
+    yak 'Then, to resume running on the full number of drives, issue:'
+    yak ' '
+    yak 'SMSG' ourid 'DRIVES n'
+    ITERATE
+  END
+ 
+  /* Find an unused vdev. Note range already checked elsewhere. */
+  DO i = 1 TO vdev.0
+    j = i
+    IF (drivestat.j = 'IDLE') THEN LEAVE
+  END
+ 
+  SAY 'Mounting' tapevol.tapevoli 'on vdev' vdev.j '   J='j
+  'PIPE CMS VMTAPE MOUNT' tapevol.tapevoli vdev.j '(WRITE NOWAIT',
+    '| CONSOLE',     /* DEBUG TRACE */
+    '| STEM errstem.'
+  orc = rc
+  IF (orc <> 0) THEN DO
+    'PIPE LITERAL VMTAPE MOUNT failed. Possible TAPEPOOL error.',
+      '| APPEND STEM errstem.',
+      '| SPECS /MSGNOH' runuser'/ 1 1-* NEXTWORD',
+      '| CP',
+      '| CONSOLE'  /* To see if any CP MSGs failed. */
+  END
+  drivevol.j = tapevol.tapevoli
+  drivestat.j = 'MOUNTING'
+  tapestat.tapevoli = 'MOUNTING'
+  ninuse = ninuse + 1
+END
+SAY 'exiting REMOUNT.'                                 /* debug trace */
+SAY 'NDRIVES=' ndrives 'NINUSE=' ninuse,               /* debug trace */
+    'NSPXTAPE=' nspxtape 'TAPEVOLI=' tapevoli          /* debug trace */
+SAY 'virt   real             tape  '
+SAY 'addr   addr   status    volser'
+SAY ' '
+DO i = 1 TO vdev.0
+  IF (WORDPOS(drivestat.i,'DUMPING DRAINING UNLOADING') > 0) THEN,
+    'PIPE CP Q V' vdev.i,
+      '| SPECS 19.4 1',
+      '| VAR rdev'
+  ELSE rdev = '----'
+  SAY vdev.i ' ' rdev ' ' drivestat.i ' ' drivevol.i
+END
+RETURN
+ 
+ 
+Eot:
+/**********************************************************************\
+*                                                                      *
+*   EOT Major Subroutine                                               *
+*                                                                      *
+\**********************************************************************/
+/* Triggered by trapping an end-of-tape message from CP SPXTAPE. */
+/* In this routine, our runuser is ourself. (Should it be "SYSTEM"?) */
+ 
+/* Get all the information */
+CALL COMMONV 'GET'
+ 
+/* Which drive ran out? Why did it run out? */
+'PIPE (ENDCHAR ?) < BACKTRAP SAVEMSGS A',
+  '| CONSOLE',
+  '| A: TAKE FIRST 1',
+  '| VAR enddrive',    /* <enddrive> now has the whole msg */
+  '| SPECS 14-* 1',    /* Get what event this was */
+  '| SPECS WORDS 1-2 1', /* Just enough to tell it apart */
+  '| VAR endreason',
+  '?',       /* This will only happen when ENDREASON=COMMAND */
+  'A:',             /* TIME STARTED:        02:01:48 */
+  '| FIND TIME STARTED:' ||,
+  '| SPECS WORDS 3 1',
+  '| SPECS 1-2 1 4-5 3 7-8 5',  /* Remove ":" */
+  '| VAR starttime'
+ 
+SAY 'Entering EOT.' /* debug trace */
+SAY 'STARTTIME VARIABLE=' starttime
+SAY 'NDRIVES=' ndrives 'NINUSE=' ninuse, /* debug trace */
+    'NSPXTAPE=' nspxtape   /* debug trace */
+SAY 'ENDDRIVE=' enddrive      /* debug trace */
+SAY 'ENDREASON=' endreason    '  QCOMPLETE=' qcomplete
+ 
+SELECT
+  WHEN (SUBWORD(endreason,1,1) = 'END-OF-TAPE') THEN DO
+    enddrive = SUBSTR(enddrive,34,4)
+    /* Qiuck! Get rid of it! */
+    j = WORDPOS(enddrive,vdevs)
+ 
+    /* Mark this tape volume as having been used */
+    DO i = 1 TO tapevol.0
+      IF (tapevol.i = drivevol.j) THEN DO
+        tapestat.i = 'WRITTEN'
+        LEAVE
+      END
+    END
+ 
+    IF (nspxtape > 1) THEN DO /* Is the Operator asleep? */
+      /* Operator is not asleep. Behave normally. */
+      'PIPE CP SPXTAPE END' enddrive /*'| HOLE'*/ '|console' /* debug */
+      /* Do NOT detach yet - wait until it unloads. */
+      ninuse = ninuse - 1
+      nspxtape = nspxtape - 1
+      /* Mark this vdev as still rewinding and unloading. It will be */
+      /* changed to IDLE when its Volume Log arrives in our reader. */
+      drivestat.j = 'UNLOADING'
+      drivevol.j = ''
+    END
+    ELSE DO
+      /* Operator is asleep. Can't unload this vdev or SPXTAPE ends. */
+      drivestat.j = 'DRAINING'
+    END
+ 
+    /* Mount next tape */
+    CALL REMOUNT
+  END
+  WHEN (SUBWORD(endreason,1,1) = 'COMPLETED') THEN DO
+    /* This means that we're done with this tape drive, and SPXTAPE */
+    /* does not want another tape. But it is still dumping on other */
+    /* drives, so don't close the show down yet. */
+    enddrive = SUBSTR(enddrive,33,4)
+    /* Qiuck! Get rid of it! */
+    j = WORDPOS(enddrive,vdevs)
+ 
+    /* The job is officially coming to its end */
+    IF (qcomplete = 0) THEN DO
+      qcomplete = 1
+      ADDRESS CMS 'VMTAPE CANCEL ALL'
+    END
+ 
+    /* Mark this tape volume as having been used */
+    DO i = 1 TO tapevol.0
+      IF (tapevol.i = drivevol.j) THEN DO
+        tapestat.i = 'WRITTEN'
+        LEAVE
+      END
+    END
+ 
+    IF (nspxtape > 1) THEN DO
+      /* We are not yet down to our last drive. */
+      'PIPE CP SPXTAPE END' enddrive '| HOLE'
+      /* Do NOT detach yet - wait until it unloads. */
+      ninuse = ninuse - 1              /* Decrement what's being used */
+      nspxtape = nspxtape - 1
+      ndrives = ninuse              /* Start shutting this thing down */
+      /* Mark this vdev as still rewinding and unloading. It will be */
+      /* changed to IDLE when its Volume Log arrives in our reader. */
+      drivestat.j = 'UNLOADING'
+      drivevol.j = ''
+    END
+    ELSE DO
+      /* We are down to our last drive, and SPXTAPE is pretty sure it
+         has enough room for all remaining files. */
+      drivestat.j = 'DRAINING'
+    END
+  END
+  WHEN (SUBWORD(endreason,1,1) = 'COMMAND') THEN DO
+    IF (SUBWORD(endreason,2,1) = 'ENDED') THEN DO /* Abnormal Ending! */
+      'EXEC TELL' runuser 'SPBACKUP ended abnormally. Check the logs.'
+      /* Note abendmsg below is a nickname from SPBACKUP NAMES. */
+      'EXEC EMAIL ABEND EMAIL * ( ABENDMSG' runuser '(NONOTEBOOK'
+    END
+    'GLOBALV SELECT SPBACKUP PUT STARTTIME'
+    CALL NORMEND
+  END
+  OTHERWISE NOP
+END
+SAY 'Leaving EOT.' /* debug trace */
+SAY 'NDRIVES=' ndrives 'NINUSE=' ninuse, /* debug trace */
+    'NSPXTAPE=' nspxtape   /* debug trace */
+SAY 'virt   real             tape  '
+SAY 'addr   addr   status    volser'
+SAY ' '
+DO i = 1 TO vdev.0
+  IF (WORDPOS(drivestat.i,'DUMPING DRAINING UNLOADING') > 0) THEN,
+    'PIPE CP Q V' vdev.i,
+      '| SPECS 19.4 1',
+      '| VAR rdev'
+  ELSE rdev = '----'
+  SAY vdev.i ' ' rdev ' ' drivestat.i ' ' drivevol.i
+END
+ 
+/* Save everything we know */
+CALL COMMONV 'PUT'
+ 
+RETURN
+ 
+ 
+Unloaded:
+/**********************************************************************\
+*                                                                      *
+*   UNLOADED major subroutine                                          *
+*                                                                      *
+\**********************************************************************/
+/* Triggered by the arrival of a spool file which we suspect is a
+SPXTAPE log file. We'll see if that is really the case... Note that if
+it is not a SPXTAPE Volume Log file, or if it is not one that WE want,
+then we do nothing. Anybody could send us a spool file for whatever
+reason pleases them, and we can't let that upset us. */
+ 
+/* Get all the information */
+CALL COMMONV 'GET'
+ 
+PARSE UPPER ARG spfn spft .
+IF (SUBSTR(spfn,5,4) <> 'DUMP') THEN DO /* Vol or CmdSum log? */
+  /* This is a Volume Log */
+  donevdev = SUBSTR(spfn,6,3)
+  found = 0
+  DO j = 1 TO vdev.0
+    IF (donevdev = vdev.j) THEN DO
+      found = 1
+      LEAVE
+    END
+  END
+  IF (found = 1) THEN DO
+    SELECT
+      WHEN (drivestat.j = 'UNLOADING') THEN DO
+        SAY 'Log file arrived for vdev' donevdev', and unload complete.'
+        'CP DETACH' donevdev
+        drivestat.j = 'IDLE'
+      END
+      WHEN (drivestat.j = 'DRAINING') THEN DO /* Operator Asleep */
+        SAY 'Log file arrived for vdev' donevdev', but it cannot be',
+            'unloaded because it is the last tape. Waiting for Operator.'
+      END
+      OTHERWISE NOP /* We REALLY don't want to do anything! */
+    END /* of SELECT */
+  END /* of IF (found = 1) THEN DO */
+  /* ELSE NOP - it's a Vol Log from some other SPXTAPE command. */
+END /* of /* This is a Volume Log */ */
+ELSE NOP /* Ignore Command Summary Log files */
+ 
+/* Save all the information */
+CALL COMMONV 'PUT'
+ 
+RETURN
+ 
+ 
+MOUNTED:
+/**********************************************************************\
+*                                                                      *
+*   MOUNTED Major Subroutine                                           *
+*                                                                      *
+\**********************************************************************/
+/* This is called when VMTAPE has completed a tape mount for us */
+/* BEWARE: In this routine, our "runuser" is actually VMTAPE. */
+ 
+/* Get all the information */
+CALL COMMONV 'GET'
+'GLOBALV SELECT SPBACKUP GET RUNUSER'
+ 
+SAY 'Entering MOUNTED:' /* debug trace */
+SAY 'NDRIVES=' ndrives 'NINUSE=' ninuse, /* debug trace */
+    'NSPXTAPE=' nspxtape                        /* debug trace */
+SAY 'QCOMPLETE=' qcomplete
+ 
+IF (qcomplete = 1) THEN DO  /* Do we still want this tape? */
+  SAY ' '
+  SAY 'A tape was attached to us after we no longer needed it. It will'
+  SAY 'be ignored, and will be detached as the backup job ends.'
+  SAY ' '
+END
+ELSE DO  /* Yes, we want this tape. */
+  /* Which tape was mounted? Was there more than one? */
+  'PIPE < BACKMOUN SAVEMSGS A',
+    '| FIND VMTMNT073I' ||,
+    '| STEM mounteds.',
+    '| CONSOLE'    /* DEBUG TRACE */
+ 
+  DO i = 1 TO mounteds.0
+    PARSE VAR mounteds.i . 'Volume' mntvolser 'ready on' mntvdev .
+    mntvolser = STRIP(mntvolser,'B',"'")  /* Remove quotes */
+    j = WORDPOS(mntvdev,vdevs)            /* Which vdev is it? */
+    drivestat.j = 'DUMPING'
+ 
+    /* Mark this tape volume as being in active use */
+    DO i = 1 TO tapevol.0
+      IF (tapevol.i = drivevol.j) THEN DO
+        tapestat.i = 'WRITING'
+        LEAVE
+      END
+    END
+ 
+    /* Bump number of drives SPXTAPE is using */
+    nspxtape = nspxtape + 1
+ 
+    /* Is this the initial SPXTAPE command? */
+    IF (nspxtape = 1) THEN DO   /* It is the first one */
+      'PIPE CP SPXTAPE DUMP' vdev.j spxparms,
+        '| CONSOLE',
+        '| SPECS /MSGNOH' runuser'/ 1 1-* NEXTWORD',
+        '| CP',
+        '| CONSOLE'
+    END
+    ELSE DO                     /* It is a later one */
+      k = vdev.0
+      'PIPE CP SPXTAPE DUMP' vdev.1 || '-' || vdev.k,
+        '| CONSOLE',
+        '| SPECS /MSGNOH' runuser'/ 1 1-* NEXTWORD',
+        '| CP',
+        '| CONSOLE'
+    END
+ 
+    /* If there are now exactly two drives, does this mean we can now */
+    /* safely get rid of a DRAINING drive? (i.e. Did a sleeping Operator*/
+    /* finally wake up and mount the next tape?) */
+    trace r
+    IF (nspxtape = 2) THEN DO
+      DO i = 1 TO drivevol.0
+        IF (drivestat.i = 'DRAINING') THEN DO
+          SAY 'Our wait is over.' vdev.i 'can now be SPXTAPE END-ed',
+              'and DETACH-ed.'
+          'PIPE CP SPXTAPE END' vdev.i '| HOLE'
+          /* Mark this tape volume as having been used */
+          DO k = 1 TO tapevol.0
+            IF (tapevol.k = drivevol.j) THEN DO
+              tapestat.k = 'WRITTEN'
+              LEAVE
+            END
+          END
+          /* We assume the Volume Log for this tape already arrived, */
+          /* while we were waiting for the sleeping operator to wake up. */
+          /* 'CP REWIND' vdev.i */ /* DO NOT REWIND or INT REQ happens! */
+          'PIPE CP DETACH' vdev.i '| HOLE' /* Must detach */
+          drivestat.i = 'IDLE'
+          drivevol.i = ''
+          ninuse = ninuse - 1
+          nspxtape = 1
+          CALL REMOUNT
+          LEAVE   /* Only do this ONCE! */
+        END
+      END
+    END
+    trace n
+  END
+END /* of ELSE DO  /* Yes, we want this tape. */ */
+ 
+SAY 'leaving MOUNTED:' /* debug trace */
+SAY 'NDRIVES=' ndrives 'NINUSE=' ninuse, /* debug trace */
+    'NSPXTAPE=' nspxtape   /* debug trace */
+ 
+/* Save everything we know */
+CALL COMMONV 'PUT'
+ 
+RETURN
+ 
+ 
+DRIVES:
+/**********************************************************************\
+*                                                                      *
+*   DRIVES Major Subroutine                                            *
+*                                                                      *
+\**********************************************************************/
+/* The operator wishes to change the number of drives in use. */
+/* The runuser here may be any of the operators. Might not be the same
+one who started the backup. */
+ 
+PARSE VAR parms newndrives .
+ 
+/* Get all the information */
+CALL COMMONV 'GET'
+'GLOBALV SELECT SPBACKUP GET RUNUSER'
+ 
+oldndrives = ndrives
+SAY 'The number of drives was' oldndrives'.'
+ 
+sign = SUBSTR(newndrives,1,1)
+IF ((sign = '-') | (SIGN = '+')) THEN ndrives = ndrives + newndrives
+                                 ELSE ndrives = newndrives
+ 
+SAY 'Now it is set to' ndrives'.'
+ 
+'GLOBALV SELECT SPBACKUP PUT NDRIVES'
+ 
+SELECT
+  WHEN (ndrives > oldndrives) THEN DO
+    /* In case it was increased, mount more tapes. */
+    CALL REMOUNT
+  END
+  WHEN (ndrives < oldndrives) THEN DO
+    /* See if there are any MOUNTING drives we can take away */
+    DO i = 1 TO drivestat.0
+      IF (drivestat.i = 'MOUNTING') THEN DO
+        ADDRESS CMS 'VMTAPE CANCEL' vdev.i
+        /* Mark this tape volume as having NOT been used */
+        DO k = 1 TO tapevol.0
+          IF (tapevol.k = drivevol.i) THEN DO
+            tapestat.k = 'UNUSED'
+            LEAVE
+          END
+        END
+        /* Mark this vdev as being idle, with nothing mounted on it */
+        drivestat.i = 'IDLE'
+        drivevol.i = ''
+        ninuse = ninuse - 1
+        IF (ninuse <= ndrives) THEN LEAVE /* Accomplished our mission */
+      END
+    END
+  END
+  OTHERWISE NOP /* There was no change */
+END
+ 
+/* Save everything we know */
+CALL COMMONV 'PUT'
+ 
+RETURN
+ 
+ 
+QUERY:
+/**********************************************************************\
+*                                                                      *
+*   QUERY Major Subroutine                                             *
+*                                                                      *
+\**********************************************************************/
+/* The runuser here may be any of the operators. Might not be the same
+one who started the backup. */
+ 
+'GLOBALV SELECT SPBACKUP GET QBACKUP'
+IF (qbackup <> 1) THEN DO
+  SAY 'Backup job not active.'
+  RETURN
+END
+ 
+/* Get everything we need to know */
+CALL COMMONV 'GET'
+'GLOBALV SELECT SPBACKUP GET PROGRESS'
+'GLOBALV SELECT SPBACKUP GET RUNUSER'
+ 
+SAY 'NDRIVES=' ndrives 'NINUSE=' ninuse, /* debug trace */
+    'NSPXTAPE=' nspxtape   /* debug trace */
+SAY 'The backup was started by' runuser'.'
+SAY 'You have resuested for backup to run on' ndrives 'drives.'
+SAY 'Presently,' nspxtape 'are actually running,'
+SAY '    and we are waiting for you to mount' (ninuse-nspxtape) 'tapes.'
+SAY progress
+SAY ' '
+SAY 'virt   real             tape  '
+SAY 'addr   addr   status    volser'
+SAY ' '
+DO i = 1 TO vdev.0
+  IF (WORDPOS(drivestat.i,'DUMPING DRAINING UNLOADING') > 0) THEN,
+    'PIPE CP Q V' vdev.i,
+      '| SPECS 19.4 1',
+      '| VAR rdev'
+  ELSE rdev = '----'
+  SAY vdev.i ' ' rdev ' ' drivestat.i ' ' drivevol.i
+END
+SAY ' '
+SAY 'Status of tapes in Tapepool' tapepool':'
+SAY ' '
+DO i = 1 TO tapevol.0
+  SAY RIGHT(i,2) tapevol.i tapestat.i
+END
+ 
+RETURN
+ 
+ 
+DATA:
+/**********************************************************************\
+*                                                                      *
+*     DATA Major Subroutine                                            *
+*                                                                      *
+\**********************************************************************/
+/* This subroutine is meant to be invoked by a program running in some
+user's virtual machine which wants to get information from us. It is
+returned by SMSG. */
+ 
+PARSE UPPER ARG varname .
+/* Who asked us this question? */
+'PIPE VAR runuser 1 | VAR runuser'
+'PIPE CMS GLOBALV SELECT SPBACKUP LIST' varname,
+  '| DROP FIRST 1',
+  '| APPEND LITERAL END OF RESPONSE',
+  '| SPECS /SMSG' runuser '/ 1 1-* NEXT',
+  '| CP'
+ 
+RETURN
+ 
+ 
+CANCEL:
+/**********************************************************************\
+*                                                                      *
+*   CANCEL Major Subroutine                                            *
+*                                                                      *
+\**********************************************************************/
+/* End the whole show, right now. */
+/* The runuser here may be any of the operators. Might not be the same
+one who started the backup. */
+ 
+DO i = 1 TO vdev.0
+  'CP SPXTAPE CANCEL' vdev.i
+  'CP REWIND' vdev.i
+  'CP DETACH' vdev.i
+END
+'GLOBALV SELECT SPBACKUP SETL QBACKUP 0'
+ADDRESS CMS 'VMTAPE CANCEL ALL'
+finalrc = 0
+RETURN
+ 
+ 
+NORMEND:
+/**********************************************************************\
+*                                                                      *
+*   NORMEND Major Subroutine                                           *
+*                                                                      *
+\**********************************************************************/
+/* Called from a TRAP when SPXTAPE reaches its normal end */
+/* We are the runuser here ourselves. */
+ 
+/* Get all information */
+CALL COMMONV 'GET'
+'GLOBALV SELECT SPBACKUP GET RUNUSER'
+'GLOBALV SELECT SPBACKUP GET STARTTIME'
+ 
+/* Unload all the hardware */
+ADDRESS CMS 'VMTAPE CANCEL ALL'
+DO i = 1 TO vdev.0
+  'PIPE CP DETACH' vdev.i '| HOLE'
+END
+ 
+yak = 'CP MSGNOH' runuser
+yak ' '
+yak 'BACKUP has finished writing the spool files to tape. Now we must'
+yak 'write the logs of this backup to tape. This will take about 10'
+yak 'minutes.'
+yak ' '
+/* (Delay unnecessary here. All logs have already arrived.) */
+/* 'PIPE LITERAL +2:00', */
+/*   '| DELAY', */
+/*   '| SPECS /We have waited / 1 1-* NEXT', */
+/*   '| CONSOLE' */
+ 
+'PIPE < BACKTRAP SAVEMSGS A | CONSOLE'
+ 
+/* Prepare log file */
+logfid = tapepool 'TAPELOG A'
+'PIPE COMMAND ERASE' logfid '| HOLE'
+'RENAME BACKTRAP SAVEMSGS A' logfid
+'PIPE LITERAL   ',
+  '| APPEND LITERAL Tapepool status at end of job:',
+  '| >>' logfid
+DO i = 1 TO tapevol.0
+  'PIPE LITERAL' RIGHT(i,2) RIGHT(tapevol.i,6) tapestat.i,
+    '| >>' logfid
+END
+/* Tell the guy who started the whole show */
+'PIPE <' logfid,
+  '| SPECS /MSGNOH' runuser'/ 1 1-* NEXTWORD',
+  '| CONSOLE',
+  '| CP'
+ 
+CALL COMMONV 'PUT'
+ 
+/* Wrap it up. */
+ 
+CALL WRAPUP starttime tapepool
+RETURN result
+ 
+Wrapup:
+/**********************************************************************\
+*                                                                      *
+*   WRAPUP  Major Subroutine                                           *
+*                                                                      *
+\**********************************************************************/
+/* Post-process the logs */
+ 
+/* Get all information */
+/* CALL COMMONV 'GET' */ /* DON'T re-get - we may be called standalone*/
+'GLOBALV SELECT SPBACKUP GET RUNUSER'
+PARSE ARG starttime tapepool .
+IF ((starttime = '') | (tapepool = '')) THEN DO
+  message = 'ARGUMENTS MISSING ON WRAPUP - NEED startime tapepool'
+  SAY message
+  RETURN 40
+END
+ 
+'PIPE CP 500000 QUERY RDR * ALL',        /* Look at all our RDR files */
+  '| LOCATE 1-8 /' || ourid || '/',              /* That came from me */
+  '| LOCATE 15-19 /T CON/',          /* That look like SPBACKUP files */
+  /* Note we include both Volume Logs and Command Summary Logs below*/,
+  '| LOCATE 58 /D/',                        /* That are Dump jobs */
+  '| LOCATE 64-69 /' || starttime || '/',      /* That are this job */
+  '| SPECS 10-13 1',                       /* and just save the spids */
+  '| STEM spids.'
+orc = rc
+IF (orc <> 0) THEN DO
+  SAY 'Error encountered locating logs in reader. RC=' orc
+  RETURN orc
+END
+ 
+/* Read in the log files one at a time */
+SAY 'Reading console logs...'
+'PIPE COMMAND ERASE' tapepool 'UNSORTED A | HOLE'
+DO i = 1 TO spids.0
+/* A sample:
+ORIGINID FILE CLASS RECORDS  CPY HOLD DATE  TIME     NAME      TYPE     DIST
+U12860   2537 T CON 00000033 001 NONE 01/25 13:01:28 0125DUMP  130128   UICVM
+U12860   2536 T CON 00000020 001 NONE 01/25 13:19:28 0125D181  13012803 UICVM
+*/
+ 
+  /* Get complete info on this spool file */
+  'PIPE CP QUERY RDR *' spids.i 'ALL',
+    '| TAKE LAST 1',
+    '| VAR spooldef'
+  PARSE VAR spooldef originid . class variety . . . . . spfn spft .
+  SAY 'Examining file' spid spfn spft
+  SELECT
+    WHEN (originid <> ourid) THEN NOP          /* Ignore not from us */
+    WHEN (variety <> 'CON') THEN NOP          /* Ignore not CON file */
+    WHEN (SUBSTR(spfn,5,4) = 'DUMP') THEN DO         /* the main log */
+      SAY '   Receiving Command Summary Log' spid spfn spft
+      ADDRESS CMS 'RECEIVE' spids.i tapepool 'SPXLOG A (REPLACE'
+    END
+    OTHERWISE DO                                 /* Read this part in */
+      SAY '   Receiving Volume Log' spid spfn spft
+      /* Spool rdr HOLD so we can read it again */
+      'CP SPOOL RDR NOCONT NOEOF NOKEEP CLASS * HOLD'
+      'PIPE (ENDCHAR ?) READER FILE' spids.i,     /* Read from reader */
+        '| SPECS 2-* 1',               /* Get rid of carriage control */
+        '| TOLABEL USERID   FILE QUEUE' ||,    /* Up until detail list*/
+        '| BANANA: NFIND TAPE NUMBER:' ||,               /* ldev, seq */
+        '| FIND Tape Volume ID:' ||,                 /* Get SL volser */
+        '| SPECS 18.6 1',
+        '| VAR slvol',                                 /* and save it */
+        '?',
+        'BANANA:',
+        '| SPECS 22-* 1',
+        '| VAR tapenum'                             /* Save ldev, seq */
+      'CP CLOSE READER'                  /* Rewind in order to reread */
+      'CP SPOOL RDR NOCONT NOEOF NOKEEP CLASS * NOHOLD'     /* NOHOLD */
+      'PIPE READER FILE' spids.i,    /* Read the real stuff this time */
+        '| SPECS 2-* 1',               /* Get rid of carriage control */
+        '| FRLABEL USERID   FILE QUEUE' ||,   /* Now, start at detail */
+        '| DROP FIRST 1',                  /* The header line itself. */
+        '| SPECS /' || LEFT(slvol,6) || '/ 1',  /* Spread the volser...*/
+             '/' || LEFT(tapenum,8) || '/ 8',      /*...and tapeseq...*/
+             '1-* 17',            /*...across all the detail records. */
+        '| >>' tapepool 'UNSORTED A'         /* Write to raw database */
+    END
+  END
+END
+ 
+/* Sort the records */
+SAY 'Sorting database...'
+/* Build SORT control statements to
+and put everything in order BY userid, spoolnum. */
+/* Note that these starting locations are +4 for green words */
+'PIPE LITERAL SORT FIELDS=(21,13,CH,A)',
+  '| PAD 80',    /* PLSORT requires F 80 records */
+  '| > SPBACKUP SORTCNTL A F 80'
+ 
+infid = tapepool 'UNSORTED A'
+outfid = tapepool 'DATABASE A'
+'PIPE CMS ERASE' outfid '| HOLE'
+/************BEGIN LOCAL DEPENDENT CODE *****************************/
+/* Get access to the external sort, and sort the file */
+'EXEC GETDISK SORT'
+ADDRESS CMS 'PLSORT' infid outfid 'SPBACKUP SORTCNTL A'
+'EXEC GETDISK SORT (FREE'
+/************  END LOCAL DEPENDENT CODE *****************************/
+ 
+/* We're done with the unsorted version, and it's pretty big. */
+'ERASE' tapepool 'UNSORTED A'
+ 
+/* Build the database index file */
+SAY 'Building database index...'
+'PIPE <' tapepool 'DATABASE A',
+  '| SPECS 17.8 1 RECNO 10',
+  '| UNIQUE 1-8 FIRST',
+  '| >' tapepool 'DBINDEX A'
+ 
+/* TAPE DUMP today's logs to tape. */
+SAY 'Writing database to tape...'
+/* Mount the first tape */
+'GLOBALV SELECT SPBACKUP GET TAPEPOOL'
+/* Get the list of tapes to use */
+'PIPE <' tapepool 'TAPEPOOL *',
+  '| NFIND *' ||,     /* Eliminate comments */
+  '| SPECS 1-6 1',    /* Just the volsers */
+  '| STEM tapevol.'
+'PIPE CMS VMTAPE MOUNT' tapevol.1 181 '(WRITE WAIT',
+  '| STEM errstem.'
+orc = rc
+IF (orc <> 0) THEN DO
+  SAY 'Error occured trying to mount tape. TAPEPOOL error?'
+  'PIPE STEM errstem. | CONSOLE'
+  finalrc = orc
+  RETURN
+END
+ 
+/* Copy everything relevant to tape. */
+'TAPE REW'
+'PIPE TAPE | CONSOLE' /* Skip over, and display, standard label */
+'TAPE REW'
+'TAPE FSF 1'
+'TAPE DUMP' tapepool 'SPXLOG A (COMP BLKSIZE 64K'
+'TAPE DUMP' tapepool 'TAPELOG A (COMP BLKSIZE 64K'
+'TAPE DUMP' tapepool 'DBINDEX A (COMP BLKSIZE 64K'
+'TAPE DUMP' tapepool 'DATABASE A (COMP BLKSIZE 64K'
+'TAPE WTM 2'
+'TAPE REW'
+'CP DETACH 181'
+ 
+'GLOBALV SELECT SPBACKUP SETL QBACKUP 0'
+SAY 'Backup complete.'
+yak = 'CP MSGNOH' runuser
+yak ' '
+yak 'BACKUP has finished writing the restore catalog to tape. Spool'
+yak 'backup is now complete. Thank you.'
+yak ' '
+RETURN rc

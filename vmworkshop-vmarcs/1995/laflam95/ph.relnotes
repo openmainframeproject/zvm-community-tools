@@ -1,0 +1,98 @@
+11 June 95
+ 
+Bug reports now go to USMCNJRN@IBMMAIL.COM, my new work address.
+ 
+PH HELPCMS now exists.  Thanks to John Hammond, among others, for sending
+me materials that helped me start with more than just a blank file.
+ 
+Entries that are longer than your screen can now be scrolled with F10 and
+F11.  I have to sometimes disable F11 due to a CMS bug that makes the
+window disappear.  F10 stays active all the time.  Sorry!  (No, the on
+screen menu doesn't reflect that.  Maybe in 2.58 or 3.00?) Try
+ 
+PH ns-servers (host ns.uiuc.edu
+ 
+to see this work!
+ 
+F2 now lets you toggle between the traditional formatted data and raw
+data.  F7 and F8 become inert; use F10 and F11.
+ 
+The bug that mixed the results of a FIELDS command with entries 10 through
+the end if you used the input panel should be fixed.  I think.  I hope.
+:-)
+ 
+Speaking of which, the "help", "fields", and one or two other commands are
+now allowed.  They no longer get changed to "query help" or "query fields."
+If you need to look up M.  Fields, use "Fields"; only the lower case
+version gets treated as a command.  Or use "ph fields" or "query fields" as
+your search argument.
+ 
+Other minor bugs fixed as found or reported....
+ 
+11 October 1994
+ 
+PH 2.56a
+ 
+2.56 didn't handle having "too many hits" returned when invoked
+with the STACK option. Whoops.
+ 
+For those of you waiting the long rumored 2.57, sorry, this isn't
+it, that's why this is 2.56a, to avoid that confusion.
+ 
+10 August 1993
+ 
+PH 2.54
+ 
+Error handling in PH 2.50 was wrong; some variables I thought were
+automagically set weren't.
+ 
+This release also includes a cosmetic change meant to not confuse
+Gopher users; PH uses a full screen, not a partial screen, when
+invoked under Gopher.  (2.53 got this right, 2.52 reversed the
+results.)
+ 
+Enjoy!
+ 
+25 February 1993
+ 
+I, Dominique.P.Laflamme.1@nd.edu, being of reasonably sound mind, do
+hereby release releases 2.00 and 2.50 of PH EXEC for CMS.
+ 
+2.00 was designed to work with Rick Troth's GOPHER EXEC.  It includes
+a screen to solicit a query from a user of no arguments are passed.
+2.50 is 2.00 for RXSOCKET version 2.0.
+ 
+PH now is less fussy about some messages coming back from qi servers.
+Thanks to Jim Colten, David Singer, and Yossie Silverman for pointing
+out my overspecification of what I was expecting.
+ 
+2.00 has most debugging messages removed, compared to, say, 1.97,
+which went out with Gopher 2.4.
+ 
+The output of the UNIQUE option has changed slightly.  Sorry, at some
+point I realized I didn't like the form in which I was returning data.
+ 
+In PH, HHOST defaults to ns.nd.edu as distributed.  Feel free to
+customize that and HPORt as necessary. :-)
+ 
+Included in PH $PACKAGE is:
+ 
+PH       EXEC - currently at release 2.00, uses RXSocket version 1.
+PH250   EXEC -  release 2.50, also known as 2.00 for RXSocket version 2.
+PH2NAMES EXEC - build an entry in a names file.
+ 
+And, for the RiceMail users in the crowd:
+ 
+PHMAIL   EXEC
+PHADD    XEDIT
+PHFORWRD XEDIT
+ 
+Build MAIL commands, INCLUDE commands, and FORWARD commands.  Seperate
+names with commas:
+ 
+phmail troth, boyes, cc: richard schafer (host ns.rice.edu
+ 
+Enjoy!
+ 
+Nick Laflamme
+nlaflamm@irishvma.bitnet

@@ -1,0 +1,29 @@
+.cm
+.cm       Name: ATTACH HELPMAIL
+.cm     Author: Rick Troth, Rice University, Information Systems
+.cm       Date: 1993-Nov-28
+.cm This file was created by hand.
+.cm
+.cs 1 on
+ 
+¢|ATTACH¢%
+ 
+ Use the ATTACH command to include other files in your outbound note.
+ ATTACH uses MIME (Multi-purpose Internet Mail Extensions) to encode
+ the attached file (if needed) and indicate that this mail now has
+ now has multiple parts.
+ 
+.cs 1 off
+.cs 2 on
+ The format of the ATTACH subcommand is:
+ +------------+-------------------------------------------------------------+
+ |            |                                                             |
+ |  ATTACH    |  fn  ft  [fm]                                               |
+ |            |                                                             |
+ +------------+-------------------------------------------------------------+
+ 
+.cs 2 off
+.cs 3 on
+.cs 3 off
+.cs 4 on
+.cs 4 off

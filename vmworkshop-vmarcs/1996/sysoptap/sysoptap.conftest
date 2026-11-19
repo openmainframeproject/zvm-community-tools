@@ -1,0 +1,19 @@
+* This file defines the screens which will receive tape mount info              
+*                                                                               
+* Lines which begin with * are comments.                                        
+* Each line defines one screen. It contains three tokens. First is the          
+* Virtual address of the screen. Second it its size in lines, and               
+* third is its width in columns.                                                
+*                                                                               
+* MODIFICATION HISTORY:                                                         
+* 06/06/94 - Roger - TEST FILE                                                  
+*                                                                               
+* Below line defines my own virtual console, for testing                        
+009 24 80                                                                       
+*                                                                               
+* Following list of userids are allowed to mount 'FOREIGN', even if             
+* the tape is not theirs.                                                       
+* FORMAT: FOREIGN <userid> <comments, such as user's name>                      
+*                                                                               
+FOREIGN U52983 Roger Deschner                                                   
+FOREIGN VMCENTER Operator                                                       

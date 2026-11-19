@@ -1,0 +1,71 @@
+/* * Copyright 1995, Richard M. Troth, all rights reserved. 
+ * 
+ *        Name: HOSTNAME EXEC 
+ *              display the TCP/IP hostname for this system 
+ *      Author: Rick Troth, Houston, Texas, USA 
+ *        Date: 1992-Sep-09, 1994-Aug-28, 1995-Aug-13, 31 
+ * 
+ *        Note: Typical invokation is something like 
+ * 
+ *                      hostname -f     for FQDN 
+ *                      hostname -s     for short hostname 
+ *                      hostname -d     for internet domain 
+ */ 
+ 
+/* load the TCPIP DATA file, presuming it's available */ 
+Address COMMAND 'PIPE < TCPIP DATA | SPLIT BEFORE /;/' , 
+    '| NLOCATE /;/ | XLATE LOWER | STEM TCP.' 
+If rc ^= 0 Then Exit rc 
+ 
+Parse Source . type . 
+ 
+Parse Arg args 
+If type = "COMMAND" Then Say _hn(args) 
+Else Return _hn(args) 
+ 
+Exit 
+ 
+ 
+/* ------------------------------------------------------------------ */ 
+_HN: Procedure Expose tcp. 
+ 
+/* first find out what CP and CMS say */ 
+Address COMMAND 'PIPE CP QUERY USERID' , 
+    '| SPEC WORD 3 1 | XLATE LOWER | VAR CPH' 
+Address COMMAND 'PIPE COMMAND IDENTIFY' , 
+    '| SPEC WORD 3 1 | XLATE LOWER | VAR CMSH' 
+ 
+/* initialize strings */ 
+hostname = "" 
+domainorigin = "" 
+ 
+/* crunch the file into usable data */ 
+Do i = 1 To tcp.0 
+    Parse Var tcp.i w1 w2 . 
+    If Index(w1,':') > 0 Then Do 
+        Parse Var tcp.i hh ':' w1 w2 . 
+        If hh ^= cph & hh ^= cmsh Then Iterate 
+        End  /*  If .. Do  */ 
+    Select 
+        When w1 = "hostname" Then hostname = w2 
+        When w1 = "domainorigin" Then domainorigin = w2 
+        Otherwise nop 
+        End  /*  Else  Do  */ 
+    End  /*  Do  For  */ 
+ 
+/* build FQDN string from components */ 
+If hostname = "" Then hostname = cmsh 
+If domainorigin ^= "" Then fqdn = hostname || '.' || domainorigin 
+                      Else fqdn = hostname 
+/*  we may be doing a little more work here and immediately above 
+    but it simplifies the logic somewhat  (and/or I'm just lazy       */ 
+ 
+/* now decide just what to return */ 
+Parse Upper Arg flag . , . 
+Select  /*  flag  */ 
+    When flag = "-F" Then return fqdn 
+    When flag = "-D" Then return domainorigin 
+    When flag = "-S" Then return hostname 
+    Otherwise return fqdn 
+    End  /*  Select flag  */ 
+ 

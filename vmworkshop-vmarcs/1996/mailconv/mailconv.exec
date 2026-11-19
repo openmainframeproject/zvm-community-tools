@@ -1,0 +1,55 @@
+/*
+ *        Name: MAILCONVERT EXEC
+ *              tool to convert CMS NOTEBOOKs to/from UNIX "mbox" files
+ *      Author: Rick Troth, Houston, Texas, USA 
+ *        Date: 1993-May-21
+ */
+ 
+Address "COMMAND"
+ 
+Parse Upper Arg fn cvd
+ 
+If fn = "" Then Do
+    'XMITMSG 54 (ERRMSG CALLER MCV'
+    Exit 24
+    End  /*  If  ..  Do  */
+ 
+If cvd = "" Then Do
+ 
+    'PIPE COMMAND LISTFILE' fn 'NOTEBOOK * (DATE | DROP | VAR NB'
+    nbrc = rc
+    'PIPE COMMAND LISTFILE' fn 'MBOX * (DATE | DROP | VAR MB'
+    mbrc = rc
+ 
+    Select
+ 
+        When nbrc = 28 & mbrc = 28 Then Do
+            'XMITMSG 2 FN (ERRMSG CALLER MCV'
+            Exit 28
+            End  /*  If  ..  Do  */
+ 
+        When nbrc = 28 Then cvd = "TO CMS"
+        When mbrc = 28 Then cvd = "TO UNIX"
+ 
+        Otherwise Do
+            Parse Var nb . . . . . . . nbd nbt .
+            Parse Var nbd nbm '/' nbd '/' nby
+            Parse Var nbt nbh ':' nbn ':' nbs
+            nbx = (nby * 384 + nbm * 32 + nbd) * 43200 ,
+                + nbh * 3600 + nbn * 60 + nbs
+            Parse Var mb . . . . . . . mbd mbt .
+            Parse Var mbd mbm '/' mbd '/' mby
+            Parse Var mbt mbh ':' mbn ':' mbs
+            mbx = (mby * 384 + mbm * 32 + mbd) * 43200 ,
+                + mbh * 3600 + mbn * 60 + mbs
+            If mbx > nbx Then cvd = "TO CMS"
+                         Else cvd = "TO UNIX"
+            End  /*  If  ..  Do  */
+ 
+        End  /*  Select  */
+ 
+    End  /*  If  ..  Do  */
+ 
+'PIPE MAILCONVERT' fn cvd
+Exit rc
+ 

@@ -1,0 +1,119 @@
+* ------------------------------------------------------------------- *         
+*                                                                     *         
+*   copyright - virtual machine / system product                      *         
+*               contains restricted materials of cornell university   *         
+*               5664-167 (c) copyright cornell university 1990        *         
+*               licensed materials - property of cornell university   *         
+*               refer to copyright instructions                       *         
+*               form number g120-2083                                 *         
+* ------------------------------------------------------------------- *         
+* processor    - assebmler release 5.0 5/1/83      under aix/370      *         
+*                                                                     *         
+* dependences  - none                                                 *         
+*                                                                     *         
+* attributes   - reenterant                                           *         
+*                                                                     *         
+* entry point  - _cfcd_                                               *         
+*                                                                     *         
+* errors       - not found                                            *         
+*                                                                     *         
+* 06/16/89                valery i. garger, technology integration    *         
+*                         group, cnsf, cornell university             *         
+* ------------------------------------------------------------------- *         
+* change log:    some minor changes and bugs fixed        09/13/89    *         
+*                converted to aix/370                     05/01/90    *         
+*                                                       valery garger *         
+* ------------------------------------------------------------------- *         
+* convert floating point, cray 64-bit to ibm 64-bit (fortran real*8). *         
+* call this subroutine by:                                            *         
+*                                                                     *         
+*             call cfcd(cray, ibm, n)                                 *         
+*                                                                     *         
+*    input: cray  array of 64-bit cray floating point numbers.        *         
+*           n     number of elements in cray  to convert, integer.    *         
+*    output:ibm   array of ibm floating point numbers, real*8 values. *         
+*                                                                     *         
+* format (bits, left to right):           |    exponent bias:         *         
+*             sign   exponent   mantissa  |                           *         
+* ibm           1      7           56     |     64 hex                *         
+* cray          1     15           48     |  16384 binary             *         
+*                                         |                           *         
+* latency: 1.064 microsecond per conversion of one element            *         
+*          on one of the ibm 3090-600e processors.                    *         
+*                                                                     *         
+* usage notes:                                                        *         
+* 1. cray  values  that doesn't  fit  ibm  standard are converted to  *         
+*    either the biggest ibm values (positive or negative) or to zero. *         
+* 2. non-normalized numbers with zero exponents are kept intact       *         
+*    (suspected to be integer values).                                *         
+* 3. conversion does not incur the lost of mantissa accuracy.         *         
+* ------------------------------------------------------------------- *         
+_cfcd_ csect                                                                    
+       entry      _cfcd_                                                        
+       b          34(,15)                                                       
+       dc         al1(6+22)                                                     
+       dc         cl6'cfcd  '                                                   
+       dc         cl22'05-01-90/vesion#1.9'                                     
+       stm        2,15,x'10'(13)                                                
+       lr         12,13                                                         
+       la         11,x'68'                                                      
+       slr        13,11                                                         
+       st         12,4(13)                                                      
+       lr         12,15                                                         
+       using      _cfcd_,12                                                     
+* -----------------------------------------------                               
+       lr         4,2                  pointer to n                             
+       lr         3,1                  pointer to ibm                           
+       lr         2,0                  pointer to cray                          
+       l          4,00(,4)             g4: n                                    
+next   ds         0h                   do j = 1,n                               
+       lm         8,9,00(2)            gr8,gr9:  for tiss, now intact           
+       lr         6,8                                                           
+       n          6,=x'80000000'       gr6: sign                                
+       lr         7,8                                                           
+       n          7,=x'7fff0000'       gr7: exponent                            
+       lr         1,8                                                           
+       n          1,=x'00008000'       gr1: nrmbit                              
+       or         1,7                                                           
+       bz         done                 if so, keep intact                       
+       n          8,=x'0000ffff'       tiss(1)                                  
+expon  ds         0h                                                            
+       srl        7,16                                                          
+       s          7,=f'16128'          exp = exp - 16384 + 256                  
+       lr         5,7                                                           
+       n          5,=f'3'              .and. last two bits                      
+       bz         *+8                  avoid if mod(exp,4)=0                    
+       a          7,=f'4'              +1 to next to two last bits              
+       sra        7,2                  see whole new exponent                   
+       ltr        7,7                                                           
+       bnm        expos                to exponet is positive                   
+       sr         8,8                                                           
+       sr         9,9                                                           
+       b          strsgn               store zero w/sign                        
+expos  ds         0h                   exp is pos                               
+       c          7,=f'127'                                                     
+       bnp        exprng               to exponent in a range                   
+       l          8,=x'7fffffff'                                                
+       l          9,=x'ffffffff'                                                
+       b          strsgn                                                        
+exprng ds         0h                                                            
+       sll        7,24                 exponent on place                        
+tissa  ds         0h                                                            
+       sldl       8,5                  at least on 5 bits left                  
+       ltr        5,5                                                           
+       bnz        *+8                                                           
+       la         5,4                                                           
+       s          5,=f'1'                                                       
+       bz         *+8                                                           
+       sldl       8,00(5)              logically double                         
+store  ds         0h                                                            
+       or         8,7                                                           
+strsgn or         8,6                                                           
+done   stm        8,9,00(3)                                                     
+       la         2,8(2)                                                        
+       la         3,8(3)                                                        
+       bct        4,next               enddo                                    
+* --------- epiloge -----------------------------------------------             
+exit   lm         2,14,x'78'(13)                                                
+       br         14                                                            
+       end                                                                      
