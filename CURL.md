@@ -11,4 +11,6 @@ https://raw.githubusercontent.com/trothtech/cmsmake/refs/heads/main/cms/curl.rex
 
 https://raw.githubusercontent.com/trothtech/cmsmake/refs/heads/main/cms/curl.exec
 
+https://github.com/trothtech/cmsmake/releases/
+
 

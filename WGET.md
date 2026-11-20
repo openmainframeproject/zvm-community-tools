@@ -11,4 +11,6 @@ https://raw.githubusercontent.com/trothtech/cmsmake/refs/heads/main/cms/wget.rex
 
 https://raw.githubusercontent.com/trothtech/cmsmake/refs/heads/main/cms/wget.exec
 
+https://github.com/trothtech/cmsmake/releases/
+
 
