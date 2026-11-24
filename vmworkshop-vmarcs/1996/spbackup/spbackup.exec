@@ -1,0 +1,289 @@
+/* SPBACKUP EXEC:
+Driver routine to prompt you through all SPBACKUP operations.
+ 
+PREREQUISITES:
+GETFMADR, from the CMS Utilities/IPF set of tools.
+ 
+MODIFICATION HISTORY:
+04/01/96 - Roger Deschner - Original Version
+ 
+*/
+ADDRESS COMMAND
+ 
+tapepools = 'SUN MON TUE WED THU FRI SAT IPL'
+ 
+PARSE UPPER ARG ')' specialkey specialopts
+finalrc = 0
+SELECT
+  WHEN (specialkey = '') THEN DO
+    'VMFCLEAR'
+    DO FOREVER
+      SAY '                SPBACKUP Spool Backup System'
+      SAY ' '
+      SAY 'Type a letter and press ENTER:'
+      SAY ' '
+      SAY 'Q  QUERY current status of backup jobs'
+      SAY 'S  START a backup job'
+      SAY 'D  Change number of DRIVES currently in use for backup.'
+      SAY 'C  CANCEL currently running backup job.'
+      SAY 'R  RESTORE one or more files for a user'
+      SAY ' '
+      SAY '...or just press enter without typing anything to leave.'
+      SAY ' '
+      PARSE UPPER PULL answer .
+      SELECT
+        WHEN (answer = '') THEN EXIT 0
+        WHEN (answer = 'Q') THEN 'CP SMSG SPBACKUP BACKUP QUERY'
+        WHEN (answer = 'S') THEN CALL Starter
+        WHEN (answer = 'D') THEN CALL Driver
+        WHEN (answer = 'C') THEN CALL Canceller
+        WHEN (answer = 'R') THEN DO
+          SAY 'NOTE SYSTEMS, fully describing what you want restored.'
+          SAY 'Include: userid, last date backed up, spool file number',
+              'or any other'
+          SAY 'identifying information. NOTICE: Spool backups are only',
+              'kept for 7 days,'
+          SAY 'so if your file was backed up nearly that long ago,',
+              'notify SYSTEMS _now_'
+          SAY 'in person or by paging, so that the backup',
+              'tapes will not be'
+          SAY 'written over before your files can be restored.'
+        END
+        OTHERWISE DO
+          'VMFCLEAR'
+          SAY ' '
+          SAY '**ERROR** Invalid choice. Try again.'
+          SAY ' '
+          ITERATE
+        END
+      END
+      LEAVE
+    END
+  END
+  OTHERWISE DO
+    SAY 'iNVALID KEYWORD.'
+    finalrc = 16
+  END
+END
+ 
+ 
+RETURN finalrc
+ 
+ 
+Qbackup:
+/**********************************************************************\
+* FUNCTION SUBPROGRAM to determine if a backup is already running.     *
+\**********************************************************************/
+/* To call:   xyzzy = QBACKUP()
+ 
+        or:   CALL QBACKUP
+              xyzzy = result
+ 
+   Returns as its value:
+   0 = backup is not running. No message issued.
+   1 = backup is running. No message issued.
+  55 = Server not responding. Message already issued.
+*/
+ 
+'CP SET SMSG IUCV'
+'PIPE (ENDCHAR ?)',
+  '  STARMSG *MSG CP SMSG SPBACKUP DATA QBACKUP',
+  '| SPECS 17-* 1', /* strip starmsg and RSCS prefix */
+  '| STEM response.',
+  '| FIND END OF RESPONSE',          /* end of response       */
+  '| Stop: FANINANY',
+  '| SPECS /PIPMOD STOP/ 1',                /* Stop pipeline         */
+  '| COMMAND',
+  '?',
+  '  LITERAL +15',                           /* specify delay         */
+  '| DELAY',                                 /* timeout if no response*/
+  '| Stop:'
+src = rc
+'CP SET SMSG OFF'
+PARSE UPPER VAR response.1 vname '=' value .
+IF (value = '') THEN DO
+  SAY 'Server not responding.'
+  result = 55
+  RETURN
+END
+ELSE RETURN value
+ 
+ 
+Starter:
+/**********************************************************************\
+* Start a backup job                                                   *
+\**********************************************************************/
+ 
+CALL QBACKUP  /* Ask server if a backup is running */
+SELECT
+  WHEN (result = 0) THEN NOP          /* Goodness! */
+  WHEN (result = 1) THEN DO
+    SAY 'Cannot start a backup because one is already running.'
+    SAY 'Use the Query option for more details.'
+    finalrc = 40
+    RETURN
+  END
+  OTHERWISE DO  /* Any other RESULT is an error code */
+    finalrc = result
+    RETURN
+  END
+END
+ 
+/* Set default tapepool to today: */
+dow = TRANSLATE(SUBSTR(DATE('W'),1,3))
+ 
+SAY ' '
+SAY 'Enter tapepool name:' tapepools','
+SAY 'or press Enter for default' dow '-'
+PARSE UPPER PULL tapepool .
+IF (tapepool = '') THEN tapepool = dow
+IF (WORDPOS(tapepool,tapepools) < 1) THEN DO
+  SAY 'Tape pool must be one of' tapepools
+  finalrc = 16
+  RETURN
+END
+SAY 'Using tapepool' tapepool'.'
+ 
+SAY ' '
+SAY 'Enter number drives, from 2 to 12, or just press Enter to quit.'
+SAY '(3 to 5 drives usually provides best performance.)'
+PARSE PULL ndrives .
+ 
+IF (DATATYPE(ndrives,'W') <> 1) THEN DO
+  SAY 'Number of drives must be a whole number.'
+  finalrc = 16
+  RETURN
+END
+IF ((ndrives < 2) | (ndrives > 12)) THEN DO
+  SAY 'Number of drives must be between 2 and 12.'
+  finalrc = 16
+  RETURN
+END
+ 
+'VMFCLEAR'
+SAY ' '
+SAY 'You have requested to start a spool backup using Tape Pool' tapepool
+SAY 'on' ndrives 'tape drives. This will overwrite and erase the',
+    'previous'
+SAY 'backup which was written on Tape Pool' tapepool'. This backup',
+    'will take'
+SAY 'from 1.5 to 3 hours to run. Type "Y" to confirm and start this',
+    'backup,'
+SAY 'or type anything else to quit now without starting anything.'
+SAY ' '
+SAY 'Start the backup now? (Y or N) -'
+PARSE UPPER PULL answer .
+IF (answer = 'Y') THEN 'CP SMSG SPBACKUP BACKUP START' tapepool ndrives
+finalrc = 0
+RETURN
+ 
+ 
+Driver:
+/**********************************************************************\
+* Change number of drives in use                                       *
+\**********************************************************************/
+ 
+CALL QBACKUP  /* Ask server if a backup is running */
+SELECT
+  WHEN (result = 1) THEN NOP          /* Goodness! */
+  WHEN (result = 0) THEN DO
+    SAY 'Cannot change number of drives because no backup is running.'
+    finalrc = 40
+    RETURN
+  END
+  OTHERWISE DO  /* Any other RESULT is an error code */
+    finalrc = result
+    RETURN
+  END
+END
+ 
+/* How many drives is it running with at the present? */
+'CP SET SMSG IUCV'
+'PIPE (ENDCHAR ?)',
+  '  STARMSG *MSG CP SMSG SPBACKUP DATA NDRIVES',
+  '| SPECS 17-* 1', /* strip starmsg and RSCS prefix */
+  '| STEM response.',
+  '| FIND END OF RESPONSE',          /* end of response       */
+  '| Stop: FANINANY',
+  '| SPECS /PIPMOD STOP/ 1',                /* Stop pipeline         */
+  '| COMMAND',
+  '?',
+  '  LITERAL +15',                           /* specify delay         */
+  '| DELAY',                                 /* timeout if no response*/
+  '| Stop:'
+src = rc
+'CP SET SMSG OFF'
+PARSE UPPER VAR response.1 vname '=' value .
+IF (value = '') THEN DO
+  SAY 'Server not responding.'
+  finalrc = 55
+  RETURN
+END
+ 
+SAY ' '
+SAY 'Backup is presently running with' value 'drives.'
+SAY ' '
+SAY 'Enter new number of drives, or just press enter to do nothing -'
+PARSE PULL ndrives .
+IF (ndrives = '') THEN DO
+  finalrc = 0
+  RETURN
+END
+ 
+IF (DATATYPE(ndrives,'W') <> 1) THEN DO
+  SAY 'Number of drives must be a whole number.'
+  finalrc = 16
+  RETURN
+END
+IF ((ndrives < 2) | (ndrives > 12)) THEN DO
+  SAY 'Number of drives must be between 2 and 12.'
+  finalrc = 16
+  RETURN
+END
+ 
+'CP SMSG SPBACKUP BACKUP DRIVES' ndrives
+ 
+finalrc = 0
+RETURN
+ 
+ 
+Canceller:
+/**********************************************************************\
+* Cancel a running BACKUP job                                          *
+\**********************************************************************/
+ 
+CALL QBACKUP  /* Ask server if a backup is running */
+SELECT
+  WHEN (result = 1) THEN NOP          /* Goodness! */
+  WHEN (result = 0) THEN DO
+    SAY 'Cannot cancel backup, because no backup is running.'
+    finalrc = 40
+    RETURN
+  END
+  OTHERWISE DO  /* Any other RESULT is an error code */
+    finalrc = result
+    RETURN
+  END
+END
+ 
+'VMFCLEAR'
+SAY ' '
+SAY ' '
+SAY ' '
+SAY ' '
+SAY ' '
+SAY ' '
+SAY 'Are you really sure you want to cancel the Spool Backup Job?'
+SAY ' '
+SAY 'Type "CANCEL" again now to verify, or anything else to not cancel:'
+PARSE UPPER PULL answer .
+IF (answer <> 'CANCEL') THEN DO
+  SAY 'Not cancelled.'
+  finalrc = 8
+  RETURN
+END
+ 
+'CP SMSG SPBACKUP BACKUP CANCEL'
+ 
+finalrc = 0
+RETURN

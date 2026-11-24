@@ -1,0 +1,10 @@
+/* This profile is for SYSOPTAP. It starts up the tape monitoring
+process
+*/
+'CP SET EMSG ON'
+'CP SET PF06 RETRIEVE'
+'CP SET PF18 RETRIEVE'
+/* These are for future use by people issuing the DIAL command: */
+'CP DEFINE GRAF 4A1 3270'
+'CP DEFINE GRAF 4A2 3270'
+'EXEC PROCESS'

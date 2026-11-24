@@ -1,0 +1,31 @@
+/* This program waits for any MSG interupt and refreshes its displays.
+ 
+MODIFICATION HISTORY:
+04/06/93 - Roger - Original Version. From example in WAKEUP help file.
+*/
+/* Invoke WAKEUP first so it will be ready to receive msgs */
+/* This call also issues a 'SET MSG IUCV' command.         */
+ 
+"WAKEUP +0 (IUCVMSG"
+call domsg uid,text       /* paint first display */
+ 
+/* In this loop, we wait for a message to arrive and       */
+/* process it when it does.  If the "operator" types on    */
+/* the console (rc=6) then leave the exec.                 */
+ 
+Do forever;
+  'wakeup (iucvmsg'         /* wait for a message         */
+  if rc /=5 then leave;     /* Leave when its not a msg   */
+  parse pull type uid text  /* get the msg details...     */
+  call domsg uid,text       /* go process the command     */
+end;
+ 
+   /* when its time to quit, come here                        */
+   xit:
+ 
+   'WAKEUP RESET';        /* turn messages from IUCV to ON    */
+   exit;
+ 
+DOMSG:
+'EXEC QMOUNT'
+RETURN

@@ -1,0 +1,796 @@
+FILESPACE EXEC
+ 
+/*  This exec will gather information on the filespaces in the ADSM
+    database and analyze which may be old and which nodes have not
+    been backed up in a long time.
+MMM 3/22/95
+ 
+*/
+address command
+ 
+Adsm_admin = 'MONITOR'
+Adsm_pass = 'xxxxxxxx'
+'EXEC GETADSM'
+if(RC^=0) then exit RC
+ 
+/*  Run the ADSM commands necessary to collect the information. */
+'DSMADMC -ID='||Adsm_admin '-PASS='||Adsm_pass 'MACRO QFILESP.ADSM'
+if(RC^=0) then do
+   say 'Error running ADSM.  See DSMERROR LOG'
+   'EXEC SENDF DSMERROR LOG A TO URMM'
+   exit RC
+end;
+ 
+/* Reformat the QUERY FILESPACE information into a usable form. */
+'PIPE (end ?) < QFILESP OUTPUT A|' ,
+     'a:lookup 1-33 detail  |' ,   /* Select out info we want */
+     'change (33-35) /:  /: 0/|' , /* if no backup info, change to 0 */
+     'change (29-36) /Time: 0 /Time: 0 0/|' ,
+     'spec 35-* 1 |' ,             /* Get rid of headers */
+     'join 4 / / |' ,
+     'stem Filespace.' ,
+     '? literal Node Name: |' ,    /* Headers for info we want */
+     'literal Filespace Name: |' ,
+     'literal Days Since Last Backup Started: |' ,
+     'literal Last Backup Completion Date/Time: |' ,
+     'literal Days Since Last Backup Completed: |' ,
+     'pad left 34 |' ,
+     'a:'
+ 
+/* Reformat output from QUERY NODE and select out information we want.*/
+'PIPE (end ?) < QNODE OUTPUT A |' ,
+     'a:lookup 1-31 detail |' ,
+     'spec 33-* |' ,
+     'join / / |' ,
+     'stem Nodes.' ,
+     '? literal Node Name: |' ,
+     'literal Contact: |' ,
+     'pad left 32 |' ,
+     'a:'
+ 
+/* The following pipe will take the data gathered by the QUERY FILESPACE
+   and the data from the QUERY NODES and combine them.  Then the OLDBACKS
+   filter will select out those that have not had a successful backup
+   within the given number of days and will return those records on
+   the primary output stream.  Records that are under the limit will
+   be returned on the secondary output stream (1) and any records with
+   a value of 0 for the backup will be returned on the tertiary
+   stream (2).  The final stream (4) will contain the data from the
+   primary stream, formatted for sending e-mail.  Only those records
+   containing an e-mail address in the bio data will be included.
+*/
+'PIPE (end ?) stem Filespace. |' ,
+      'a:lookup 1-30 |' ,      /* combine data and names */
+      'join / / |' ,
+      'b:oldbacks 30 |' ,      /* select out problem nodes */
+      'report |' ,
+      'literal Report on Nodes over 30 Day Limit |' ,
+      '> filespac bad a' ,     /* nodes over the limit   */
+      '? stem Nodes. |' ,      /* get bio data & combine with data */
+      'a:' ,
+      '? b: |' ,               /* stream 1, nodes under limit */
+      'report |' ,
+      'literal Report on Nodes under 30 Day Limit |' ,
+      '> filespac good a' ,
+      '? b: |' ,               /* stream 2, nodes w/0 for backup */
+      'report |' ,
+      'literal Report on Nodes with Backup Value 0 |' ,
+      '> filespac zero a' ,
+      '? b: |' ,               /* stream 3, stream 0 data formatted*/
+      'stem E_mail.'           /* for sending e-mail               */
+ 
+'EXEC SENDFILE FILESPAC BAD A TO URMM'
+'EXEC SENDFILE FILESPAC GOOD A TO URMM'
+'EXEC SENDFILE FILESPAC ZERO A TO URMM'
+ 
+/* The following loop will generate e-mail and send it to each
+   address in E_mail.  This is a reminder to do their backups
+   on their PC's.  */
+do I = 1 to E_mail.0
+      parse var E_mail.i E_addr Node Last_date Last_time ,
+                Filespace '@%' Name_text
+      Note.1 = 'Date:' substr(date(Week),1,3)||',' date() time()
+      Note.2 = 'To:' Name_text '<'||E_addr||'>'
+      Note.3 = 'From: ADSM Backup Monitor <'||userid()||'@VM.MARIST.EDU'||'>'
+      Note.4 = 'Subject: PC Backup Reminder'
+      Note.5 = ' '
+      Note.6 = 'This note is a reminder that your PC workstation is' ,
+                'overdue for a backup.'
+      Note.7 = ' '
+   Note.8 = substr('The last successful backup of disk volume' Filespace,1,80)
+      Note.9 = substr('for machine:' node,1,80)
+      Note.10 = 'was completed on' Last_date Last_time '.'
+      Note.11 = ' '
+      Note.12 = 'Please backup this volume as soon as possible to'
+      Note.13 = 'ensure that altered data will be preserved.'
+      Note.0 = 13
+      'PIPE stem Note. |' ,
+           '> ADSM MAIL A'
+      'EXEC SENDFILE ADSM MAIL A TO MAILER'
+end;
+'ERASE QNODE OUTPUT A'
+'ERASE QFILESP OUTPUT A'
+ 
+********************************************************
+RESETPSW EXEC
+ 
+/*  This exec will determine if the passwords for the LAN servers are
+    about to expire and will reset them.  This is to ensure that the
+    automated backups do not fail as the passwords are hardcoded.
+MMM 3/31/95
+ 
+*/
+address command
+ 
+Adsm_admin = 'MONITOR'
+Adsm_pass = 'xxxxxxxx'
+Server_pass = 'xxxxxxxxx'
+'EXEC GETADSM'
+if(RC^=0) then exit RC
+ 
+/*  Run the ADSM commands necessary to collect the information. */
+'DSMADMC -ID='||Adsm_admin '-PASS='||Adsm_pass 'MACRO QPASSW.ADSM'
+if(RC^=0) then do
+   say 'Error running ADSM.  See DSMERROR LOG'
+   'EXEC SENDF DSMERROR LOG A TO URMM'
+   exit RC
+end;
+ 
+/* The following pipe will pick out the information we need from the
+   QUERY NODE output.  We will filter out all locked users, and then
+   get only those nodes that contain _SERVER or _FULL in their name.
+   These are the LAN servers.  Then filter out those that don't need
+   to be reset.  Finally dynamically create an ADSM macro that will
+   do the actual reset.  */
+'PIPE (end ?) < QNODE OUTPUT A |' ,
+     'drop 4 |' ,               /* drop the headers             */
+     'spec word6 1 word1 nextw word5 nextw |' ,
+     'find No |' ,              /* don't care about locked nodes */
+     'spec word 2-* 1 |' ,    /* keep only node and days since psw set*/
+     'a: locate /_SERVER/ |' ,  /* pick only server nodes */
+     'b: faninany |' ,          /* rejoin with _SERVER and _FULL nodes */
+     'pickpass 100|' ,          /* filter any that don't need resetting*/
+     'stem Server_list. |' ,
+     'spec /UPDATE NODE/ 1 word1 nextw /'||Server_pass||'/ nextw |' ,
+     'literal /* Temporary ADSM macro to update LAN server passwords */|' ,
+     '> RESETPSW ADSM A' ,      /* create ADSM macro to reset psws */
+     '? a: |' ,                 /* 2nd stream to get _FULL nodes */
+     'locate /_FULL/ |' ,
+     'b:'
+ 
+/* Now, if we have any, do the reset */
+if(Server_list.0>0) then do
+   'PIPE stem Server_list. |' ,
+        'literal Resetpsw run for' date() time() '|' ,
+        '>> RESETPSW RESULTS A'
+   /* Run the ADSM commands to reset the passwords. */
+   'DSMADMC -ID='||Adsm_admin '-PASS='||Adsm_pass 'MACRO RESETPSW.ADSM'
+   if(RC^=0) then do
+      say 'Error running ADSM.  See DSMERROR LOG'
+      'EXEC SENDF DSMERROR LOG A TO URMM'
+      exit RC
+   end;
+end;
+ 
+'ERASE QNODE OUTPUT A'
+'ERASE RESETPSW ADSM A'
+ 
+****************************************************************
+STORRPT EXEC
+ 
+/*  This exec will gather information storage usage on the ADSM server
+    and e-mail a report to the administrator.
+MMM 3/31/95
+ 
+*/
+address command
+ 
+Adsm_admin = 'MONITOR'
+Adsm_pass = 'xxxxxxxx'
+E_mail.0 = 1
+E_mail.1 = 'Martha McConaghy <URMM@VM.MARIST.EDU>'
+'EXEC GETADSM'
+if(RC^=0) then exit RC
+ 
+/*  Run the ADSM commands necessary to collect the information. */
+'DSMADMC -ID='||Adsm_admin '-PASS='||Adsm_pass 'MACRO QSTOR.ADSM'
+if(RC^=0) then do
+   say 'Error running ADSM.  See DSMERROR LOG'
+   'EXEC SENDF DSMERROR LOG A TO URMM'
+   exit RC
+end;
+ 
+/* The following loop will generate e-mail and send it to each
+   address in E_mail.  This is a reminder to do their backups
+   on their PC's.  */
+do I = 1 to E_mail.0
+      Note.1 = 'Date:' substr(date(Week),1,3)||',' date() time()
+      Note.2 = 'To:' E_mail.i
+      Note.3 = 'From: ADSM Backup Monitor <'||userid()||'@VM.MARIST.EDU'||'>'
+      Note.4 = 'Subject: ADSM Server Storage Report'
+      Note.5 = ' '
+      Note.0 = 5
+      'PIPE (end ?) stem Note. |' ,
+           'a: fanin |' ,
+           '> ADSM MAIL A' ,
+           '? < QSTG OUTPUT A |' ,
+           'literal * |' ,
+           'a:' ,
+           '? < QDB OUTPUT A |' ,
+           'literal * |' ,
+           'a:' ,
+           '? < QDBV OUTPUT A |' ,
+           'literal * |' ,
+           'a:'
+ 
+      'EXEC SENDFILE ADSM MAIL A TO MAILER'
+end;
+ 
+'ERASE QSTG OUTPUT A'
+'ERASE QDB  OUTPUT A'
+'ERASE QDBV OUTPUT A'
+ 
+******************************************************************
+OLDBACKS REXX - pipeline filter
+ 
+/*  */
+trace o
+arg Threshold .
+ 
+do forever
+   'readto record'
+   if RC<>0 then leave
+   parse var Record . 189 Last_back .
+ 
+   select
+      when (Last_back='<1') then Stream = 1
+      when (Last_back=0) then Stream = 2
+      when (Last_back<Threshold) then Stream = 1
+      otherwise Stream = 0
+   end;
+ 
+   'select output' Stream
+   if(RC^=0) then exit 99
+   'output' Record
+ 
+   if(Stream=0) then do
+      parse var Record Node 48 Filespace 95 . 142 Last_date ,
+                Last_time . . Name_text
+      E_addr. = ''
+      Node = strip(Node)
+      Filespace = strip(Filespace)
+      'CALLPIPE (end ?) var Name_text |' ,
+               'split |' ,
+               'MMM:locate /@/ |' ,
+               'stem E_addr.' ,
+               '? MMM: |' ,
+               'join * / / |' ,
+               'var Name_text'
+      if(E_addr.0>0) then do
+          Rec2 = E_addr.1 Node Last_date Last_time Filespace ,
+                 '@%' Name_text
+          'select output 3'
+          if(RC^=0) then exit 99
+          'output' Rec2
+          end;
+    end;
+end;
+ 
+******************************************************************
+PICKPASS REXX - pipeline filter
+ 
+/*  */
+trace o
+arg Threshold .
+ 
+do forever
+   'readto record'
+   if RC<>0 then leave
+   parse var Record Node Last_reset
+   if(Last_reset>Threshold) then 'output' Node
+       else iterate
+end;
+ 
+******************************************************************
+REPORT REXX - pipeline filter
+ 
+/*  This filter will format the FILESPAC data into a report format.
+ 
+    MMM 3/30/95
+*/
+ 
+Head.0 = 3
+Head.1 = substr('Contact Name',1,26)||substr('Node Name',1,21)|| ,
+       substr('Filespace',1,21)||substr('Last Backup Completion',1,24)|| ,
+       substr('Days Since Last',1,16)
+Head.2 = substr(' ',1,70)||substr('Date and Time',1,24)|| ,
+         substr('Good Backup',1,16)
+Head.3 = ' '
+do I = 1 to Head.0
+   'output' head.i
+end;
+ 
+do forever
+     'readto record'
+     if(RC^=0) then leave
+     parse var Record Node 48 Filespace 95 Start_days Last_date ,
+           Last_time Last_days . Name_text
+     Name_text = strip(Name_text,'L')
+     Node = strip(Node)
+     Filespac = strip(Filespace)
+     Outrec = substr(Name_text,1,25)  substr(Node,1,20)   ,
+              substr(Filespace,1,20)  substr(Last_date,1,11)  ,
+              substr(Last_time,1,12)  substr(Last_days,1,16)
+     'output' Outrec
+end;
+ 
+******************************************************************
+QFILESP ADSM - ADSM macro
+ 
+/* Query the filespaces and gather the information. */
+QUERY FILESPACE FORMAT=DETAILED > QFILESP.OUTPUT.A
+QUERY NODE FORMAT=DETAILED > QNODE.OUTPUT.A
+ 
+******************************************************************
+QPASSW ADSM - ADSM macro
+ 
+/* Query the nodes to get password info. */
+QUERY NODE * > QNODE.OUTPUT.A
+ 
+******************************************************************
+QSTOR ADSM - ADSM macro
+ 
+/* Query for info on storage and database */
+QUERY STG * > QSTG.OUTPUT.A
+QUERY DB > QDB.OUTPUT.A
+QUERY DBV  > QDBV.OUTPUT.A
+ 
+******************************************************************
+FORCEMIG EXEC - PROP action routine
+ 
+/*   This exec will reset the highmigration and lowmigration values on
+     the ADSM server, to either force a migration, or reset after one
+     has completed.  It also will check to see if migration is feasible.
+     If the %Migr value is below 50%, then no migration is necessary.
+     Change Log:
+ 
+         Written by Martha McConaghy  6/17/94
+*/
+address command
+trace o
+arg vmach vmacnod loid lonode msgtype propid propnode netid rtble
+pull message
+pull Command .
+select
+    /*  This will issue query command to server to check on %Migr value. */
+   when Command='CHECK' then do
+        'CP SEND DSMSERV QUERY STG'
+        'GLOBALV SETS DSM_CHECK' vmach
+        end;
+    /* This will display check data back to issuer.  Only supports BACKUPPOOL
+       currently. */
+   when Command='VERIFY' then do
+        'GLOBALV GET DSM_CHECK'
+        parse var Message . . . . Per_mig .
+        if(Per_mig>50) then do
+          'EXEC TELL' dsm_check 'Ready to migrate ADSM data, ' ,
+                    'Percent mig=' Per_mig
+          'GLOBALV SETS DSM_CHECK GOFORIT'
+          end;
+        else 'EXEC TELL' dsm_check 'NOT ready to migrate ADSM data,' ,
+                    'Percent mig=' Per_mig
+        end;
+    /*  This will actually force migration by resetting the lowmig value
+        to 20 and the highmig value to 50.  When %migr value rises above
+        the highmig threshold, migration occurs.  Since we are using 50
+        as our highwatermark, migration will not occur if the %migr is
+        below 50%.  */
+   when Command='MIGRATE' then do
+        'GLOBALV GET DSM_CHECK'
+        if(Dsm_check^='GOFORIT') then do
+           'EXEC TELL' vmach 'Cannot do ADSM migration at this time'
+           exit
+           end;
+        'CP SEND DSMSERV UPDATE STGPOOL BACKUPPOOL LOWMIG=30'
+        'CP SLEEP 1 SEC'
+        'CP SEND DSMSERV UPDATE STGPOOL BACKUPPOOL HIGHMIG=50'
+        'EXEC TELL' vmach 'ADSM migration initiated.'
+        'GLOBALV SETS DSM_CHECK DONE'
+        end;
+    /* This is automatically called when migration completes successfully.
+       It resets the migration thresholds back to normal. */
+   when Command='RESET' then do
+        'CP SEND DSMSERV UPDATE STGPOOL BACKUPPOOL HIGHMIG=80'
+        'CP SLEEP 1 SEC'
+        'CP SEND DSMSERV UPDATE STGPOOL BACKUPPOOL LOWMIG=40'
+        'EXEC TELL' lglopr '********************************************'
+        'EXEC TELL' lglopr Message
+        'EXEC TELL' lglopr '********************************************'
+        'EXEC TELL' lglopr '********************************************'
+        'EXEC TELL' lglopr 'Initiating DUMP DB processing '
+        'EXEC TELL' lglopr '********************************************'
+        'CP SEND DSMSERV DUMP DB DEV=CARTRIDGE C=YES'
+        end;
+   otherwise nop
+end;
+ 
+******************************************************************
+DUMPDB EXEC - PROP action routine
+ 
+/*   This exec will collect the records associated with the DUMP
+     DB command for ADSM and write them to a file.  The SEND parameter
+     indicates that this is the last message in the series and that the
+     file should be sent to the automated notification list.
+     Change Log:
+ 
+         Written by Martha McConaghy  1/20/95
+*/
+address command
+trace o
+arg vmach vmacnod loid lonode msgtype propid propnode netid rtble
+pull message
+pull Command .
+ 
+select
+   when(Command='RUN') then do
+      'CP SEND DSMSERV DUMP DB DEV=CARTRIDGE C=YES'
+      'EXEC TELL' loid '********************************************'
+      'EXEC TELL' loid '**  ADSM Database Dump Begun              **'
+      'EXEC TELL' loid '********************************************'
+      'EXEC TELL' vmach '********************************************'
+      'EXEC TELL' vmach '**  ADSM Database Dump Begun              **'
+      'EXEC TELL' vmach '********************************************'
+      end;
+   when(Command='SEND') then do
+      'PIPE var Message|>> DUMPDB MAIL A'
+      'EXEC WARNMAIL VMLIST 199 DUMPDB Results of ADSM DUMP DB' ,
+           'command.'
+      'ERASE DUMPDB MAIL A'
+      'EXEC TELL' loid '********************************************'
+      'EXEC TELL' loid '**  ADSM Database Dump Complete           **'
+      'EXEC TELL' loid '********************************************'
+      end;
+   otherwise 'PIPE var Message|>> DUMPDB MAIL A'
+end;
+ 
+******************************************************************
+ADSMINST.CMD - OS/2 REXX exec
+ 
+/*  This exec will make changes to the CONFIG.SYS necessary to run ADSM from the LAN server.  It is meant only to install ADSM for an OS/2 system.  It will also set up the directory and options file necessary to run ADSM.
+ 
+Written by Martha McConaghy 2/1/95
+*/
+trace o
+ 
+call RxFuncAdd 'SysLoadFuncs','RexxUtil','SysLoadFuncs'
+call SysLoadFuncs
+ 
+Message = 'If you have ADSM installed locally, remove all references to it' ,
+    'from CONFIG.SYS.  Do you want to continue?'
+Action = RxMessageBox(Message,'ADSMINST Message','YESNO','QUESTION')
+if(Action=7) then call error 0 'ADSMINST ended by user'
+ 
+say ' '
+say '*********************************************'
+say 'Enter your ADSM node name:'
+say '*********************************************'
+say ' '
+pull Node .
+if(2>length(Node)) then call error 10 'You must enter the ADSM node' ,
+    'name.  If you don not have one,' ,
+    'request one through the Help Desk.'
+say ' '
+/* Get information on LAN drives */
+call Get_LAN
+ 
+Message = 'Do you wish to update your CONFIG.SYS?'
+Action = RxMessageBox(Message,'ADSMINST Message','YESNO','QUESTION')
+if(Action=7) then signal Setup_options
+ 
+/*  Make necessary changes to config.sys */
+call Find_config
+do MM = 1 to Configs.0
+   if(' '=Configs.MM) then iterate
+   Con_file = Configs.MM
+   Out_file = substr(Con_file,1,2)||'\CONFIG.NEW'
+   Back_file = substr(Con_file,1,2)||'\CONFIG.OLD'
+   Verify. = ''
+   Verify.0 = Configs.0
+ 
+   /* Check to make sure there aren't some ADSM stuff in there */
+   Rc = SysFileSearch('ADSM',Con_file,Sch_res,'N')
+   if(0<Sch_res.0) then do
+      call sys_fail MM 16 'Config contains previous ADSM definitions'
+      iterate
+      end;
+ 
+   /* Create backup file of CONFIG.SYS */
+   call SysFileTree Out_file,'Status'
+   if(0<>Status.0) then do
+      Rc = SysFileDelete(Out_file)
+      if(Rc<>0) then do
+          call sys_fail MM 15 'Unable to erase' Out_file
+          iterate
+          end;
+      end;
+   say ' '
+   say 'Creating backup of' Con_file 'in' Back_file
+   'COPY' Con_file Back_file
+ 
+   /* Now make the changes */
+   say ' '
+   say 'Modifying' Con_file 'to add ADSM definitions'
+   do while (0<lines(Con_file))
+      Config_line = linein(Con_file)
+      parse var Config_line Keyword '=' .
+      if(1<words(Keyword)) then Keyword = word(Keyword,2)
+      Keyword = strip(Keyword)
+      Len = length(Config_line)
+      if(Len<>0) then do
+         Last_char = substr(Config_line,Len)
+         if(Last_char=';') then Delim = ''
+            else Delim = ';'
+         end;
+      select
+         when ('LIBPATH'=Keyword) then do
+               Config_line = Config_line||Delim||'O:\ADSM\DLL;'
+               say 'Updating the LIBPATH line'
+               end;
+         when ('PATH'=Keyword) then do
+               Config_line = Config_line||Delim||'O:\ADSM;'
+               say 'Updating the SET PATH line'
+               end;
+         when ('DPATH'=Keyword) then do
+               Config_line = Config_line||Delim||'O:\ADSM;'
+               say 'Updating the SET DPATH line'
+               end;
+         /* The following are extra checks in case the filesearch didn't pick them up.*/
+         when ('DSM_DIR'=Keyword) then do
+                call sys_fail MM 20 'DSM_DIR already' ,
+                  'exists. Erase all references to ADSM in CONFIG.SYS'
+                iterate
+                end;
+         when ('DSM_CONFIG'=Keyword) then do
+                call sys_fail 21 'DSM_CONFIG already' ,
+                  'exists. Erase all references to ADSM in CONFIG.SYS'
+                iterate
+                end;
+         when ('DSM_LOG'=Keyword) then do
+                call sys_fail 22 'DMS_LOG already' ,
+                 'exists. Erase all references to ADSM in CONFIG.SYS'
+                iterate
+                end;
+         otherwise nop;
+         end;
+      call lineout Out_file,Config_line
+   end;
+ 
+   say ' '
+   say 'Adding the DSM environmental variables'
+   call lineout Out_file,'REM Environmental variables for ADSM'
+   call lineout Out_file,'SET DSM_DIR=O:\ADSM'
+   say 'Adding DSM_DIR variable'
+   call lineout Out_file,'SET DSM_CONFIG='||Local_dir||'\DSM.OPT'
+   say 'Adding DSM_CONFIG variable'
+   call lineout Out_file,'SET DSM_LOG='||Local_dir||'\DSMERROR.LOG'
+   say 'Adding DSM_LOG variable'
+   Rc = lineout(Out_file)
+   if(Rc<>0) then do
+       call sys_fail MM 30 'Error writing to' Out_file 'RC:' Rc
+       iterate
+       end;
+ 
+   /* Remember to close the con_file */
+   Rc = lineout(Con_file)
+   Rc = SysFileDelete(Con_file)
+   if(Rc=0) then do
+      'RENAME' Out_file substr(Con_file,4)
+      call SysFileTree Con_file,'Status'
+      if(0=Status.0) then do
+         say '***************************************************'
+         say 'Error creating CONFIG.SYS.  Restoring from backup.'
+         say '***************************************************'
+         'RENAME' Back_file Con_file
+         call sys_fail MM 70
+         iterate
+         end;
+     else do
+        say Con_file 'updated successfully'
+        Verify.MM = 1
+      end;
+   end;
+   else do
+       say '**************************************************'
+       say 'Error deleting' Con_file 'RC:' rc
+       say 'Original has not been modified.'
+       say '**************************************************'
+       call sys_fail MM 75
+       iterate
+       end; /* else */
+   say ' '
+end; /* original do */
+Failures = 0
+do I = 1 to Verify.0
+  if(0=word(Verify.I,1)) then Failures = 1
+end;
+if(Failures) then call error 88 'One or more CONFIG.SYS updates failed. Cannot continue.'
+else do
+  Message = 'All CONFIG.SYS updates were successful.'
+  Action = RxMessageBox(Message,'ADSMINST Message',,'EXCLAMATION')
+  end;
+ 
+Setup_options:
+ 
+Message = 'Do you wish to create your local ADSM options file?'
+Action = RxMessageBox(Message,'ADSMINST Message','YESNO','QUESTION')
+if(Action=7) then call error 0 'ADSMINST ended by user'
+ 
+/* Now, if they don't have an ADSM directory, or options file, then
+   create both for them.  */
+Local_opts = Local_dir||'\DSM.OPT'
+Main_opts = 'O:\ADSM\DSM.SMP'
+call SysFileTree Local_dir, 'Dirs', 'D'
+if(0=Dirs.0) then do
+   say 'Creating' Local_dir
+   Rc = SysMkDir(Local_dir)
+   if(Rc<>0) then do
+      say 'Unable to create' Local_dir 'RC:' rc
+      exit 99
+      end;
+   end;
+else say Local_dir 'already exists.  Creating options file.'
+ 
+call SysFileTree Local_opts, 'Opts'
+if(0<Opts.0) then do
+   Message = 'Local options file,' Local_opts 'already exists. Do' ,
+       'you want to replace it?'
+   Action = RxMessageBox(Message,'ADSMINST Message','YESNO','WARNING')
+   if(Action=7) then call error 0 'ADSMINST ended by user. Local options file' ,
+           'not changed.'
+   'ATTRIB' Local_opts '-R'
+   'ERASE' Local_opts
+   end;
+say 'Creating options file:' Local_opts 'for node:' Node
+do while 0<lines(Main_opts)
+   Opt_data = linein(Main_opts)
+   parse upper var Opt_data Word1 Word2 Rest
+   if(Word1='*') then Keyword = Word2
+     else do
+        Keyword = Word1
+        Rest = Word2 Rest
+        end; /* if */
+   select
+     when(Keyword='COMMMETHOD') then do
+         if('TCPIP'<>word(Rest,1))
+            then Out_data = Opt_data
+            else Out_data = Keyword Rest
+         end;
+     when(Keyword='TCPSERVERADDRESS')
+         then Out_data = Keyword '148.100.1.2'
+     when(Keyword='TCPPORT')
+         then Out_data = Keyword Rest
+     when(Keyword='NODENAME') then do
+         if('YOUR_NODE_NAME'<>word(Rest,1))
+            then Out_data = Opt_data
+            else Out_data = Keyword Node
+         end;
+     when(Keyword='EXCLUDE')
+         then Out_data = Keyword Rest
+     otherwise Out_data = Opt_data
+     end; /* select */
+   Rc = lineout(Local_opts,Out_data)
+end;
+ 
+call lineout(Local_opts)
+if(Rc=0) then do
+   say 'Local options file:' Local_opts 'created successfully.'
+   'ATTRIB' Local_opts '+R'
+   /* Create the ADSM icon in their desktop */
+   Message = 'Local options have been set.  We are about to create' ,
+              'the ADSM icon on the desktop.'
+   Action = RxMessageBox(Message,'ADSMINST Message',,'INFORMATION')
+   Title = "ADSM"||"0a"x||"Backup-Archive"
+   call SysCreateObject "WPProgram",Title,"<WP_DESKTOP>", ,
+           "EXENAME=O:\ADSM\DSM.EXE;STARTUPDIR=O:\ADSM;","REPLACE"
+   say "ADSM icon created on desktop"
+   end;
+else say 'Error creating' Local_opts 'RC:' rc
+ 
+Message = 'ADSMINST has completed.  Reboot and logon to server to try ADSM.'
+Action = RxMessageBox(Message,'ADSMINST Message',,'INFORMATION')
+ 
+exit
+/* end of exec */
+ 
+Error:
+parse arg Code Message
+/*
+say 'ADSMINST Error:' Code Message
+*/
+Action = RxMessageBox(Message,'ADSMINST Error',,'ERROR')
+exit Code
+ 
+Sys_fail:
+/* This routine will record that we failed to update one CONFIG.SYS
+   and the reason why. */
+parse arg Counter Code Message
+Verify.Counter = 0 Code Message
+say ' '
+say 'ADSMINST Error updating:' Configs.Counter
+say Code Message
+if(1<Verify.0) then say 'Processing continues with next CONFIG.SYS'
+say ' '
+return
+ 
+ 
+Find_config:
+procedure expose Configs.
+/* This subroutine will locate all the available CONFIG.SYS files
+   all allow user to choose which are to be updated. */
+ 
+/* First figure out where local CONFIG.SYS is located */
+Drive_map = SysDriveMap(,'LOCAL')
+Configs. = ''
+Configs.0 = 0
+J = 0
+do I = 1 to words(Drive_map)
+    search_file = word(Drive_map,I)||'\CONFIG.SYS'
+    call SysFileTree Search_file,'Status','O'
+    if(0=Status.0) then iterate
+    J = J + 1
+    Configs.J = Status.1
+    end;
+if(J=0) then call error 40 'Unable to locate any CONFIG.SYS files'
+Configs.0 = J
+If(J = 1) then return
+say ' '
+say '*********************************************'
+say ' Several CONFIG.SYS files have been located:'
+say ' '
+do I = 1 to Configs.0
+   say Configs.I
+end;
+say ' '
+say ' Enter the drives of the CONFIG.SYS you wish to be updated, ie.C: D:'
+pull User_drives
+say ' '
+if(0=length(User_drives)) then call error 12 'You must select at least one CONFIG.SYS'
+/*  If the drive isn't selected, then blank out the entry in CONFIGS.*/
+Go_ahead = 0
+do I = 1 to Configs.0
+   Test_drv = substr(Configs.I,1,2)
+   Found = 0
+   do J = 1 to words(User_drives)
+      if(Test_drv=word(User_drives,J)) then Found = 1
+    end;
+   if(Found=0) then Configs.I = ' '
+     else Go_ahead = 1
+end;
+if(Go_ahead=0) then call error 13 'Invalid drives entered. Restart ADSMINST and enter correct drives.'
+return
+ 
+Get_LAN:
+procedure expose Dir_name Local_dir
+/* Check to make sure we are logged onto the LAN and
+   let user pick drive for options file. */
+Drive_map = SysDriveMap(,'REMOTE')
+if(2>length(Drive_map)) then call error 8 'No remote drives found.' ,
+   'You must be logged onto the LAN server.'
+if(1=words(Drive_map)) then LAN_drive = Drive_map
+else do
+   say '**********************************************'
+   say ' Several LAN drives have been found:'
+   say ' '
+   say '   ' Drive_map
+   say ' '
+   say 'Select which drive to house your local options file, ie. F:'
+   pull LAN_drive .
+   say ' '
+   if(2<>length(LAN_drive)) then call error 85 'Invalid LAN drive specified'
+   say 'Local ADSM directory will be created on' LAN_drive
+   end;
+ 
+Dir_name = '\ADSM'
+Local_dir = LAN_drive||Dir_name
+return
+.fo

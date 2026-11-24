@@ -1,0 +1,101 @@
+.cm ********************************************************************        
+.cm **                                                                **        
+.cm ** Help for WHOSIT                                                **        
+.cm **                                                                **        
+.cm ** 08141994 PDL Initial Development.                              **        
+.cm ** 08151994 PDL Added .cs control blocks                          **        
+.cm **                                                                **        
+.cm ********************************************************************        
+.cs 1 on                                                                        
+WHOSIT                  WHOIS ELECTRONIC DIRECTORY                              
+                                                                                
+General Instructions                                                            
+--------------------                                                            
+                                                                                
+After filling in the required fields on the screen, press ENTER to              
+submit your directory lookup request.  You may fill in either the "For          
+Brief Information..." fields or the "For Extended Information..." fields        
+or both sets of fields.  All of the fields are case-insensitive.                
+                                                                                
+.cs 1 off                                                                       
+.cs 2 on                                                                        
+Field Descriptions                                                              
+------------------                                                              
+                                                                                
+For Brief Information...     This set of fields when properly filled in         
+                             and submitted will return the userid and           
+                             node of the person searched for, the voice         
+                             telephone number, the full name, and whether       
+                             or not they are currently on the system.           
+                                                                                
+   Name of Person            Enter any part or all of the name of the           
+                             person that you are searching.                     
+                                                                                
+   Specify Type of Search... Select one of the following choices by             
+                             placing an "X" beside the item.                    
+                                                                                
+      Search only at U of L  Selecting this type of search will result          
+                             in only the U of L database being searched.        
+                                                                                
+      Search throughout the KY Educational Computing Network                    
+                             Selecting this type of search will result          
+                             in all of the databases at each of the             
+                             KECNET member schools to be searched.              
+                                                                                
+For Extended Information...  This set of fields when properly filled in         
+                             and submitted will return the full database        
+                             entry for the person searched for.                 
+                                                                                
+   Specify the Userid...     Enter the userid of the person that you are        
+                             searching for.  The userid may be up to 8          
+                             characters in length.                              
+                                                                                
+   Specify the Node...       Enter the node where the person you are            
+                             searching for is located.  If the person you       
+                             are searching for is at U of L (node               
+                             ULKYVM), then there is no need to fill in          
+                             this field.                                        
+                                                                                
+Key Descriptions                                                                
+----------------                                                                
+                                                                                
+PF1/PF9    (Help)        Brings you to this help screen.                        
+                                                                                
+PF3/PF12   (Quit)        Exits without sending a query to the WHOIS             
+                         database.                                              
+                                                                                
+.cs 2 off                                                                       
+.cs 5 on                                                                        
+Usage Notes                                                                     
+-----------                                                                     
+                                                                                
+1.  After the relevant fields have been filled in and you have pressed          
+    ENTER, the screen will be cleared and a message stating that your           
+    query has been submitted to the WHOIS database server will appear.          
+    Your request will also be re-displayed.  At that point, press the           
+    CLEAR key to return to the menus.  Your query response will be              
+    returned to you in the message area of the menus (the lower portion         
+    of the screen).  The response may occupy more space than one screen         
+    can display (a "MESSAGES WAITING" will appear in the lower right            
+    corner).  If this is the case, you will need to press the CLEAR             
+    key to go to the next screen of messages/responses.                         
+                                                                                
+2.  The "WHOIS ELECTRONIC DIRECTORY" screen was designed to make it             
+    easier to query the WHOIS database.  However, you may also use the          
+    actual command to do this.  For example, to find a person with the          
+    name of "John Public", you would need to issue the following                
+    command:                                                                    
+                                                                                
+         WHOIS FIND John Public                                                 
+                                                                                
+    Other forms of the WHOIS command are available as well.  For more           
+    assistance with the WHOIS command, please type "HELP WHOIS".                
+                                                                                
+3.  When the query response is returned from the WHOIS database, you            
+    should be aware that the information you see about a person may not         
+    be entirely up to date.  Updates and changes to the database are            
+    completely under the control of the person whose entry is in the            
+    database.  If the owner of the entry does not update the database           
+    in a regular fashion, then the information on that owner may become         
+    out of date.  Please keep this mind.                                        
+.cs 5 off                                                                       

@@ -1,0 +1,38 @@
+* This file contains most possible responses from VMTAPE. Uncomment the
+* one you want to test.
+VMTQRY061I There are no mounts pending.
+VMTQRY145I There are no allocations pending.
+*VMTMNT057A Mount LIBRARY volume 'SDA156' on 0881, NO RING, for BATCHA02 0181.
+*VMTMNT057A Mount LIBRARY volume 'VMD045' on 1881, NO RING, for VMBACKUP 0310.
+*VMTMNT057A Mount LIBRARY volume '000058' on 1888, NO RING, for U52983 0181.
+*VMTMNT057A Mount LIBRARY volume '000058' on 1889, RING IN, for U52983 0181.
+*VMTMNT057A Mount LIBRARY volume 'O01029' on 1882, RING IN, for U09046 0181.
+*VMTMNT057A Mount LIBRARY volume 'VMB510' on 1883, RING IN, for VMBACKUP 0320.
+*VMTDRV144I Waiting for a 18track XF BPI drive for VMBACKUP 0420 VXB510.
+*VMTXXXYYYI We're freaking out around here, and this long message to say it just proves it. I mean we can go on and o
+*VMTVOL699I MOUNT BATCHA02 0181 waiting for volume N09018.
+*VMTDRV144I Waiting for a 9-track 1600 BPI drive for BATCHA01 0181 N09018.
+*VMTVOL699I MOUNT BATCHA02 0181 waiting for volume N09018.
+*VMTDRV144I Waiting for a 9-track 1600 BPI drive for BATCHA01 0181 N09018.
+*VMTMNT057A Mount LIBRARY volume 'VMA270' on 1882, NO RING, for VMBACKUP 0310.
+*VMTMNT057A Mount LIBRARY volume 'VMA326' on 1888, NO RING, for VMBACKUP 0510.
+*VMTMNT057A Mount LIBRARY volume 'VMA333' on 1889, NO RING, for VMBACKUP 0710.
+*VMTVOL699I MOUNT BATCHA02 0181 waiting for volume N09018.
+*VMTVOL701I MOUNT VMBACKUP 0610 waiting for volume VMA326 which is mounted on 1888.
+*VMTDRV144I Waiting for a 9-track 1600 BPI drive for BATCHA01 0181 N09018.
+*VMTMNT057A Mount FOREIGN volume 'IL336' on 0880, NO RING, for U52983 0181.
+*VMTMNT057A Mount LIBRARY volume '000058' on 1889, RING IN, for U52983 0181.
+*VMTMNT057A Mount LIBRARY volume '000029' on 1882, RING IN, for U09046 0181.
+*VMTMNT057A Mount LIBRARY volume 'VMB510' on 1883, RING IN, for VMBACKUP 0320.
+*VMTMNT280A Mount selected COMPCTR SCRATCH volume 000342 on '188B', RING IN, for U52983 0181.
+*VMTDRV144I Waiting for a 18track XF BPI drive for VMBACKUP 0420 VXB510.
+*VMTVOL699I MOUNT BATCHA02 0181 waiting for volume N09018.
+*VMTDRV144I Waiting for a 9-track 1600 BPI drive for BATCHA01 0181 N09018.
+*VMTVOL699I MOUNT BATCHA02 0181 waiting for volume N09018.
+*VMTDRV144I Waiting for a 9-track 1600 BPI drive for BATCHA01 0181 N09018.
+*VMTMNT057A Mount LIBRARY volume 'VMA270' on 1882, NO RING, for VMBACKUP 0310.
+*VMTMNT057A Mount LIBRARY volume 'VMA326' on 1888, NO RING, for VMBACKUP 0510.
+*VMTMNT057A Mount LIBRARY volume 'VMA333' on 1889, NO RING, for VMBACKUP 0710.
+*VMTVOL699I MOUNT BATCHA02 0181 waiting for volume N09018.
+*VMTVOL701I MOUNT VMBACKUP 0610 waiting for volume VMA326 which is mounted on 1888.
+*VMTDRV144I Waiting for a 9-track 1600 BPI drive for BATCHA01 0181 N09018.

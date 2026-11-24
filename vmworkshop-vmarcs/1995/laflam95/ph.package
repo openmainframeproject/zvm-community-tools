@@ -1,0 +1,15 @@
+*
+* PH EXEC by Nick Laflamme
+*            nlaflamm@irishvma.bitnet
+*            nlaflamm@vma.cc.nd.edu
+*            USMCNJRN@IBMMAIL.COM
+*
+PH200      EXEC     *   For use with RXSOCKET V1 - rename to PH EXEC
+PH257      EXEC     *   For use with RXSOCKET V2 - rename to PH EXEC
+PH         RELNOTES *   Release notes
+PHADD      XEDIT    *   Add a recipient in MAILBOOK
+PHFORWRD   XEDIT    *   Forward a note in MAILBOOK
+PHMAIL     EXEC     *   Start a MAIL command
+PH2NAMES   EXEC     *   Build a NAMES file entry
+PH         HELPCMS  *   high level help, return codes, etc.
+PHSRC      HELPCMS  * source file for ph helpcms; use helpconv if needed.

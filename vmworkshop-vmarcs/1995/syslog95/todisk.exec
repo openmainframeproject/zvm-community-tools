@@ -1,0 +1,82 @@
+/* read all console files in reader, create one file/userid/day */
+ 
+'CP SPOOL CONSOLE START TO marie'
+ 
+SAY 'Executing Todisk'
+ 
+'pipe',                      /* enough space left on d-disk ? */
+  '  cms query disk d',
+  '| fromlabel LABEL',       /* in case d-disk not accessed */
+  '| drop 1',                /* drop header */
+  '| specs fieldsep - field 2 1.2',
+  '| var howfull'
+ 
+IF howfull >= 95 THEN SIGNAL diskfull
+ 
+'pipe',
+  '  cp query rdr all *',
+  '| drop first 1',          /* drop header record */
+  '| specs word 8-9 1 word 1-2 nw', /* keep date,time,origin,spoolid*/
+  '| sort',                  /* order by time */
+  '| console',
+  '| specs',                 /* build callpipe subcommand */
+      '/callpipe (stagesep ?)/ 1',
+      '/reader 00c file/ nw word 4 nw',  /* read spool file */
+      '/? specs 2-133 1/ nw',     /* remove carriage control */
+      '/? >>/ nw word 3 nw /95/ nw 1.2 n 4.2 n /d variable/ nw',
+      '/? *:/ nw',           /* connect to pipcmd's output */
+  '| console',
+  '| pipcmd'                 /* issue callpipe just built */
+ 
+/* extract records from TIMER file */
+'pipe',
+  '  cms listfile timer * d',
+  '| nlocate /File not found/', /* so getfiles doesnt get upset */
+  '| getfiles',              /* read contents of those files */
+  '| locate 10-* /Forced /', /* only interested in Forced msg */
+  '| >> idle users d',
+  '| cms listfile timer * d',
+  '| specs /ERASE/ 1 1-* nw',
+  '| cms'
+ 
+/* now get Operator log */
+'pipe (endchar %)',
+  '  cms access 193 e',
+  '%',                            /* dont want output from access */
+  '  cms listfile lg* mcgill1 e',
+  '| nlocate /LG'SUBSTR(DATE(Standard),3)'/',   /* not current file */
+  '| a: fanout',
+  '| specs',                      /* build subcommand */
+      '/callpipe (stagesep ?)/ 1',
+      '/  </ nw 1-* nw',               /* read LG* file from 193 disk */
+      '/? > operator/ nw 3-8 nw /d1/ nw',   /* copy it to our 192 */
+      '$? locate 50-62 /BAD PASSWORD/$ nw', /* that's what I want */
+      '$? nlocate /MUSICT/$ nw',            /* dont care about those */
+      '$? specs word 1-3 1 word 10 nw 86-88 nw / BAD PASSWORD/ nw$ nw',
+      '/? > passall/ nw 3-8 nw /d/ nw',     /* want date here */
+      '/? specs word 4 2 word 3 nw/ nw',    /*just userid and system*/
+      '/? sort count/ nw',                  /* prefix count to record */
+      '/? nfind _________1/ nw',            /* report only >2 attempts */
+      '/? nfind _________2/ nw',
+      '/? musform/ nw',                     /* format records */
+      '/? literal code     count MUSICA MUSICB MUSICF/ nw', /*add header*/
+      '/? literal  / nw',
+      '/? literal MUSIC invalid password list for/ nw 3-4 nw $/$ n 5-6 n $/$ n 7-8 n',
+      '/? > passdata/ nw 3-8 nw /d/ nw',    /* keep report for DG */
+      '/? cp msg operator cmd erase/ nw word 1-2 nw', /* dont need this*/
+  '| console',               /* check callpipe just in case */
+  '| pipcmd',                /* issue callpipe just built */
+  '| console',
+  '%',
+  'a:',                      /* secondary fanout output */
+  '| specs /mail dg ( NOSCR NOLOG NOEDIT NOACK NOPROMPT FILE PASSDATA/ 1 3-8 nw /SUBJECT Invalid MUSIC Passwords/ nw',
+  '| cms'
+ 
+'CP SPOOL CONSOLE STOP CLOSE'
+ 
+EXIT
+ 
+diskfull:
+  'EXEC TELL marie D-disk' howfull'% full, TODISK not run'
+  'EXEC mail marie lyne (FILE diskfull error NOSCR NOLOG NOEDIT NOACK NOPROMPT SUBJECT SYSLOGS 192' howfull'% full'
+EXIT 99

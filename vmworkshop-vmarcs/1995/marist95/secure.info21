@@ -1,0 +1,117 @@
+This mod implements a more 'secure' version of the QUERY NAMES command.                                                             
+It allows you to hide certain virtual machines from view in the results                                                             
+of the QUERY NAMES.  It does this by defining a new OPTION in the directory,                                                        
+SECURE.  When the QUERY NAMES command is processed, it will not display the                                                         
+names of virtual machines with the SECURE option, unless the invoker                                                                
+has class A, C or E.                                                                                                                
+                                                                                                                                    
+This mod has two benefits.  First, the less curious students see, the better.                                                       
+This is obviously not a foolproof security system and is not meant to prevent                                                       
+hackers from breaking into a guest machine.  However, it also does not present                                                      
+them with temptation.  The addition of the SECURE option also implies other                                                         
+future possibilities.  For example, the 'QUERY vmname' command could be                                                             
+modified to respect the option.                                                                                                     
+                                                                                                                                    
+A second, unexpected benefit was to 'clean up' the QUERY NAMES display.                                                             
+Normal, class G users, such as our students, use the QUERY NAMES to see if                                                          
+they friends are online.  This is made difficult when the results include                                                           
+dozens of service machines, guest systems, etc.  By using the SECURE option,                                                        
+the general users see only a list of other users or service machines to                                                             
+which they have access, ie. LISTSERV, etc.  We have had very positive                                                               
+feedback on this from our users.                                                                                                    
+                                                                                                                                    
+This mod consists of two parts.  First, it adds the SECURE parameter to                                                             
+the OPTION record in the directory.  Along with this, it utilizes one of                                                            
+the installation flags in the VMDBLK to indicate that the SECURE option                                                             
+is on.  The second part of the mod, modifies the QUERY NAMES command to                                                             
+skip those machines who have SECURE on.  This part of the mod is dependent                                                          
+on another Marist mod, QNAMES, which reformats the results of the                                                                   
+QUERY NAMES command.  However, the code could be rewritten to work on                                                               
+a vanilla version of HCPCQU.                                                                                                        
+                                                                                                                                    
+The mod in this file is written for a VM/ESA 2.1 system.  The original version                                                      
+of this mod was developed on VM/ESA ESA 1.0 service level 9202.  Questions                                                          
+or problems with it should be directed to the author,                                                                               
+                                                                                                                                    
+Martha McConaghy   URMM@MARIST or URMM@VM.MARIST.EDU                                                                                
+Senior VM Systems Programmer                                                                                                        
+Marist College                                                                                                                      
+Poughkeepsie, NY  12601                                                                                                             
+(914) 575-3252                                                                                                                      
+6/05/94                                                                                                                             
+                                                                                                                                    
+**************************************************************************                                                          
+Moduled changed:  HCPCQU                                                                                                            
+                  HCPDIR                                                                                                            
+                  HCPLGN                                                                                                            
+                                                                                                                                    
+Copy blocks changed:  HCPVMDBK                                                                                                      
+                      HCPDVMD                                                                                                       
+                                                                                                                                    
+**************************************************************************                                                          
+                                                                                                                                    
+HCPDIR   SECQNAM                                                                                                                    
+                                                                                                                                    
+./ R 48566302          $ 48566400 50                  02/14/92 11:14:45                                                             
+OPTLEN3C DS    0H            LENGTH IS AT LEAST 3              SECQNAM                                                              
+         SPACE 1                                               SECQNAM                                                              
+         COMP  =C'SECURE   ',SCOPTCMP  IS IT 'SECURE'?         SECQNAM                                                              
+         BNE   OPTLEN3D                NO, CHECK NEXT OPTION   SECQNAM                                                              
+         SPACE 1                                               SECQNAM                                                              
+         OI    DVMDMARS,DVMDSEC   TURN ON SECURE   FLAG BIT    SECQNAM                                                              
+         B     OPTGET             Go scan for the next option  SECQNAM                                                              
+         SPACE 1                                               SECQNAM                                                              
+OPTLEN3D DS    0H                                              SECQNAM                                                              
+********************************************************************                                                                
+                                                                                                                                    
+HCPCQU   SECQNAM                                                                                                                    
+                                                                                                                                    
+./ R 03760001          $ 3760100 100                  09/25/90 17:10:15                                                             
+*    DETERMINE IF THIS IS A PRIVILEDGED USER - CLASS A, C      SECQNAM                                                              
+*    OR E CAN SEE ALL USERS, REGARDLESS OF VMDSECUR FLAG       SECQNAM                                                              
+         TM    VMDPCLB0,CLASSA  IS THIS A CLASS A USER?        SECQNAM                                                              
+         BO    SETSECR          YES, SET SECURITY FLAG         SECQNAM                                                              
+         TM    VMDPCLB0,CLASSC  IS THIS A CLASS C USER?        SECQNAM                                                              
+         BO    SETSECR          YES, SET SECURITY FLAG         SECQNAM                                                              
+         TM    VMDPCLB1,CLASSO  IS THIS A CLASS O USER?        SECQNAM                                                              
+         BO    SETSECR          YES, SET SECURITY FLAG         SECQNAM                                                              
+         TM    VMDPCLB0,CLASSE  IS THIS A CLASS E USER?        SECQNAM                                                              
+         BNO   DOQRY            NO, THEN GO ON WITH IT         SECQNAM                                                              
+SETSECR  OI    QNAMFLG,QSECUR   SET SECURITY FLAG ON           SECQNAM                                                              
+DOQRY    L     R10,VMDORIG-VMDBK(,R11) FIRST VMDBK             SECQNAM                                                              
+./ R 04300001          $ 4300100 100                  09/25/90 17:10:15                                                             
+         TM    VMDMARFL,VMDSECUR   IS THIS A SECURE ACCOUNT?   SECQNAM                                                              
+         BNO   DOITNOW             NOPE, THEN DISPLAY IT       SECQNAM                                                              
+         TM    QNAMFLG,QSECUR      ARE WE PRIVILEDGED?         SECQNAM                                                              
+         BNO   DONXT               THEN SKIP IT.               SECQNAM                                                              
+DOITNOW  ICM   R8,B'1111',VMDRTERM  IS THERE AN RDEV?          SECQNAM                                                              
+./ R 16298001          $ 16298100 100                 09/25/90 17:10:15                                                             
+QSNA     EQU   X'12'           PRINT ONLY SNA USERS            SECQNAM                                                              
+QSECUR   EQU   X'80'           QUERY SECURE USERS              SECQNAM                                                              
+HCPLGN   SECQNAM                                                                                                                    
+                                                                                                                                    
+./ R 07730001          $ 7730100 100                  02/14/92 11:16:31                                                             
+         BNO   LGNSETSC           BRANCH IF NOT                SECQNAM                                                              
+./ I 07740001          $ 7740100 100                  02/14/92 11:16:31                                                             
+LGNSETSC DS    0H                                              SECQNAM                                                              
+         TM    DVMDMARS,DVMDSEC   IS SECURE   OPTION SPECIFIED?SECQNAM                                                              
+         BNO   LGNSETOR           Branch if not                SECQNAM                                                              
+         OI    VMDMARFL,VMDSECUR  SET SECURE   BIT IN VMDBK    SECQNAM                                                              
+*******************************************************************                                                                 
+                                                                                                                                    
+HCPDVMD  SECQNAM                                                                                                                    
+                                                                                                                                    
+./ R 01730001          $ 1731991 1990                 05/13/94 10:41:29                                                             
+*        DS    3X            RESERVED FOR FUTURE IBM USE       SECQNAM                                                              
+DVMDMARS DS    1X            USE FOR MARIST FLAGS              SECQNAM                                                              
+DVMDSEC  EQU   X'01'         MARIST SECURE OPTION IS ON        SECQNAM                                                              
+         DS    2X            RESERVED FOR FUTURE IBM USE       SECQNAM                                                              
+*******************************************************************                                                                 
+                                                                                                                                    
+HCPVMDBK SECQNAM                                                                                                                    
+                                                                                                                                    
+./ R 22340001          $ 22341991 1990                05/13/94 10:37:17                                                             
+*MDUSER3 DS    F              RESERVED FOR INSTALLATION USE    SECQNAM                                                              
+VMDMARFL DS    X              MARIST FLAGS                     SECQNAM                                                              
+VMDSECUR EQU   X'01'          INDICATE SECURE USER             SECQNAM                                                              
+VMDUSER3 DS    3X             PLACE HOLDER FOR REST OF SPACE   SECQNAM                                                              

@@ -1,0 +1,60 @@
+.cm
+.cm       Name: MAILCONVERT HELPCMS
+.cm     Author: Rick Troth, Houston, Texas, USA 
+.cm       Date: 1993-May-23
+.cm
+ 
+ MAILCONVERT EXEC
+ 
+ NOTE:  BE SURE TO TRANSFER UNIX MBOX FILES AS BINARY
+ 
+ Use the MAILCONVERT EXEC/Pipeline to convert CMS NOTEBOOKS to/from
+ UNIX 'mbox' files.   EBCDIC to/from ASCII translation is performed.
+ 
+ The format of the MAILCONVERT command is:
+ +-----------------+--------------------------------------------------+
+ |                 |                                                  |
+ |   MAILCONVERT   |   notebook  [TO  CMS]                            |
+ |   MCV           |             [TO  UNIX]                           |
+ |                 |                                                  |
+ +-----------------+--------------------------------------------------+
+ 
+ The format of the MAILCONVERT pipeline call is:
+ +--------------------------------------------------------------------+
+ |                                                                    |
+ |   PIPE  ...  | MAILCONVERT  -  TO  CMS   |  ...                    |
+ |                                TO  UNIX                            |
+ |                                                                    |
+ +--------------------------------------------------------------------+
+ 
+ where:
+ 
+ notebook       is the name of the CMS NOTEBOOK or UNIX mbox file to convert,
+ 
+ -              tells the MAILCONVERT stage to read from its input and
+                write to its output without attaching any disk files,
+ 
+ TO CMS         means convert this UNIX mbox file into a CMS NOTEBOOK file,
+ 
+ TO UNIX        means convert this CMS NOTEBOOK file into a UNIX mbox file.
+ 
+ Notes:
+ 
+ 1.     CMS NOTEBOOKs which are in MAILBOOK format have additional
+        information in them which makes conversion to UNIX more reliable.
+ 
+ 2.     MAILCONVERT does not create MAILBOOK format notebooks,
+        nor the NOTEINDX files associated with them.
+        MAILBOOK can [re]construct the NOTEINDX file and modify the
+        NOTEBOOK file as needed automatically after you run MAILCONVERT.
+ 
+ 3.     UNIX mbox files must have the header terminated by LF/LF with
+        NO intervening text,  not even whitespace,  which is impossible
+        to represent as a CMS disk resident plain text file.
+ 
+        Pine does not like the UNIX mbox output from MAILCONVERT.
+ 
+ 4.     MAILBOOK may be obtained from Richard A. Schafer 
+        <schafer@mailbook.houston.tx.us> 
+ 
+ 

@@ -1,0 +1,55 @@
+/* read syslogs console files and create a file on your a disk starting*/
+/* at the time you ask and day for length specified                    */
+/* written by Lyne Thibault     ... May 3rd, 1995                      */
+ 
+ARG filename date time length
+'state' filename date '*'
+IF RC ^= 0 THEN SIGNAL usage
+IF length = ' ' THEN SIGNAL usage
+hh =SUBSTR(time,1,2)
+mm =SUBSTR(time,4,2)
+ss =SUBSTR(time,7,2)
+hm =SUBSTR(time,3,1)
+ms =SUBSTR(time,6,1)
+ 
+IF (hh > 23) THEN SIGNAL usage
+IF (mm > 59) & (mm ^= ' ') THEN SIGNAL usage
+IF (hh > 59) & (ss ^= ' ') THEN SIGNAL usage
+IF (hm ^= ':') & (hm ^= ' ') THEN SIGNAL usage
+IF (ms ^= ':') & (ms ^= ' ') THEN SIGNAL usage
+IF length < 0 THEN SIGNAL usage
+ 
+ 
+datei=substr(date,3,2)'/'substr(date,5,2)'/'substr(date,1,2)
+month=WORD('January February March April May June July August September October November December',SUBSTR(date,3,2))
+day=SUBSTR(date,5,2)
+IF day < 10 THEN  day=WORD('1 2 3 4 5 6 8 9',day)
+datem=day' 'month' 19'substr(date,1,2)
+ 
+'PIPE (endchar ?)',
+  '  < ' filename date,
+  '| unpack',
+  '| a:strfrlab  %'datei time'%',
+  '| fin1:  faninany ',
+  '| fin2:  faninany ',
+  '| take' length,
+  '| >' filename  'c'date 'a variable',
+'?',
+   'a: ',
+   '| b: strfrlab  %'time'%',
+   '|fin1:',
+'?',
+   'b: ',
+   '|  strfrlab  %'datem time'%',
+   '|fin2:'
+EXIT 0
+ 
+usage :
+ say;say 'CHECKLOG filename date time length '
+ say;say 'where filename: userid console log from syslogs expected filemode "D"'
+     say '      date    : yymmdd'
+     say '      time    : hh:mm:ss  bare minimum is hh'
+     say '      length  : number of lines you want as output'
+ say;say 'OUTPUT will be a file on your "A" mdisk named using the filename date arguments'
+     say
+EXIT 100
