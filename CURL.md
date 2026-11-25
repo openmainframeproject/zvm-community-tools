@@ -7,6 +7,11 @@ https://github.com/trothtech/cmsmake
 `curl` is part of CMS Make because it helps in achieving CMS Make's
 objective of recipes looking the same on CMS as they do on Unix.
 
+There is also a copy here:
+
+[curl.rexx](execs/curl.rexx) <br/>
+[curl.exec](execs/curl.exec)
+
 https://raw.githubusercontent.com/trothtech/cmsmake/refs/heads/main/cms/curl.rexx
 
 https://raw.githubusercontent.com/trothtech/cmsmake/refs/heads/main/cms/curl.exec
