@@ -1,0 +1,524 @@
+/*--------------------------------------------------------------------*/
+/* FINDZOSS EXEC - Search the z/VM Community Tools catalog and fetch  */
+/*                 a matching package directly onto a CMS minidisk.   */
+/*                                                                    */
+/* Usage:                                                             */
+/*   FINDZOSS term [term ...] [( options]                             */
+/*                                                                    */
+/* Options:                                                           */
+/*   REFRESH         Re-download cached ZVMTOOLS README A             */
+/*   README fn ft fm Use a local CMS file instead of GitHub           */
+/*   FM mode         Target filemode for downloads (default: A)       */
+/*   NAMEONLY        Match package names only, not descriptions       */
+/*   UNPACK          Automatically run VMARC UNPK on .vmarc downloads */
+/*   VERBOSE         Show curl commands and trace details             */
+/*                                                                    */
+/* Exit codes:                                                        */
+/*   0 = OK                                                           */
+/*   1 = No match                                                     */
+/*   2 = Multiple matches                                             */
+/*   3 = Download / resolve / prerequisite error                      */
+/*--------------------------------------------------------------------*/
+Address Command
+Parse Arg raw_args
+ 
+/* Defaults */
+readme_url  = 'https://raw.githubusercontent.com/' || ,
+              'openmainframeproject/zvm-community-tools/main/README.md'
+ibm_pkg_url = 'https://www.ibm.com/support/pages/zvm/download/packages/'
+cache_fn    = 'ZVMTOOLS'
+cache_ft    = 'README'
+cache_fm    = 'A'
+max_age_sec = 86400                    /* 24 hours                    */
+ 
+opt_refresh  = 0
+opt_verbose  = 0
+opt_nameonly = 0
+opt_unpack   = 0
+target_fm    = 'A'
+local_readme = ''
+terms        = ''
+ 
+/*--------------------------------------------------------------------*/
+/* Parse arguments and CMS-style "( OPTIONS"                          */
+/*--------------------------------------------------------------------*/
+Parse Var raw_args pos_part '(' opt_part
+pos_part = Space(pos_part)
+opt_part = Translate(Space(opt_part))
+ 
+If pos_part = '' | pos_part = '?' Then Do
+  Call ShowHelp
+  Exit 0
+End
+ 
+Do While opt_part <> ''
+  Parse Var opt_part tok opt_part
+  Select
+    When tok = 'REFRESH'  Then opt_refresh  = 1
+    When tok = 'VERBOSE' | tok = 'V' Then opt_verbose = 1
+    When tok = 'NAMEONLY' Then opt_nameonly = 1
+    When tok = 'UNPACK'   Then opt_unpack   = 1
+    When tok = 'FM' | tok = 'DEST' Then Do
+      Parse Var opt_part target_fm opt_part
+      If target_fm = '' Then Do
+        Say 'Error: FM option requires a filemode letter (e.g., FM A).'
+        Exit 3
+      End
+    End
+    When tok = 'README' Then Do
+      Parse Var opt_part r_fn r_ft r_fm opt_part
+      If r_ft = '' Then Do
+        Say 'Error: README option requires fn ft [fm].'
+        Exit 3
+      End
+      If r_fm = '' Then r_fm = 'A'
+      local_readme = r_fn r_ft r_fm
+    End
+    Otherwise Do
+      Say 'Unknown option:' tok
+      Exit 3
+    End
+  End
+End
+ 
+terms = pos_part
+ 
+/* Verify CURL MODULE is available */
+'ESTATE CURL MODULE *'
+If rc <> 0 Then Do
+  Say 'Error: CURL MODULE not found on any accessed disk.'
+  Say 'FINDZOSS requires CMS curl to fetch HTTPS URLs from GitHub/IBM.'
+  Exit 3
+End
+ 
+/*--------------------------------------------------------------------*/
+/* Step 1: Load README (local, cached, or fresh via curl)             */
+/*--------------------------------------------------------------------*/
+readme_fid = LoadReadme(local_readme, opt_refresh)
+If readme_fid = '' Then Exit 3
+ 
+/*--------------------------------------------------------------------*/
+/* Step 2: Parse Markdown catalog tables                              */
+/*--------------------------------------------------------------------*/
+Call ParseCatalog readme_fid
+If cat.0 = 0 Then Do
+  Say 'No table rows found - has the README layout changed?'
+  Exit 3
+End
+ 
+/*--------------------------------------------------------------------*/
+/* Step 3: Search catalog                                             */
+/*--------------------------------------------------------------------*/
+Call SearchCatalog terms, opt_nameonly
+If hit.0 = 0 Then Do
+  Say 'No match for:' terms
+  If opt_verbose Then Say '+ Searched' cat.0 'catalog entries'
+  Exit 1
+End
+ 
+sel = PickSingle(terms)
+If sel = 0 Then Do
+  Say hit.0 'matches - refine the search term:'
+  Do i = 1 To hit.0
+    idx = hit.i
+    Say ' ' Left(cat.idx.name, 20) Left(cat.idx.src, 22) ,
+        Left(cat.idx.desc, 34)
+  End
+  Exit 2
+End
+ 
+pkg_name = cat.sel.name
+pkg_desc = cat.sel.desc
+pkg_src  = cat.sel.src
+pkg_url  = cat.sel.url
+cms_fn   = SanitizeCMS(pkg_name)
+ 
+Say 'Match:' pkg_name '['pkg_src']'
+ 
+/*--------------------------------------------------------------------*/
+/* Step 4: Classify URL and fetch onto CMS                            */
+/*--------------------------------------------------------------------*/
+kind = ClassifyUrl(pkg_url)
+saved_fid = ''
+ 
+Select
+  When kind = 'ibm' Then Do
+    low_name  = LowerCase(pkg_name)
+    dl_url    = ibm_pkg_url || low_name || '.vmarc'
+    saved_fid = cms_fn 'VMARC' target_fm
+    If \FetchBinary(dl_url, saved_fid, 80) Then Exit 3
+  End
+ 
+  When kind = 'github' Then Do
+    Parse Value ParseGitHub(pkg_url) With gh_owner gh_repo gh_ref gh_sub
+    dl_url    = 'https://github.com/' || gh_owner || '/' || gh_repo || ,
+                '/archive/' || gh_ref || '.tar.gz'
+    repo_fn   = SanitizeCMS(gh_repo)
+    saved_fid = repo_fn 'TARGZ' target_fm
+    If \FetchBinary(dl_url, saved_fid, 80) Then Exit 3
+  End
+ 
+  When kind = 'direct' Then Do
+    ext = GetExtension(pkg_url)
+    If ext = 'VMARC' Then cms_ft = 'VMARC'
+    Else If ext = 'ZIP' Then cms_ft = 'ZIP'
+    Else cms_ft = 'TARGZ'
+    saved_fid = cms_fn cms_ft target_fm
+    If \FetchBinary(pkg_url, saved_fid, 80) Then Exit 3
+  End
+ 
+  Otherwise Do
+    /* Web page / directory */
+    nop
+  End
+End
+ 
+/*--------------------------------------------------------------------*/
+/* Step 5: Write HOWTO file and display instructions                  */
+/*--------------------------------------------------------------------*/
+howto_fid = cms_fn 'HOWTO' target_fm
+Call WriteHowto howto_fid, kind, pkg_name, pkg_desc, pkg_src, pkg_url, ,
+                saved_fid, gh_repo, gh_sub
+ 
+If opt_unpack & (kind = 'ibm' | Word(saved_fid, 2) = 'VMARC') Then Do
+  'ESTATE VMARC MODULE *'
+  If rc = 0 Then Do
+    Say 'Unpacking' saved_fid 'onto' target_fm '...'
+    'VMARC UNPK' saved_fid '* *' target_fm
+  End
+  Else
+    Say 'Warning: VMARC MODULE not found; skipping automatic unpack.'
+End
+ 
+If kind = 'page' Then Exit 3
+Exit 0
+ 
+/*====================================================================*/
+/* Subroutines                                                        */
+/*====================================================================*/
+ 
+LoadReadme: Procedure Expose readme_url cache_fn cache_ft cache_fm ,
+                             max_age_sec opt_verbose
+  Parse Arg local_fid, refresh
+ 
+  If local_fid <> '' Then Do
+    'ESTATE' local_fid
+    If rc <> 0 Then Do
+      Say 'Error: Local README not found:' local_fid
+      Return ''
+    End
+    If opt_verbose Then Say '+ Using local README:' local_fid
+    Return local_fid
+  End
+ 
+  target = cache_fn cache_ft cache_fm
+  is_fresh = 0
+ 
+  'ESTATE' target
+  has_cache = (rc = 0)
+ 
+  If has_cache & \refresh Then Do
+    'PIPE CMS LISTFILE' target '(ISODATE | STEM lf.'
+    If lf.0 >= 1 Then Do
+      /* Parse ISO date YYYY-MM-DD HH:MM:SS from LISTFILE */
+      Parse Var lf.1 . . . . . f_date f_time .
+      file_epoch = IsoToEpoch(f_date, f_time)
+      now_epoch  = NowEpoch()
+      If (now_epoch - file_epoch) < max_age_sec Then is_fresh = 1
+    End
+  End
+ 
+  If is_fresh Then Do
+    If opt_verbose Then Say '+ Using cached README:' target
+    Return target
+  End
+ 
+  If opt_verbose Then Say '+ Fetching README from GitHub...'
+  tmp_fid = 'ZVMREAD TMP' cache_fm
+  'ERASE' tmp_fid '2>/dev/null'
+  rc_dl = RunCurl(readme_url, tmp_fid)
+ 
+  If rc_dl = 0 Then Do
+    /* Normalize LF/CRLF lines into variable-length CMS records */
+    'PIPE <' tmp_fid '| DEBLOCK LINEND 0A | STRIP TRAILING 0D | >' target
+    'ERASE' tmp_fid
+    If opt_verbose Then Say '+ Saved README cache:' target
+    Return target
+  End
+ 
+  'ERASE' tmp_fid
+  If has_cache Then Do
+    Say 'Warning: GitHub fetch failed (rc='rc_dl'); using stale cache.'
+    Return target
+  End
+ 
+  Say 'Error: Cannot fetch README and no cached copy exists (rc='rc_dl').'
+  Return ''
+ 
+/*--------------------------------------------------------------------*/
+ParseCatalog: Procedure Expose cat.
+  Parse Arg fid
+  'PIPE <' fid '| STEM lines.'
+  cat.0 = 0
+  seen. = 0
+ 
+  Do i = 1 To lines.0
+    line = Strip(lines.i)
+    If Left(line, 15) = '## Source Notes' Then Leave
+    If Left(line, 1) <> '|' Then Iterate
+ 
+    /* Split pipe-delimited Markdown row: | col1 | col2 | col3 | */
+    Parse Var line '|' c1 '|' c2 '|' c3 '|' .
+    c1 = Strip(c1)
+    c2 = Strip(c2)
+    c3 = Strip(c3)
+ 
+    name = '' ; desc = '' ; src = '' ; url = ''
+ 
+    /* Pattern 1: | **Name** | Description | [Source](URL) | */
+    If Left(c1, 2) = '**' & Right(c1, 2) = '**' Then Do
+      name = Substr(c1, 3, Length(c1) - 4)
+      desc = c2
+      Parse Var c3 '[' src '](' url ')'
+    End
+    /* Pattern 2: | [Name](URL) | Description | */
+    Else If Left(c1, 1) = '[' & Pos('](', c1) > 0 Then Do
+      Parse Var c1 '[' name '](' url ')'
+      desc = c2
+      src  = 'README'
+    End
+    Else Iterate
+ 
+    name = Strip(name)
+    url  = Strip(url)
+    If name = '' | url = '' Then Iterate
+ 
+    key = Translate(name || '|' || url)
+    If seen.key = 1 Then Iterate
+    seen.key = 1
+ 
+    n = cat.0 + 1
+    cat.n.name = name
+    cat.n.desc = desc
+    cat.n.src  = src
+    cat.n.url  = url
+    cat.0 = n
+  End
+Return
+ 
+/*--------------------------------------------------------------------*/
+SearchCatalog: Procedure Expose cat. hit.
+  Parse Arg terms, name_only
+  u_terms = Translate(terms)
+  n_terms = Words(u_terms)
+  hit.0 = 0
+ 
+  Do i = 1 To cat.0
+    If name_only Then hay = Translate(cat.i.name)
+    Else hay = Translate(cat.i.name cat.i.desc)
+ 
+    matched = 1
+    Do w = 1 To n_terms
+      If Pos(Word(u_terms, w), hay) = 0 Then Do
+        matched = 0
+        Leave
+      End
+    End
+ 
+    If matched Then Do
+      h = hit.0 + 1
+      hit.h = i
+      hit.0 = h
+    End
+  End
+Return
+ 
+/*--------------------------------------------------------------------*/
+PickSingle: Procedure Expose cat. hit.
+  Parse Arg terms
+  If hit.0 = 1 Then Return hit.1
+ 
+  u_terms = Translate(Space(terms))
+  exact_cnt = 0
+  exact_idx = 0
+  Do i = 1 To hit.0
+    idx = hit.i
+    If Translate(Space(cat.idx.name)) = u_terms Then Do
+      exact_cnt = exact_cnt + 1
+      exact_idx = idx
+    End
+  End
+  If exact_cnt = 1 Then Return exact_idx
+Return 0
+ 
+/*--------------------------------------------------------------------*/
+ClassifyUrl: Procedure
+  Parse Arg url
+  u_url = Translate(url)
+  If Pos('IBM.COM', u_url) > 0 & Pos('#SEARCH=', u_url) > 0 Then
+    Return 'ibm'
+  If Pos('//GITHUB.COM/', u_url) > 0 Then
+    Return 'github'
+  ext = GetExtension(url)
+  If WordPos(ext, 'VMARC ZIP TAR TGZ GZ') > 0 Then
+    Return 'direct'
+Return 'page'
+ 
+/*--------------------------------------------------------------------*/
+ParseGitHub: Procedure
+  Parse Arg url
+  /* Strip protocol and domain */
+  Parse Var url 'github.com/' rest
+  Parse Var rest owner '/' repo '/' p3 '/' p4 '/' sub
+  If Right(Translate(repo), 4) = '.GIT' Then
+    repo = Left(repo, Length(repo) - 4)
+  ref = 'HEAD'
+  If Translate(p3) = 'TREE' | Translate(p3) = 'BLOB' Then Do
+    If p4 <> '' Then ref = p4
+  End
+  Else sub = ''
+Return owner repo ref sub
+ 
+/*--------------------------------------------------------------------*/
+FetchBinary: Procedure Expose opt_verbose
+  Parse Arg url, out_fid, lrecl
+  Parse Var out_fid fn ft fm
+  raw_fid = fn 'RAW' fm
+  'ERASE' raw_fid '2>/dev/null'
+  'ERASE' out_fid '2>/dev/null'
+ 
+  Say '  Downloading' url '...'
+  rc_dl = RunCurl(url, raw_fid)
+  If rc_dl <> 0 Then Do
+    Say 'Error: Download failed (curl rc='rc_dl') for' url
+    'ERASE' raw_fid '2>/dev/null'
+    Return 0
+  End
+ 
+  /* Reblock raw byte stream to fixed-length records (F 80 for VMARC) */
+  'PIPE <' raw_fid '| FBLOCK' lrecl '00 | >' out_fid 'F' lrecl
+  rc_pipe = rc
+  'ERASE' raw_fid
+ 
+  If rc_pipe <> 0 Then Do
+    Say 'Error: Reblocking failed (PIPE rc='rc_pipe') for' out_fid
+    Return 0
+  End
+ 
+  'PIPE CMS LISTFILE' out_fid '| STEM st.'
+  recs = '?'
+  If st.0 >= 1 Then Parse Var st.1 . . . . recs .
+  Say '  Saved' out_fid '(F' lrecl',' recs 'records)'
+Return 1
+ 
+/*--------------------------------------------------------------------*/
+RunCurl: Procedure Expose opt_verbose
+  Parse Arg url, out_fid
+  Parse Var out_fid fn ft fm
+  /* Use OpenExtensions / CMS path or native CMS syntax supported by    */
+  /* z/VM CURL MODULE (-L follow redirects, -f fail on HTTP >= 400).   */
+  cmd = 'CURL -sSLf -A "zvmsw/1.0" -o' fn'.'ft'.'fm '"'url'"'
+  If opt_verbose Then Say '+ EXEC:' cmd
+  cmd
+Return rc
+ 
+/*--------------------------------------------------------------------*/
+WriteHowto: Procedure
+  Parse Arg howto_fid, kind, name, desc, src, url, saved_fid, repo, sub
+  out.0 = 0
+  Call AddLine Repeat('=', 70)
+  Call AddLine name '-' desc
+  Call AddLine 'Source:' src '('url')'
+  Call AddLine Repeat('=', 70)
+ 
+  If kind = 'ibm' | (kind = 'direct' & Word(saved_fid, 2) = 'VMARC') Then Do
+    Call AddLine 'Saved and pre-reblocked (F 80) as:' saved_fid
+    Call AddLine ''
+    Call AddLine 'To unpack onto your A-disk:'
+    Call AddLine '  VMARC UNPK' saved_fid '* * A'
+    Call AddLine ''
+    Call AddLine 'Note: IBM''s download library license applies; check'
+    Call AddLine 'the unpacked documentation for terms.'
+  End
+  Else If kind = 'github' Then Do
+    Call AddLine 'Repository tarball saved as:' saved_fid
+    Call AddLine ''
+    If Translate(repo) = 'ZVM-COMMUNITY-TOOLS' & ,
+       Translate(Word(Translate(sub, ' ', '/'), 1)) = 'EXECS' Then Do
+      Call AddLine 'Note: Ready-to-use EXECs are packaged in'
+      Call AddLine 'execs/zvmtools.vmarc inside this repository.'
+    End
+    Call AddLine 'To unpack in z/VM OpenExtensions (OPENVM SHELL):'
+    Call AddLine '  1. Copy' saved_fid 'into BFS (OPENVM PUTBFS)'
+    Call AddLine '  2. Run: pax -rzf <archive>.tar.gz'
+  End
+  Else Do
+    Call AddLine 'This entry points to a web page or directory:'
+    Call AddLine ' ' url
+  End
+ 
+  'PIPE STEM out. | >' howto_fid
+  Do i = 1 To out.0
+    Say out.i
+  End
+Return
+ 
+AddLine:
+  Parse Arg txt
+  n = out.0 + 1
+  out.n = txt
+  out.0 = n
+Return
+ 
+/*--------------------------------------------------------------------*/
+SanitizeCMS: Procedure
+  Parse Arg s
+  /* Map invalid CMS filename chars to underscores, truncate to 8     */
+  s = Translate(s)
+  valid = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$+-_'
+  res = ''
+  Do i = 1 To Length(s)
+    ch = Substr(s, i, 1)
+    If Pos(ch, valid) > 0 Then res = res || ch
+    Else res = res || '_'
+  End
+  If res = '' Then res = 'PACKAGE'
+Return Left(res, 8)
+ 
+GetExtension: Procedure
+  Parse Arg url
+  Parse Var url path '?' .
+  last_dot = LastPos('.', path)
+  If last_dot = 0 Then Return ''
+Return Translate(Substr(path, last_dot + 1))
+ 
+LowerCase: Procedure
+  Parse Arg s
+Return Translate(s, 'abcdefghijklmnopqrstuvwxyz', ,
+                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+ 
+IsoToEpoch: Procedure
+  Parse Arg yyyy '-' mm '-' dd, hh ':' mi ':' ss
+  /* Approximate epoch seconds sufficient for 24-hour cache TTL */
+  days = Date('B', yyyy || mm || dd, 'S')
+Return (days * 86400) + (hh * 3600) + (mi * 60) + ss
+ 
+NowEpoch: Procedure
+  days = Date('B')
+  secs = Time('S')
+Return (days * 86400) + secs
+ 
+ShowHelp:
+  Say 'FINDZOSS - Search z/VM Community Tools catalog and fetch to CMS'
+  Say ''
+  Say 'Usage: FINDZOSS term [term ...] [( options]'
+  Say ''
+  Say 'Options:'
+  Say '  REFRESH          Re-download cached ZVMTOOLS README A'
+  Say '  README fn ft fm  Use a local CMS README file'
+  Say '  FM mode          Target filemode for downloads (default: A)'
+  Say '  NAMEONLY         Search package names only'
+  Say '  UNPACK           Run VMARC UNPK automatically on .vmarc files'
+  Say '  VERBOSE          Show curl commands and progress details'
+Return
+ 

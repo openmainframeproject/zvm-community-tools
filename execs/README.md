@@ -15,8 +15,12 @@ The following tools for z/VM are in this repository:
     | CFT      EXEC    | Copy file with new file type                    |
     | COPYDISK EXEC    | Copy disk with FLASHCOPY if not DDR             |
     | CPFORMAT EXEC    | Format one or more DASD and label               |
+    | CURL     EXEC    | transfer a URL wrapper                          |
+    | CURL     HELPCMS | CURL help file                                  |
+    | CURL     REXX    | transfer a URL worker                           |
     | DIFF     EXEC    | Compare files line by line                      |
     | GREP     EXEC    | Search for patterns in files                    |
+    | FINDZOSS EXEC    | Find z/VM Open Source Software packages         |
     | HEAD     EXEC    | Output the first part of files                  |
     | HISTORY  EXEC    | Display list of commands previously run         |
     | MAN      EXEC    | Give help on CMS/CP/XEDIT commands              |
@@ -28,7 +32,11 @@ The following tools for z/VM are in this repository:
     | SPC      EXEC    | Spool console to reader then restart            |
     | SSICMD   EXEC    | Run CP commands on multiple SSI members         |
     | TAIL     EXEC    | Output the last part of files                   |
+    | UPTIME   EXEC    | Tell how long the system has been running       |
     | WC       EXEC    | Count lines, words and bytes in files           |
+    | WGET     EXEC    | The non-interactive network downloader wrapper  |
+    | WGET     HELPCMS | wget help file                                  |
+    | WGET     REXX    | The non-interactive network downloader worker   |
     | WHICH    EXEC    | Resolve CMS/CP/XEDIT/TCPIP/REXX commands        |
     | WHO      EXEC    | Show who is logged on and allow a pattern       |
     | WHOG     EXEC    | Show logged on users in groups                  |
