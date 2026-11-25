@@ -1,0 +1,49 @@
+.cm
+.cm
+.cm       Name: WGET HELPCMS
+.cm       Date: 2006-Dec-04
+.cm             This file is part of the "CMS Make" package.
+.cm
+.cm
+.cs 1 on
+ CMS WGET
+
+ Download contents of a web page or URL-addressed file
+.cs 1 off
+
+.cs 2 on
+ Use 'wget' to read content from the web to CMS.
+
+ The purpose of the CMS implementation of 'wget' is to handle
+ a particular subset of features and options of the POSIX version.
+
+ +----------+----------------------------------------------------------+
+ |   wget   |   [-q]  [-O FILE]  URL                                   |
+ +----------+----------------------------------------------------------+
+.cs 2 off
+
+.cs 3 on
+¢|Options¢%
+
+  -O    file
+  --output-document=file
+
+  -q
+  --quiet
+.cs 3 off
+
+.cs 7 on
+See the following web pages:
+
+https://ftp.gnu.org/gnu/wget/
+https://www.gnu.org/software/wget/manual/wget.html
+
+See the following related topics:
+
+
+cms curl                CMS CURL for file transfer
+tcpip ftp               VM TCP/IP FTP for file transfer
+cms make                CMS Make
+cms ww2get              WW2GET included with Charlotte web browser
+
+.cs 7 off

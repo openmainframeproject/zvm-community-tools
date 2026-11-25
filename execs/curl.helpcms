@@ -1,0 +1,648 @@
+.cm
+.cm
+.cm       Name: CURL HELPCMS
+.cm       Date: 2006-Nov-26 (Sunday)
+.cm             This file is part of the "CMS Make" package.
+.cm
+.cm
+.cs 1 on
+ CMS CURL
+
+ Download contents of a web page or URL-addressed file
+.cs 1 off
+
+.cs 2 on
+ Use 'curl' to read content from the web to CMS.
+
+ The purpose of the CMS implementation of 'curl' is to handle
+ a particular subset of features and options of the POSIX version.
+
+ +----------+----------------------------------------------------------+
+ |   curl   |   [-s]  [-o FILE]  URL                                   |
+ +----------+----------------------------------------------------------+
+.cs 2 off
+
+.cs 3 on
+�|Options�%
+
+  -o    file
+  --output  file
+
+  -s
+  --silent
+.cs 3 off
+
+.cs 6 on
+�|Return Codes�%
+
+Where possible, CMS CURL uses the same return codes as POSIX CURL:
+
+ 0 success
+
+ 1 unsupported protocol
+
+.cm 2 failed to initialize
+
+ 3 malformed URL
+
+.cm 4 URL user malformatted. The user-part of the URL syntax was not correct.
+
+.cm 5 could not resolve proxy
+
+ 6 could not resolve host
+
+ 7 could not connect to host
+
+.cm 8 FTP weird server reply. The server sent data curl couldn't parse.
+
+.cm 9 FTP access denied. The server denied login.
+
+.cm 10 FTP user/password incorrect. Either one or both were not accepted by the
+
+.cm 11 FTP weird PASS reply. Curl couldn't parse the reply sent to the PASS requ
+
+.cm 12 FTP weird USER reply. Curl couldn't parse the reply sent to the USER requ
+
+.cm 13 FTP weird PASV reply, Curl couldn't parse the reply sent to the PASV requ
+
+.cm 14 FTP weird 227 format. Curl couldn't parse the 227-line the server sent.
+
+.cm 15 FTP can't get host. Couldn't resolve the host IP we got in the 227-line.
+
+.cm 16 FTP can't reconnect. Couldn't connect to the host we got in the 227-line.
+
+.cm 17 FTP couldn't set binary. Couldn't change transfer method to binary.
+
+.cm 18 Partial file. Only a part of the file was transfered.
+
+.cm 19 FTP couldn't download/access the given file, the RETR (or similar) comman
+
+.cm 20 FTP write error. The transfer was reported bad by the server.
+
+.cm 21 FTP quote error. A quote command returned error from the server.
+
+.cm 22 HTTP page not retrieved. The requested url was not found or returned anot
+
+.cm 23 Write error. Curl couldn't write data to a local filesystem or similar.
+
+.cm 24 Malformed user. User name badly specified.
+ 24 general syntax error (in keeping with CMS convention)
+
+.cm 25 FTP couldn't STOR file. The server denied the STOR operation, used for FT
+
+.cm 26 Read error. Various reading problems.
+
+.cm 27 Out of memory. A memory allocation request failed.
+
+.cm 28 Operation timeout. The specified time-out period was reached according to
+
+.cm 29 FTP couldn't set ASCII. The server returned an unknown reply.
+
+.cm 30 FTP PORT failed. The PORT command failed. Not all FTP servers support the
+
+.cm 31 FTP couldn't use REST. The REST command failed. This command is used for
+
+.cm 32 FTP couldn't use SIZE. The SIZE command failed. The command is an extensi
+
+.cm 33 HTTP range error. The range "command" didn't work.
+
+.cm 34 HTTP post error. Internal post-request generation error.
+
+.cm 35 SSL connect error. The SSL handshaking failed.
+
+.cm  36 FTP bad download resume. Couldn't continue an earlier aborted download.
+ 36 no read-write filemode A available to store files downloaded
+
+.cm 37 FILE couldn't read file. Failed to open the file. Permissions?
+
+.cm 38 LDAP cannot bind. LDAP bind operation failed.
+
+.cm 39 LDAP search failed.
+
+.cm 40 Library not found. The LDAP library was not found.
+
+.cm 41 Function not found. A required LDAP function was not found.
+
+.cm 42 Aborted by callback. An application told curl to abort the operation.
+
+.cm 43 Internal error. A function was called with a bad parameter.
+
+.cm 44 Internal error. A function was called in a bad order.
+
+.cm 45 Interface error. A specified outgoing interface could not be used.
+
+.cm 46 Bad password entered. An error was signaled when the password was entered
+
+.cm 47 Too many redirects. When following redirects, curl hit the maximum amount
+
+.cm 48 Unknown TELNET option specified.
+
+.cm 49 Malformed telnet option.
+
+.cm 51 The remote peer's SSL certificate wasn't ok
+
+.cm 52 The server didn't reply anything, which here is considered an error.
+
+.cm 53 SSL crypto engine not found
+
+.cm 54 Cannot set SSL crypto engine as default
+
+.cm 55 Failed sending network data
+
+.cm 56 Failure in receiving network data
+
+.cm 57 Share is in use (internal error)
+
+.cm 58 Problem with the local certificate
+
+.cm 59 Couldn't use specified SSL cipher
+
+.cm 60 Problem with the CA cert (path? permission?)
+
+.cm 61 Unrecognized transfer encoding
+
+.cm 62 Invalid LDAP URL
+
+.cm 63 Maximum file size exceeded
+.cs 6 off
+
+.cs 7 on
+See the following web pages:
+
+https://curl.haxx.se/
+ftp://ftp.sunet.se/pub/www/utilities/curl/
+
+See the following related topics:
+
+
+cms wget                CMS WGET for file transfer
+tcpip ftp               VM TCP/IP FTP for file transfer
+cms make                CMS Make for file maintenance
+
+.cs 7 off
+.cm
+.cm        -B/--use-ascii
+.cm           Use ASCII transfer when getting an FTP file or LDAP
+.cm           info.  For  FTP, this can also be enforced by using
+.cm           an URL that ends with ";type=A". This option causes
+.cm           data  sent  to  stdout to be in text mode for win32
+.cm           systems.
+.cm
+.cm           If this option is used twice, the second  one  will
+.cm           disable ASCII usage.
+.cm
+.cm        --connect-timeout <seconds>
+.cm           Maximum time in seconds that you allow the  connec­
+.cm           tion  to  the server to take.  This only limits the
+.cm           connection phase,  once  curl  has  connected  this
+.cm           option  is  of no more use. See also the --max-time
+.cm           option.
+.cm
+.cm           If this option is used several times, the last  one
+.cm           will be used.
+.cm
+.cm        --crlf (FTP) Convert LF to CRLF in upload. Useful for  MVS
+.cm           (OS/390).
+.cm
+.cm        -f/--fail
+.cm           (HTTP) Fail silently (no output at all)  on  server
+.cm           errors.  This  is  mostly  done like this to better
+.cm           enable scripts  etc  to  better  deal  with  failed
+.cm           attempts.  In normal cases when a HTTP server fails
+.cm           to deliver a document, it returns a  HTML  document
+.cm           stating  so  (which  often  also  describes why and
+.cm           more). This flag will prevent curl from  outputting
+.cm           that and fail silently instead.
+.cm
+.cm           If this option is used twice, the second will again
+.cm           disable silent failure.
+.cm
+.cm        --ftp-pasv
+.cm           (FTP) Use PASV when transfering. PASV is the inter­
+.cm           nal default behavior, but using this option can  be
+.cm           used  to  override  a  previos  --ftp-port  option.
+.cm           (Added in 7.11.0)
+.cm
+.cm           If this option is used twice, the second will again
+.cm           disable silent failure.
+.cm
+.cm        -F/--form <name=content>
+.cm           (HTTP)  This  lets curl emulate a filled in form in
+.cm           which a user has pressed the  submit  button.  This
+.cm           causes  curl  to  POST  data using the content-type
+.cm           multipart/form-data  according  to  RFC1867.   This
+.cm           enables uploading of binary files etc. To force the
+.cm           'content' part to be be a  file,  prefix  the  file
+.cm           name  with  an @ sign. To just get the content part
+.cm           from a file, prefix the file name with  the  letter
+.cm           <.  The  difference  between @ and < is then that @
+.cm           makes a file get attached in the  post  as  a  file
+.cm           upload, while the < makes a text field and just get
+.cm           the contents for that text field from a file.
+.cm
+.cm           Example, to send your password file to the  server,
+.cm           where  'password'  is the name of the form-field to
+.cm           which /etc/passwd will be the input:
+.cm
+.cm           curl -F password=@/etc/passwd www.mypasswords.com
+.cm
+.cm           To read the file's content from stdin insted  of  a
+.cm           file,  use  -  where  the file name should've been.
+.cm           This goes for both @ and < constructs.
+.cm
+.cm           You can also tell curl what Content-Type to use for
+.cm           the file upload part, by using 'type=', in a manner
+.cm           similar to:
+.cm
+.cm           curl -F "web=@index.html;type=text/html" url.com
+.cm
+.cm           See further examples and details in the MANUAL.
+.cm
+.cm           This option can be used multiple times.
+.cm
+.cm        -m/--max-time <seconds>
+.cm           Maximum  time  in  seconds that you allow the whole
+.cm           operation to take.  This is useful  for  preventing
+.cm           your  batch jobs from hanging for hours due to slow
+.cm           networks or links going down.   This  doesn't  work
+.cm           fully  in  win32  systems.  See also the --connect-
+.cm           timeout option.
+.cm
+.cm           If this option is used several times, the last  one
+.cm           will be used.
+.cm
+.cm        -O/--remote-name
+.cm           Write  output to a local file named like the remote
+.cm           file we get. (Only the file part of the remote file
+.cm           is used, the path is cut off.)
+.cm
+.cm           You  may  use this option as many times as you have
+.cm           number of URLs.
+.cm
+.cm        -p/--proxytunnel
+.cm           When an HTTP proxy is used, this option will  cause
+.cm           non-HTTP protocols to attempt to tunnel through the
+.cm           proxy instead of merely using it  to  do  HTTP-like
+.cm           operations.  The  tunnel  approach is made with the
+.cm           HTTP proxy CONNECT request and  requires  that  the
+.cm           proxy allows direct connect to the remote port num­
+.cm           ber curl wants to tunnel through to.
+.cm
+.cm           If this option is used twice, the second will again
+.cm           disable proxy tunnel.
+.cm
+.cm        -P/--ftp-port <address>
+.cm           (FTP)  Reverses  the  initiator/listener roles when
+.cm           connecting with ftp. This switch makes Curl use the
+.cm           PORT  command  instead  of  PASV. In practice, PORT
+.cm           tells the server to connect to the client's  speci­
+.cm           fied  address  and port, while PASV asks the server
+.cm           for an ip address and port to connect to. <address>
+.cm           should be one of:
+.cm
+.cm           interface
+.cm                  i.e  "eth0"  to specify which interface's IP
+.cm                  address you want to use  (Unix only)
+.cm
+.cm           IP address
+.cm                  i.e "192.168.10.1" to specify exact IP  num­
+.cm                  ber
+.cm
+.cm           host name
+.cm                  i.e "my.host.domain" to specify machine
+.cm
+.cm           -      (any  single-letter  string) to make it pick
+.cm                  the machine's default
+.cm
+.cm        If this option is used several times, the last one will be
+.cm        used. Disable the use of PORT with --ftp-pasv.
+.cm
+.cm        -q     If used as the first parameter on the command line,
+.cm           the $HOME/.curlrc file will not be read and used as
+.cm           a config file.
+.cm
+.cm        -Q/--quote <comand>
+.cm           (FTP)  Send  an arbitrary command to the remote FTP
+.cm           server, by using the QUOTE command of  the  server.
+.cm           Not  all  servers support this command, and the set
+.cm           of QUOTE commands are server specific!  Quote  com­
+.cm           mands are sent BEFORE the transfer is taking place.
+.cm           To make commands  take  place  after  a  successful
+.cm           transfer,  prefix  them  with  a  dash '-'. You may
+.cm           specify any amount of commands to be run before and
+.cm           after  the  transfer. If the server returns failure
+.cm           for one of the commands, the entire operation  will
+.cm           be aborted.
+.cm
+.cm           This option can be used multiple times.
+.cm
+.cm        -R/--remote-time
+.cm           When used, this will make libcurl attempt to figure
+.cm           out the timestamp of the remote file, and  if  that
+.cm           is  available  make  the  local  file get that same
+.cm           timestamp.
+.cm
+.cm           If this option is used twice, the second time  dis­
+.cm           ables this again.
+.cm
+.cm        --stderr <file>
+.cm           Redirect all writes to stderr to the specified file
+.cm           instead. If the file name is a  plain  '-',  it  is
+.cm           instead written to stdout. This option has no point
+.cm           when you're using a shell with  decent  redirecting
+.cm           capabilities.
+.cm
+.cm           If  this option is used several times, the last one
+.cm           will be used.
+.cm
+.cm        -t/--telnet-option <OPT=val>
+.cm           Pass options  to  the  telnet  protocol.  Supported
+.cm           options are:
+.cm
+.cm           TTYPE=<term> Sets the terminal type.
+.cm
+.cm           XDISPLOC=<X display> Sets the X display location.
+.cm
+.cm           NEW_ENV=<var,val> Sets an environment variable.
+.cm
+.cm        -T/--upload-file <file>
+.cm           This  transfers  the  specified  local  file to the
+.cm           remote URL. If there is no file part in the  speci­
+.cm           fied  URL,  Curl  will  append the local file name.
+.cm           NOTE that you must use a trailing  /  on  the  last
+.cm           directory  to really prove to Curl that there is no
+.cm           file name or curl will think that your last  direc­
+.cm           tory name is the remote file name to use. That will
+.cm           most likely cause the upload operation to fail.  If
+.cm           this  is  used on a http(s) server, the PUT command
+.cm           will be used.
+.cm
+.cm           Use the file name "-" (a single dash) to use  stdin
+.cm           instead of a given file.
+.cm
+.cm           Before  7.10.8,  when  this option was used several
+.cm           times, the last one was used.
+.cm
+.cm           In curl 7.10.8 and later, you can  specify  one  -T
+.cm           for  each  URL  on  the command line. Each -T + URL
+.cm           pair specifies what to upload and  to  where.  curl
+.cm           also  supports "globbing" of the -T argument, mean­
+.cm           ing that you can upload multiple files to a  single
+.cm           URL  by using the same URL globbing style supported
+.cm           in the URL, like this:
+.cm
+.cm           curl    -T    "{file1,file2}"    http://www.upload­
+.cm           tothissite.com
+.cm
+.cm           or even
+.cm
+.cm           curl   -T   "img[1-1000].png"  ftp://ftp.picturema­
+.cm           nia.com/upload/
+.cm
+.cm        -u/--user <user:password>
+.cm           Specify  user  and  password  to use when fetching.
+.cm           Read the MANUAL for detailed examples of how to use
+.cm           this.  If  no  password is specified, curl will ask
+.cm           for it interactively.
+.cm
+.cm           You can also use  the  --digest  option  to  enable
+.cm           Digest  authentication when communicating with HTTP
+.cm           1.1 servers.
+.cm
+.cm        -v/--verbose
+.cm           Makes  the  fetching more verbose/talkative. Mostly
+.cm           usable for debugging. Lines starting with '>' means
+.cm           data  sent by curl, '<' means data received by curl
+.cm           that is hidden in normal cases and  lines  starting
+.cm           with '*' means additional info provided by curl.
+.cm
+.cm           Note  that  if  you want to see HTTP headers in the
+.cm           output, -i/--include might be option you're looking
+.cm           for.
+.cm
+.cm           If  you  think  this  option still doesn't give you
+.cm           enough details, consider using --trace or  --trace-
+.cm           ascii instead.
+.cm
+.cm           If this option is used twice, the second will again
+.cm           disable verbose.
+.cm
+.cm        -V/--version
+.cm           Displays information about  curl  and  the  libcurl
+.cm           version it uses.
+.cm
+.cm           The  first  line includes the full version of curl,
+.cm           libcurl and other 3rd party libraries  linked  with
+.cm           the executable.
+.cm
+.cm           The  second  line  (starts with "Protocols:") shows
+.cm           all protocols that libcurl reports to support.
+.cm
+.cm           The third line (starts with "Features:") shows spe­
+.cm           cific features libcurl reports to offer.
+.cm
+.cm        -w/--write-out <format>
+.cm           Defines  what to display after a completed and suc­
+.cm           cessful operation. The format is a string that  may
+.cm           contain  plain  text mixed with any number of vari­
+.cm           ables. The string can be specified as "string",  to
+.cm           get  read  from  a  particular  file you specify it
+.cm           "@filename" and to tell curl  to  read  the  format
+.cm           from stdin you write "@-".
+.cm
+.cm           The  variables present in the output format will be
+.cm           substituted by the value or text that  curl  thinks
+.cm           fit,  as  described below. All variables are speci­
+.cm           fied like %{variable_name} and to output a normal %
+.cm           you  just write them like %%. You can output a new­
+.cm           line by using \n, a carriage return with \r  and  a
+.cm           tab space with \t.
+.cm
+.cm           NOTE:  The  %-letter  is  a  special  letter in the
+.cm           win32-environment, where all occurrences of %  must
+.cm           be doubled when using this option.
+.cm
+.cm           Available variables are at this point:
+.cm
+.cm           url_effective  The  URL that was fetched last. This
+.cm                          is mostly meaningful if you've  told
+.cm                          curl to follow location: headers.
+.cm
+.cm           http_code      The numerical code that was found in
+.cm                          the last retrieved HTTP(S) page.
+.cm
+.cm           time_total     The total time, in seconds, that the
+.cm                          full operation lasted. The time will
+.cm                          be displayed with millisecond  reso­
+.cm                          lution.
+.cm
+.cm           time_namelookup
+.cm                          The  time,  in seconds, it took from
+.cm                          the start until the  name  resolving
+.cm                          was completed.
+.cm
+.cm           time_connect   The  time,  in seconds, it took from
+.cm                          the start until the connect  to  the
+.cm                          remote  host  (or  proxy)  was  com­
+.cm                          pleted.
+.cm
+.cm           time_pretransfer
+.cm                          The time, in seconds, it  took  from
+.cm                          the start until the file transfer is
+.cm                          just about to begin.  This  includes
+.cm                          all  pre-transfer commands and nego­
+.cm                          tiations that are  specific  to  the
+.cm                          particular protocol(s) involved.
+.cm
+.cm           time_starttransfer
+.cm                          The  time,  in seconds, it took from
+.cm                          the start until the  first  byte  is
+.cm                          just  about  to  be transfered. This
+.cm                          includes time_pretransfer  and  also
+.cm                          the  time the server needs to calcu­
+.cm                          late the result.
+.cm
+.cm           size_download  The total amount of bytes that  were
+.cm                          downloaded.
+.cm
+.cm           size_upload    The  total amount of bytes that were
+.cm                          uploaded.
+.cm
+.cm           size_header    The total amount  of  bytes  of  the
+.cm                          downloaded headers.
+.cm
+.cm           size_request   The  total amount of bytes that were
+.cm                          sent in the HTTP request.
+.cm
+.cm           speed_download The average download speed that curl
+.cm                          measured  for the complete download.
+.cm
+.cm           speed_upload   The average upload speed  that  curl
+.cm                          measured for the complete upload.
+.cm
+.cm           content_type   The  Content-Type  of  the requested
+.cm                          document, if there was  any.  (Added
+.cm                          in 7.9.5)
+.cm
+.cm        If this option is used several times, the last one will be
+.cm        used.
+.cm
+.cm        -x/--proxy <proxyhost[:port]>
+.cm           Use specified HTTP proxy. If the port number is not
+.cm           specified, it is assumed at port 1080.
+.cm
+.cm           This  option  overrides  existing environment vari­
+.cm           ables that sets proxy to use. If there's  an  envi­
+.cm           ronment variable setting a proxy, you can set proxy
+.cm           to "" to override it.
+.cm
+.cm           Note that all operations that are performed over  a
+.cm           HTTP proxy will transparantly be converted to HTTP.
+.cm           It means that certain protocol specific  operations
+.cm           might not be available. This is not the case if you
+.cm           can tunnel through the  proxy,  as  done  with  the
+.cm           -p/--proxytunnel option.
+.cm
+.cm           If  this option is used several times, the last one
+.cm           will be used.
+.cm
+.cm        -X/--request <command>
+.cm           (HTTP) Specifies a custom request to use when  com­
+.cm           municating  with  the  HTTP  server.  The specified
+.cm           request will be used instead of the  standard  GET.
+.cm           Read  the  HTTP  1.1  specification for details and
+.cm           explanations.
+.cm
+.cm           (FTP) Specifies a custom FTP command to use instead
+.cm           of LIST when doing file lists with ftp.
+.cm
+.cm           If  this option is used several times, the last one
+.cm           will be used.
+.cm
+.cm        -y/--speed-time <time>
+.cm           If a download is slower than speed-limit bytes  per
+.cm           second  during  a  speed-time  period, the download
+.cm           gets aborted. If speed-time is  used,  the  default
+.cm           speed-limit will be 1 unless set with -y.
+.cm
+.cm           This  option  controls  transfers and thus will not
+.cm           affect slow connects etc. If this is a concern  for
+.cm           you, try the --connect-timeout option.
+.cm
+.cm           If  this option is used several times, the last one
+.cm           will be used.
+.cm
+.cm        -Y/--speed-limit <speed>
+.cm           If a download is slower than this given  speed,  in
+.cm           bytes  per  second,  for speed-time seconds it gets
+.cm           aborted. speed-time is set with -Y and is 30 if not
+.cm           set.
+.cm
+.cm           If  this option is used several times, the last one
+.cm           will be used.
+.cm
+.cm        -z/--time-cond <date expression>
+.cm           (HTTP) Request to get a file that has been modified
+.cm           later than the given time and date, or one that has
+.cm           been modified before that time. The date expression
+.cm           can  be  all sorts of date strings or if it doesn't
+.cm           match any internal ones, it tries to get  the  time
+.cm           from a given file name instead! See the GNU date(1)
+.cm           or curl_getdate(3) man pages  for  date  expression
+.cm           details.
+.cm
+.cm           Start  the  date expression with a dash (-) to make
+.cm           it request for a document that is  older  than  the
+.cm           given  date/time,  default  is  a  document that is
+.cm           newer than the specified date/time.
+.cm
+.cm           If this option is used several times, the last  one
+.cm           will be used.
+.cm
+.cm        -Z/--max-redirs <num>
+.cm           Set   maximum   number   of  redirection-followings
+.cm           allowed. If -L/--location is used, this option  can
+.cm           be used to prevent curl from following redirections
+.cm           "in absurdum".
+.cm
+.cm           If this option is used several times, the last  one
+.cm           will be used.
+.cm
+.cm        -0/--http1.0
+.cm           (HTTP) Forces curl to issue its requests using HTTP
+.cm           1.0 instead of using its internally preferred: HTTP
+.cm           1.1.
+.cm
+.cm        -1/--tlsv1
+.cm           (HTTPS) Forces curl to use TSL version 1 when nego­
+.cm           tiating with a remote TLS server.
+.cm
+.cm        -2/--sslv2
+.cm           (HTTPS) Forces curl to use SSL version 2 when nego­
+.cm           tiating with a remote SSL server.
+.cm
+.cm        -3/--sslv3
+.cm           (HTTPS) Forces curl to use SSL version 3 when nego­
+.cm           tiating with a remote SSL server.
+.cm
+.cm        -4/--ipv4
+.cm           If libcurl is capable of resolving  an  address  to
+.cm           multiple   IP  versions  (which  it  is  if  it  is
+.cm           ipv6-capable), this option tells libcurl to resolve
+.cm           names to IPv4 addresses only. (Added in 7.10.8)
+.cm
+.cm        -6/--ipv6
+.cm           If  libcurl  is  capable of resolving an address to
+.cm           multiple  IP  versions  (which  it  is  if  it   is
+.cm           ipv6-capable), this option tells libcurl to resolve
+.cm           names to IPv6 addresses only. (Added in 7.10.8)
+.cm
+.cm        -#/--progress-bar
+.cm           Make  curl  display  progress  information   as   a
+.cm           progress bar instead of the default statistics.
+.cm
+.cm           If this option is used twice, the second will again
+.cm           disable the progress bar.
+.cm
+.cm
+.cm
