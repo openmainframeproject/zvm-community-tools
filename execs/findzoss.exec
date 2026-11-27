@@ -83,14 +83,6 @@ End
  
 terms = pos_part
  
-/* Verify CURL MODULE is available */
-'ESTATE CURL MODULE *'
-If rc <> 0 Then Do
-  Say 'Error: CURL MODULE not found on any accessed disk.'
-  Say 'FINDZOSS requires CMS curl to fetch HTTPS URLs from GitHub/IBM.'
-  Exit 3
-End
- 
 /*--------------------------------------------------------------------*/
 /* Step 1: Load README (local, cached, or fresh via curl)             */
 /*--------------------------------------------------------------------*/
@@ -236,7 +228,7 @@ LoadReadme: Procedure Expose readme_url cache_fn cache_ft cache_fm ,
   If opt_verbose Then Say '+ Fetching README from GitHub...'
   tmp_fid = 'ZVMREAD TMP' cache_fm
   'ERASE' tmp_fid '2>/dev/null'
-  rc_dl = RunCurl(readme_url, tmp_fid)
+  rc_dl = RunCurl(readme_url, tmp_fid, 0)
  
   If rc_dl = 0 Then Do
     /* Normalize LF/CRLF lines into variable-length CMS records */
@@ -388,7 +380,7 @@ FetchBinary: Procedure Expose opt_verbose
   'ERASE' out_fid '2>/dev/null'
  
   Say '  Downloading' url '...'
-  rc_dl = RunCurl(url, raw_fid)
+  rc_dl = RunCurl(url, raw_fid, 1)
   If rc_dl <> 0 Then Do
     Say 'Error: Download failed (curl rc='rc_dl') for' url
     'ERASE' raw_fid '2>/dev/null'
@@ -413,14 +405,25 @@ Return 1
  
 /*--------------------------------------------------------------------*/
 RunCurl: Procedure Expose opt_verbose
-  Parse Arg url, out_fid
+  Parse Arg url, out_fid, binary
   Parse Var out_fid fn ft fm
-  /* Use OpenExtensions / CMS path or native CMS syntax supported by    */
-  /* z/VM CURL MODULE (-L follow redirects, -f fail on HTTP >= 400).   */
-  cmd = 'CURL -sSLf -A "zvmsw/1.0" -o' fn'.'ft'.'fm '"'url'"'
+  /* CURL EXEC drives the CURL REXX worker; it is not a MODULE. */
+  cmd = 'CURL -s'
+  If binary Then cmd = cmd '--binary'
+  cmd = cmd '-o' fn'.'ft'.'fm '"'url'"'
   If opt_verbose Then Say '+ EXEC:' cmd
   cmd
-Return rc
+  curl_rc = rc
+  If curl_rc <> 0 Then Do
+    /* Report a missing CMS curl component only after trying the command. */
+    'ESTATE CURL EXEC *'
+    has_exec = (rc = 0)
+    'ESTATE CURL REXX *'
+    has_rexx = (rc = 0)
+    If \has_exec Then Say 'Error: CURL EXEC not found on any accessed disk.'
+    If \has_rexx Then Say 'Error: CURL REXX not found on any accessed disk.'
+  End
+Return curl_rc
  
 /*--------------------------------------------------------------------*/
 WriteHowto: Procedure
