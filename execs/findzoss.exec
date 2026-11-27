@@ -429,12 +429,15 @@ Return 1
 RunCurl: Procedure Expose opt_verbose
   Parse Arg url, out_fid, binary
   Parse Var out_fid fn ft fm
-  /* CURL EXEC drives the CURL REXX worker; use only its supported flags. */
-  cmd = 'CURL -s'
+  /* CURL EXEC drives the CURL REXX worker. In verbose mode, pass -v
+     through so the worker reports its protocol/host/file diagnostics;
+     otherwise use -s to keep normal runs quiet. */
+  cmd = 'CURL'
+  If opt_verbose Then cmd = cmd '-v'
+  Else cmd = cmd '-s'
   If binary Then cmd = cmd '--binary'
   cmd = cmd '-o' fn'.'ft'.'fm '"'url'"'
   If opt_verbose Then Say '+ EXEC:' cmd
-  /* Execute the constructed command string, not a literal command named CMD. */
   Address Command cmd
   curl_rc = rc
   If opt_verbose Then Say '+ CURL return code:' curl_rc
@@ -446,6 +449,8 @@ RunCurl: Procedure Expose opt_verbose
     has_rexx = (rc = 0)
     If \has_exec Then Say 'Error: CURL EXEC not found on any accessed disk.'
     If \has_rexx Then Say 'Error: CURL REXX not found on any accessed disk.'
+    If opt_verbose & curl_rc = -3 Then
+      Say 'Diagnostic: CURL failed during command or worker initialization.'
   End
 Return curl_rc
  
