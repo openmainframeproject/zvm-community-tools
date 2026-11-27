@@ -59,10 +59,17 @@ PIPE < VMARC MODULE A | deblock cms | > VMARC MODULE A
 Then:
 - Download ``ZVMTOOLS.VMARC`` to your workstation.
 - Get it to z/VM in binary, either with FTP (using ``bin``, ``quote site fix 80``, then ``put ZVMTOOLS.VMARC``), or using another tool such as ``IND$FILE``.
-- Unpack it: 
+- Unpack it with the ``VMARC`` command and the OLDDATE and REPLACE options: 
 
 ```
-vmarc unpk zvmtools.vmarc
+vmarc unpk zvmtools vmarc a (oldd rep                                      
+CALC     EXEC     A1. Bytes in=       720, bytes out=       845 (   117%). 
+CALCDASD EXEC     A1. Bytes in=      5120, bytes out=     11770 (   229%). 
+CALCOSA  EXEC     A1. Bytes in=      4240, bytes out=     10296 (   242%). 
+CFM      EXEC     A1. Bytes in=       880, bytes out=      1254 (   142%). 
+CFN      EXEC     A1. Bytes in=       880, bytes out=      1253 (   142%). 
+CFT      EXEC     A1. Bytes in=       960, bytes out=      1299 (   135%). 
+...
 ```
 All the files should now be accessible.
 
