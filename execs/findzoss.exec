@@ -45,6 +45,18 @@ terms        = ''
 Parse Var raw_args pos_part '(' opt_part
 pos_part = Space(pos_part)
 opt_part = Translate(Space(opt_part))
+
+/* Also accept -v/--verbose in the usual command-line position. */
+new_pos = ''
+Do While pos_part <> ''
+  Parse Var pos_part tok pos_part
+  Select
+    When Translate(tok) = '-V' | Translate(tok) = '--VERBOSE' Then ,
+      opt_verbose = 1
+    Otherwise new_pos = new_pos tok
+  End
+End
+pos_part = new_pos
  
 If pos_part = '' | pos_part = '?' Then Do
   Call ShowHelp
@@ -208,6 +220,10 @@ LoadReadme: Procedure Expose readme_url cache_fn cache_ft cache_fm ,
  
   'ESTATE' target
   has_cache = (rc = 0)
+  If opt_verbose Then Do
+    If has_cache Then Say '+ Found cached README:' target
+    Else Say '+ No cached README found:' target
+  End
  
   If has_cache & \refresh Then Do
     'PIPE CMS LISTFILE' target '(ISODATE | STEM lf.'
@@ -221,10 +237,11 @@ LoadReadme: Procedure Expose readme_url cache_fn cache_ft cache_fm ,
   End
  
   If is_fresh Then Do
-    If opt_verbose Then Say '+ Using cached README:' target
+    If opt_verbose Then Say '+ Using fresh cached README:' target
     Return target
   End
  
+  If opt_verbose Then Say '+ Cached README is stale or refresh requested.'
   If opt_verbose Then Say '+ Fetching README from GitHub...'
   tmp_fid = 'ZVMREAD TMP' cache_fm
   'ERASE' tmp_fid '2>/dev/null'
@@ -233,7 +250,12 @@ LoadReadme: Procedure Expose readme_url cache_fn cache_ft cache_fm ,
   If rc_dl = 0 Then Do
     /* Normalize LF/CRLF lines into variable-length CMS records */
     'PIPE <' tmp_fid '| DEBLOCK LINEND 0A | STRIP TRAILING 0D | >' target
+    rc_pipe = rc
     'ERASE' tmp_fid
+    If rc_pipe <> 0 Then Do
+      Say 'Error: Could not normalize downloaded README (PIPE rc='rc_pipe').'
+      Return ''
+    End
     If opt_verbose Then Say '+ Saved README cache:' target
     Return target
   End
@@ -407,15 +429,17 @@ Return 1
 RunCurl: Procedure Expose opt_verbose
   Parse Arg url, out_fid, binary
   Parse Var out_fid fn ft fm
-  /* CURL EXEC drives the CURL REXX worker; it is not a MODULE. */
+  /* CURL EXEC drives the CURL REXX worker; use only its supported flags. */
   cmd = 'CURL -s'
   If binary Then cmd = cmd '--binary'
   cmd = cmd '-o' fn'.'ft'.'fm '"'url'"'
   If opt_verbose Then Say '+ EXEC:' cmd
-  cmd
+  /* Execute the constructed command string, not a literal command named CMD. */
+  Address Command cmd
   curl_rc = rc
+  If opt_verbose Then Say '+ CURL return code:' curl_rc
   If curl_rc <> 0 Then Do
-    /* Report a missing CMS curl component only after trying the command. */
+    /* Report missing CMS curl components only after trying CURL. */
     'ESTATE CURL EXEC *'
     has_exec = (rc = 0)
     'ESTATE CURL REXX *'
@@ -522,6 +546,6 @@ ShowHelp:
   Say '  FM mode          Target filemode for downloads (default: A)'
   Say '  NAMEONLY         Search package names only'
   Say '  UNPACK           Run VMARC UNPK automatically on .vmarc files'
-  Say '  VERBOSE          Show curl commands and progress details'
+  Say '  -v, --verbose    Show curl commands and cache/download details'
 Return
  
